@@ -89,7 +89,7 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="mes" />
                 <YAxis />
-                <Tooltip formatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                <Tooltip formatter={(value) => `R$ ${(value as number).toLocaleString('pt-BR')}`} />
                 <Legend />
                 <Line
                   type="monotone"
@@ -123,7 +123,7 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="categoria" />
                 <YAxis />
-                <Tooltip formatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                <Tooltip formatter={(value) => `R$ ${(value as number).toLocaleString('pt-BR')}`} />
                 <Bar dataKey="valor" fill="#3B82F6" name="Valor" />
               </BarChart>
             </ResponsiveContainer>

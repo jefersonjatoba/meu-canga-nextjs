@@ -1,11 +1,12 @@
-import { NextAuthConfig } from 'next-auth'
+import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { validateCPF } from './utils'
 
-// NOTA: Este é um exemplo básico. Em produção:
-// - Hash as senhas com bcrypt
-// - Valide contra banco de dados
-// - Use HTTPS sempre
+// NOTE: This is a development stub.
+// Production implementation should:
+// - Hash passwords with bcrypt
+// - Validate against the database
+// - Enforce HTTPS
 export const authConfig: NextAuthConfig = {
   providers: [
     Credentials({
@@ -15,27 +16,29 @@ export const authConfig: NextAuthConfig = {
         password: { label: 'Senha', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.cpf || !credentials?.password) {
+        const cpf = credentials?.cpf as string | undefined
+        const password = credentials?.password as string | undefined
+
+        if (!cpf || !password) {
           throw new Error('CPF e senha são obrigatórios')
         }
 
-        // Valida CPF
-        if (!validateCPF(credentials.cpf)) {
+        if (!validateCPF(cpf)) {
           throw new Error('CPF inválido')
         }
 
-        // TODO: Buscar usuário no banco de dados
-        // const user = await db.user.findUnique({ where: { cpf: credentials.cpf } })
-        // if (!user || !await bcrypt.compare(credentials.password, user.password)) {
+        // TODO: Validate against database
+        // const user = await db.user.findUnique({ where: { cpf } })
+        // if (!user || !await bcrypt.compare(password, user.password)) {
         //   throw new Error('CPF ou senha incorretos')
         // }
 
-        // Mock user para desenvolvimento
+        // Development mock user
         return {
           id: '1',
           email: 'user@example.com',
           name: 'User Example',
-          cpf: credentials.cpf,
+          cpf,
           role: 'user',
         }
       },
@@ -49,16 +52,18 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.cpf = (user as any).cpf
-        token.role = (user as any).role || 'user'
+        token.cpf = (user as Record<string, unknown>).cpf
+        token.role = (user as Record<string, unknown>).role ?? 'user'
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id
-        (session.user as any).cpf = token.cpf
-        (session.user as any).role = token.role
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const extUser = session.user as any
+        extUser.id = token.id
+        extUser.cpf = token.cpf
+        extUser.role = token.role
       }
       return session
     },

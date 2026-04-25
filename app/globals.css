@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Tailwind v4 theme customization via @theme directive */
+@theme {
+  --color-precision-black: #0F0F0F;
+  --color-dark-gray: #1A1A1A;
+  --color-light-gray: #F5F5F5;
+  --color-accent-green: #10B981;
+  --color-accent-blue: #3B82F6;
+  --color-accent-orange: #F59E0B;
+  --color-success: #22C55E;
+  --color-warning: #EAB308;
+  --color-error: #EF4444;
+  --font-family-sans: system-ui, sans-serif;
+}
+
 html {
   scroll-behavior: smooth;
 }

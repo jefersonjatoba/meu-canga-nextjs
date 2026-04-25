@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'Meu Canga - SaaS Fintech para Segurança Pública',
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="bg-white text-black">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

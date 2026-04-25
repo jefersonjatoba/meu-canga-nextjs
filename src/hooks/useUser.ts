@@ -1,34 +1,36 @@
 'use client'
 
-import { SessionUser } from '@/types'
-import { useQuery } from '@tanstack/react-query'
-import { useSession } from 'next-auth/react'
+import { useAuth } from './useAuth'
 import { useUserStore } from '@/store/userStore'
 import { useEffect } from 'react'
+import type { SessionUser } from '@/types'
 
+/**
+ * useUser — derives SessionUser from the Supabase auth session and keeps
+ * the Zustand userStore in sync. Single source of truth: Supabase.
+ */
 export function useUser() {
-  const { data: session, status } = useSession()
+  const { user: supabaseUser, loading } = useAuth()
   const { user, setUser } = useUserStore()
 
-  // Sincroniza NextAuth session com Zustand store
   useEffect(() => {
-    if (session?.user) {
+    if (supabaseUser) {
       const userData: SessionUser = {
-        id: (session.user as any).id || '',
-        email: session.user.email || '',
-        name: session.user.name || '',
-        cpf: (session.user as any).cpf || '',
-        role: (session.user as any).role || 'user',
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        name: supabaseUser.email.split('@')[0], // fallback until profile table is set up
+        cpf: '',
+        role: 'user',
       }
       setUser(userData)
-    } else if (status === 'unauthenticated') {
+    } else if (!loading) {
       setUser(null)
     }
-  }, [session, status, setUser])
+  }, [supabaseUser, loading, setUser])
 
   return {
     user,
-    isLoading: status === 'loading',
-    isAuthenticated: status === 'authenticated',
+    isLoading: loading,
+    isAuthenticated: !!supabaseUser,
   }
 }

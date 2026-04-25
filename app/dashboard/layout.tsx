@@ -1,9 +1,9 @@
 'use client'
 
 import { useUser } from '@/hooks/useUser'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { useEffect, ReactNode } from 'react'
-import { signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { Home, Settings, LogOut } from 'lucide-react'
 
@@ -19,6 +19,7 @@ const menuItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { isAuthenticated, isLoading, user } = useUser()
+  const { signOut } = useAuth()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -73,7 +74,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
 
           <button
-            onClick={() => signOut({ callbackUrl: '/auth/login' })}
+            onClick={async () => { await signOut(); router.push('/auth/login') }}
             className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-error/10 text-error transition-colors"
           >
             <LogOut size={20} />

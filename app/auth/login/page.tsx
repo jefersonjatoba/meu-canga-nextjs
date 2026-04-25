@@ -3,17 +3,16 @@
 import { Button } from '@/components/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/Card'
 import { Input } from '@/components/Input'
-import { formatCPF, validateCPF } from '@/lib/utils'
-import { signIn } from 'next-auth/react'
+import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 const loginSchema = z.object({
-  cpf: z.string().refine(validateCPF, 'CPF inválido'),
+  email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
 })
 
@@ -21,52 +20,52 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const { signIn, isAuthenticated, loading } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
-    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
 
-  const cpfValue = watch('cpf')
-
-  const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCPF(e.target.value)
-    setValue('cpf', formatted)
-  }
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      router.replace('/dashboard')
+    }
+  }, [isAuthenticated, loading, router])
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
+    setIsSubmitting(true)
     setErrorMessage('')
 
     try {
-      const result = await signIn('credentials', {
-        cpf: data.cpf.replace(/\D/g, ''),
-        password: data.password,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setErrorMessage(result.error)
-      } else if (result?.ok) {
-        router.push('/dashboard')
-      }
-    } catch (error) {
-      setErrorMessage('Erro ao fazer login. Tente novamente.')
+      await signIn(data.email, data.password)
+      router.replace('/dashboard')
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Email ou senha incorretos.'
+      )
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-accent-blue to-precision-black">
+        <div className="w-10 h-10 rounded-full border-4 border-white border-r-transparent animate-spin" />
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-accent-blue to-precision-black p-4">
-      <div className="w-full max-w-md animate-slideUp">
+      <div className="w-full max-w-md">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-center text-3xl">Meu Canga</CardTitle>
@@ -84,12 +83,12 @@ export default function LoginPage() {
               )}
 
               <Input
-                label="CPF"
-                placeholder="000.000.000-00"
-                {...register('cpf')}
-                onChange={handleCPFChange}
-                error={errors.cpf?.message}
-                autoComplete="off"
+                label="Email"
+                type="email"
+                placeholder="seu@email.com"
+                {...register('email')}
+                error={errors.email?.message}
+                autoComplete="email"
               />
 
               <Input
@@ -103,7 +102,7 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                isLoading={isLoading}
+                isLoading={isSubmitting}
                 className="w-full"
                 size="md"
               >
