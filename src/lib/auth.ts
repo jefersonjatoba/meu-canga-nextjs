@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
+import NextAuth from 'next-auth'
 import { validateCPF } from './utils'
 
 // NOTE: This is a development stub.
@@ -7,7 +8,7 @@ import { validateCPF } from './utils'
 // - Hash passwords with bcrypt
 // - Validate against the database
 // - Enforce HTTPS
-export const authConfig: NextAuthConfig = {
+const authConfig: NextAuthConfig = {
   providers: [
     Credentials({
       name: 'CPF',
@@ -69,3 +70,5 @@ export const authConfig: NextAuthConfig = {
     },
   },
 }
+
+export const { auth, handlers } = NextAuth(authConfig)

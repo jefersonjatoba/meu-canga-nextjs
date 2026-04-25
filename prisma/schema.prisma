@@ -22,9 +22,12 @@ model User {
   updatedAt DateTime   @updatedAt
 
   // Relacionamentos
-  escalas   Escala[]
-  ras       RAS[]
-  lancamentos Lancamento[]
+  escalas        Escala[]
+  rasAgendas     RasAgenda[]
+  rasAgendamentos RasAgendamento[]
+  rasPagamentos  RasPagamento[]
+  rasCenarios    RasCenarioSalvo[]
+  lancamentos    Lancamento[]
   investimentos Investimento[]
   metas     Meta[]
   recorrencias Recorrencia[]
@@ -36,37 +39,111 @@ model User {
 
 // MÓDULO: ESCALA (Turnos de trabalho)
 model Escala {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dataEscala DateTime  // Data do turno
-  tipoTurno String     // MATUTINO, VESPERTINO, NOTURNO
-  localServico String?
-  status    String     @default("agendada") // agendada, realizada, cancelada
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataEscala     DateTime  // Data do turno
+  tipoTurno      String    // plantao, sobreaviso, extra, folga, ferias
+  horaInicio     String    @default("07:00") // HH:mm
+  horaFim        String    @default("19:00") // HH:mm
+  localServico   String?
+  observacoes    String?
+  alarmeAtivo    Boolean   @default(true)
+  status         String    @default("agendada") // agendada, realizada, cancelada
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([userId])
   @@index([dataEscala])
+  @@index([status])
 }
 
 // MÓDULO: RAS (Regime Adicional de Serviço)
-model RAS {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dataAgendada DateTime
-  dataRealizada DateTime?
-  status    String     @default("agendada") // agendada, realizada, pendente, confirmada
-  valor     Float      // Valor do RAS
-  observacoes String?
-  meses     String[]   @default([]) // Meses em que esse RAS conta (ex: ["2026-04"])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+
+// RasAgenda – planning record for a single RAS event
+model RasAgenda {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data           DateTime         // Date of the RAS event (date part only)
+  horaInicio     String           // HH:mm
+  horaFim        String           // HH:mm
+  duracao        Int              // 6 | 8 | 12 | 24 (hours)
+  local          String           // Must be in RAS_ALL_LOCALS
+  graduacao      String           // SD/CB | SGT/SUBTEN
+  valorCentavos  Int              // From RAS_PRICE_TABLE at creation time (cents)
+  status         String           @default("agendado") // agendado, realizado, pendente, confirmado, cancelado
+  competencia    String           // yyyy-MM – month this RAS counts toward
+  observacoes    String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relations
+  agendamentos   RasAgendamento[]
+  pagamentos     RasPagamento[]
+
+  @@unique([userId, data, horaInicio])       // no duplicate bookings same day+time
+  @@index([userId])
+  @@index([data])
+  @@index([status])
+  @@index([competencia])
+}
+
+// RasAgendamento – booking/confirmation slot within an RasAgenda
+model RasAgendamento {
+  id              String     @id @default(cuid())
+  rasAgendaId     String
+  rasAgenda       RasAgenda  @relation(fields: [rasAgendaId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          String     @default("agendado") // agendado, realizado, pendente, confirmado, cancelado
+  dataRealizacao  DateTime?  // Timestamp when event was carried out
+  observacoes     String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([rasAgendaId])
+  @@index([userId])
+  @@index([status])
+}
+
+// RasPagamento – payment tracking for a realized RAS
+model RasPagamento {
+  id             String     @id @default(cuid())
+  rasAgendaId    String
+  rasAgenda      RasAgenda  @relation(fields: [rasAgendaId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  valorCentavos  Int        // Actual paid amount in cents
+  competencia    String     // yyyy-MM
+  dataPagamento  DateTime?
+  comprovante    String?    // URL or file reference
+  observacoes    String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([rasAgendaId])
+  @@index([userId])
+  @@index([competencia])
+}
+
+// RasCenarioSalvo – saved projection/scenario for RAS earnings
+model RasCenarioSalvo {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome           String
+  descricao      String?
+  mes            String   // yyyy-MM the scenario is modeled for
+  graduacao      String   // SD/CB | SGT/SUBTEN
+  eventos        Json     // RasCenarioEvento[] serialized
+  totalHoras     Int
+  totalCentavos  Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([userId])
-  @@index([dataAgendada])
-  @@index([status])
+  @@index([mes])
 }
 
 // MÓDULO: LANÇAMENTOS (Transações financeiras)
@@ -176,6 +253,16 @@ model Conta {
   @@index([userId])
   @@index([ativa])
 }
+
+// ─── Field value constraints and documentation ──────────────────────────────
+// Note: String fields use database-level constraints for data integrity.
+// - tipoPlantao: must be in ['plantao', 'sobreaviso', 'extra', 'folga', 'ferias']
+// - tipoCiclo: must be in ['12x24-12x72', '12x24-12x48', '24x48', '24x72', '12x36-folgao']
+// - status: must be in ['agendada', 'realizada', 'cancelada'] for Escala
+// - RAS status: must be in ['agendado', 'realizado', 'pendente', 'confirmado', 'cancelado']
+// - RAS graduacao: must be in ['SD/CB', 'SGT/SUBTEN']
+// - RAS duracao: must be in [6, 8, 12, 24] (hours)
+// - RAS local: must match one of 70 valid locations (BPM, SPECIAL, UPP units)
 
 // MÓDULO: AUTENTICAÇÃO (NextAuth sessions)
 model VerificationToken {

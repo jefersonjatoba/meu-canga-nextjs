@@ -1,333 +1,789 @@
 'use client'
 
-import * as React from 'react'
-import { LayoutList, CalendarDays, SlidersHorizontal, X } from 'lucide-react'
+import React, { useState, useMemo, useCallback, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ChevronLeft, ChevronRight, Settings, X, Trash2, Edit2 } from 'lucide-react'
+import { calculateCycleDays, calculateShiftProgress } from '@/lib/escala-calculations'
+import { CYCLE_LABELS, CYCLE_TYPES, type TipoCiclo } from '@/types/escala'
+import { RAS_LOCALS_BPM, RAS_LOCALS_SPECIAL, RAS_LOCALS_UPP } from '@/types/ras'
 
-import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
-import { Input } from '@/components/ui/Input'
-import { Card, CardContent } from '@/components/ui/Card'
-import {
-  EscalaForm,
-  EscalaTable,
-  EscalaCalendar,
-  EscalaStats,
-  EscalaDayModal,
-} from '@/components/escala'
-import { useEscalaList } from '@/hooks/useEscala'
-import type { Escala, TipoTurno, StatusEscala, EscalaFilters } from '@/types/escala'
+const MONTHS = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// Horários disponíveis começando às 7h
+const HORARIOS_DISPONIVEIS = [
+  { value: '07:00', label: '07:00h' },
+  { value: '08:00', label: '08:00h' },
+  { value: '09:00', label: '09:00h' },
+  { value: '10:00', label: '10:00h' },
+  { value: '11:00', label: '11:00h' },
+  { value: '12:00', label: '12:00h' },
+  { value: '13:00', label: '13:00h' },
+  { value: '14:00', label: '14:00h' },
+  { value: '15:00', label: '15:00h' },
+  { value: '16:00', label: '16:00h' },
+  { value: '17:00', label: '17:00h' },
+  { value: '18:00', label: '18:00h' },
+  { value: '19:00', label: '19:00h' },
+]
+
+const TODOS_OS_LOCAIS = [
+  { label: 'Batalhões', options: RAS_LOCALS_BPM },
+  { label: 'Unidades Especiais', options: RAS_LOCALS_SPECIAL },
+  { label: 'UPPs', options: RAS_LOCALS_UPP },
+  { label: 'CPP', options: ['CPP - Coordenadoria de Polícia de Proximidade'] },
+]
+
+const TIPOS_PLANTAO = [
+  { value: 'plantao', label: '🏥 Plantão' },
+  { value: 'sobreaviso', label: '📟 Sobreaviso' },
+  { value: 'extra', label: '⭐ Extra' },
+  { value: 'folga', label: '🌴 Folga' },
+  { value: 'ferias', label: '🏖 Férias' },
+]
 
 function currentMesBR(): string {
   return new Date().toLocaleDateString('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
     month: '2-digit',
-  }).slice(0, 7) // yyyy-MM
+  }).slice(0, 7)
 }
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Todos os status' },
-  { value: 'agendada', label: 'Agendadas' },
-  { value: 'realizada', label: 'Realizadas' },
-  { value: 'cancelada', label: 'Canceladas' },
-]
-
-const TURNO_OPTIONS = [
-  { value: 'all', label: 'Todos os turnos' },
-  { value: 'MATUTINO', label: 'Matutino (06–14h)' },
-  { value: 'VESPERTINO', label: 'Vespertino (14–22h)' },
-  { value: 'NOTURNO', label: 'Noturno (22–06h)' },
-]
-
-// ─── Filter panel ─────────────────────────────────────────────────────────────
-
-interface FilterState {
-  mes: string
-  status: 'all' | StatusEscala
-  tipoTurno: 'all' | TipoTurno
-  localServico: string
+function getTodayBR(): string {
+  return new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
 }
 
-interface FilterPanelProps {
-  filters: FilterState
-  onChange: (f: FilterState) => void
-  onReset: () => void
+function isoFmt(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  const date = new Date(Number(y), Number(m) - 1, Number(d))
+  return `${DAYS[date.getDay()]}, ${d} ${MONTHS[Number(m)]}`
 }
 
-function FilterPanel({ filters, onChange, onReset }: FilterPanelProps) {
-  const hasActive =
-    filters.status !== 'all' ||
-    filters.tipoTurno !== 'all' ||
-    filters.localServico !== ''
+function diasAte(iso: string): number {
+  const h = new Date()
+  h.setHours(0, 0, 0, 0)
+  return Math.ceil((new Date(iso + 'T00:00:00').getTime() - h.getTime()) / 86400000)
+}
+
+// Componente Calendar (memoizado para evitar re-renders desnecessários)
+const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPrevMonth, onNextMonth }: { mes: string; escalas: any[]; previewDays: number[]; onPrevMonth: () => void; onNextMonth: () => void }) {
+  const [ano, m] = mes.split('-').map(Number)
+  const hoje = getTodayBR()
+
+  const firstWD = new Date(ano, m - 1, 1).getDay()
+  const diasMes = new Date(ano, m, 0).getDate()
+
+  // Memoizar mapa de escalas e progressos para evitar recalcular
+  const escalasMap = useMemo(() => {
+    const map: Record<string, { escala: any; progresso: { pct: number; status: string } }> = {}
+    escalas.forEach((escala) => {
+      const isoDate = escala.dataEscala.split('T')[0]
+      if (!map[isoDate]) {
+        try {
+          const startDate = new Date(escala.dataEscala)
+          map[isoDate] = {
+            escala,
+            progresso: {
+              pct: calculateShiftProgress('12x24-12x72', startDate, new Date()),
+              status: isoDate === hoje ? 'em_progresso' : 'futuro'
+            }
+          }
+        } catch {
+          map[isoDate] = { escala, progresso: { pct: 0, status: 'futuro' } }
+        }
+      }
+    })
+    return map
+  }, [escalas, hoje])
 
   return (
-    <div className="flex flex-wrap items-end gap-3 p-4 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-200 dark:border-gray-700">
-      {/* Month */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
-          Mês
-        </label>
-        <input
-          type="month"
-          value={filters.mes}
-          onChange={(e) => onChange({ ...filters, mes: e.target.value })}
-          className="h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1E1E1E] text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-accent-blue"
-          aria-label="Filtrar por mês"
-        />
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 px-4 py-3 flex items-center justify-between">
+        <button onClick={onPrevMonth} className="p-2 hover:bg-blue-700 rounded">
+          <ChevronLeft size={18} className="text-white" />
+        </button>
+        <h3 className="text-white font-bold text-base">{MONTHS[m]} {ano}</h3>
+        <button onClick={onNextMonth} className="p-2 hover:bg-blue-700 rounded">
+          <ChevronRight size={18} className="text-white" />
+        </button>
       </div>
 
-      {/* Status */}
-      <div className="w-44">
-        <Select
-          label=""
-          options={STATUS_OPTIONS}
-          value={filters.status}
-          onValueChange={(v) =>
-            onChange({ ...filters, status: v as FilterState['status'] })
-          }
-          placeholder="Status"
-        />
+      <div className="grid grid-cols-7 gap-0 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+        {DAYS.map((day) => (
+          <div key={day} className="p-2 text-center text-xs font-bold text-gray-600 dark:text-gray-400">
+            {day}
+          </div>
+        ))}
       </div>
 
-      {/* Turno */}
-      <div className="w-52">
-        <Select
-          label=""
-          options={TURNO_OPTIONS}
-          value={filters.tipoTurno}
-          onValueChange={(v) =>
-            onChange({ ...filters, tipoTurno: v as FilterState['tipoTurno'] })
-          }
-          placeholder="Turno"
-        />
-      </div>
+      <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+        {Array(firstWD).fill(0).map((_, i) => (
+          <div key={`empty-${i}`} className="bg-gray-100 dark:bg-gray-800 h-20" />
+        ))}
 
-      {/* Local */}
-      <div className="w-48">
-        <Input
-          placeholder="Buscar por local..."
-          value={filters.localServico}
-          onChange={(e) => onChange({ ...filters, localServico: e.target.value })}
-          aria-label="Buscar por local de serviço"
-        />
-      </div>
+        {Array.from({ length: diasMes }).map((_, i) => {
+          const day = i + 1
+          const iso = `${ano}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const isToday = iso === hoje
+          const escalaInfo = escalasMap[iso]
+          const isFromEscala = !!escalaInfo
+          const isFromCycle = previewDays.includes(day)
+          const escalaDodia = escalaInfo?.escala
+          const progresso = escalaInfo?.progresso || { pct: 0, status: 'futuro' }
 
-      {/* Reset */}
-      {hasActive && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onReset}
-          leftIcon={<X size={14} />}
-          aria-label="Limpar filtros"
-        >
-          Limpar
-        </Button>
-      )}
+          return (
+            <div
+              key={iso}
+              className={`p-2 h-20 flex flex-col items-center justify-center text-sm font-medium cursor-pointer transition-colors relative ${
+                isToday
+                  ? 'bg-blue-600 text-white'
+                  : isFromEscala
+                    ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700'
+                    : isFromCycle
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              <span className="font-bold">{day}</span>
+              {isFromEscala && <span className="text-xs mt-1">✅</span>}
+              {isFromCycle && !isFromEscala && <span className="text-xs mt-1">📅</span>}
+              {escalaDodia && progresso.pct > 0 && (
+                <div className="w-full h-1 bg-gray-300 rounded mt-1 overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      progresso.status === 'em_progresso' ? 'bg-amber-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(progresso.pct, 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
-}
+})
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-type ViewMode = 'table' | 'calendar'
-
-const DEFAULT_FILTERS: FilterState = {
-  mes: currentMesBR(),
-  status: 'all',
-  tipoTurno: 'all',
-  localServico: '',
-}
-
-export default function EscalaPage() {
-  const [view, setView] = React.useState<ViewMode>('table')
-  const [filters, setFilters] = React.useState<FilterState>(DEFAULT_FILTERS)
-  const [page, setPage] = React.useState(1)
-  const [pageSize, setPageSize] = React.useState(20)
-  const [editingEscala, setEditingEscala] = React.useState<Escala | null>(null)
-  const [showFilters, setShowFilters] = React.useState(false)
-  const [dayModal, setDayModal] = React.useState<{
-    date: string
-    escalas: Escala[]
-  } | null>(null)
-
-  // Build query filters
-  const queryFilters = React.useMemo<EscalaFilters>(
-    () => ({
-      mes: filters.mes,
-      status: filters.status,
-      tipoTurno: filters.tipoTurno,
-      localServico: filters.localServico || undefined,
-      page,
-      pageSize,
-    }),
-    [filters, page, pageSize]
+// Modal para Editar/Criar Plantão
+function ModalPlantao({
+  isOpen,
+  editingData,
+  onClose,
+  onSave,
+  hoje,
+}: {
+  isOpen: boolean
+  editingData?: any
+  onClose: () => void
+  onSave: (data: any) => void
+  hoje: string
+}) {
+  const [formData, setFormData] = useState(
+    editingData || {
+      data: hoje,
+      tipo: 'plantao',
+      horaInicio: '07:00',
+      horaFim: '19:00',
+      local: '',
+      localManual: '',
+      observacao: '',
+      alarmeAtivo: true,
+    }
   )
 
-  const { data, isLoading, error } = useEscalaList(queryFilters)
+  return isOpen ? (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            {editingData ? '✏️ Editar Plantão' : '➕ Novo Plantão'}
+          </h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <X size={20} />
+          </button>
+        </div>
 
-  // Reset to page 1 when filters change (done inside handleFiltersChange to avoid effect cascade)
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data</label>
+            <input
+              type="date"
+              value={formData.data}
+              onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+            <select
+              value={formData.tipo}
+              onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+            >
+              {TIPOS_PLANTAO.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-  const handleFiltersChange = (f: FilterState) => {
-    setFilters(f)
-    setPage(1)
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Início</label>
+            <select
+              value={formData.horaInicio}
+              onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+            >
+              {HORARIOS_DISPONIVEIS.map((h) => (
+                <option key={h.value} value={h.value}>
+                  {h.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Término</label>
+            <input
+              type="time"
+              value={formData.horaFim}
+              onChange={(e) => setFormData({ ...formData, horaFim: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Local</label>
+          <select
+            value={formData.local}
+            onChange={(e) => setFormData({ ...formData, local: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+          >
+            <option value="">— Selecione —</option>
+            {TODOS_OS_LOCAIS.map((grupo) => (
+              <optgroup key={grupo.label} label={grupo.label}>
+                {grupo.options.map((local) => (
+                  <option key={local} value={local}>
+                    {local}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+            <option value="outro">📝 Outros</option>
+          </select>
+        </div>
+
+        {formData.local === 'outro' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Especificar local</label>
+            <input
+              type="text"
+              value={formData.localManual}
+              onChange={(e) => setFormData({ ...formData, localManual: e.target.value })}
+              placeholder="Digite o local..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observação</label>
+          <input
+            type="text"
+            value={formData.observacao}
+            onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+            placeholder="Ex: Escala trocada..."
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="alarme"
+            checked={formData.alarmeAtivo}
+            onChange={(e) => setFormData({ ...formData, alarmeAtivo: e.target.checked })}
+            className="w-4 h-4"
+          />
+          <label htmlFor="alarme" className="text-sm text-gray-700 dark:text-gray-300">
+            🔔 Notificação 12h antes
+          </label>
+        </div>
+
+        <div className="flex gap-2 pt-4">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onSave(formData)}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            ✅ Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
+}
+
+// Componente interno que usa useSearchParams (precisa de Suspense boundary)
+function EscalaPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Inicializar mês diretamente de searchParams — sem useState(null)
+  const mesFromURL = searchParams.get('mes') || currentMesBR()
+  const [mes, setMes] = useState<string>(mesFromURL)
+
+  const [escalas, setEscalas] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [showPlantaoModal, setShowPlantaoModal] = useState(false)
+  const [editingPlantao, setEditingPlantao] = useState<any>(null)
+
+  const [tipoCiclo, setTipoCiclo] = useState<TipoCiclo | ''>('')
+  const [dataInicio, setDataInicio] = useState('')
+  const [horaInicio, setHoraInicio] = useState('07:00')
+
+  const [savedCycleConfig, setSavedCycleConfig] = useState<{
+    tipo: TipoCiclo
+    dataInicio: string
+    horaInicio: string
+  } | null>(null)
+
+  // Sincronizar mês quando searchParams mudar (navegação prev/next)
+  useEffect(() => {
+    const newMes = searchParams.get('mes') || currentMesBR()
+    setMes(newMes)
+  }, [searchParams])
+
+  const hoje = getTodayBR()
+  const [ano, mesNum] = mes ? mes.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1]
+
+  // Navegação de meses
+  const handlePrevMonth = useCallback(() => {
+    if (!mes) return
+    const [y, m] = mes.split('-').map(Number)
+    const newMes = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`
+    router.push(`?mes=${newMes}`)
+  }, [mes, router])
+
+  const handleNextMonth = useCallback(() => {
+    if (!mes) return
+    const [y, m] = mes.split('-').map(Number)
+    const newMes = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`
+    router.push(`?mes=${newMes}`)
+  }, [mes, router])
+
+  // Carregar escalas — mes sempre é string válida agora
+  React.useEffect(() => {
+    async function loadData() {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/escala?mes=${mes}`)
+        const data = await res.json()
+        if (data.success) setEscalas(data.data.escalas || [])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [mes])
+
+  // Calcular dias de ciclo
+  const previewDays = useMemo(() => {
+    if (!tipoCiclo || !dataInicio || !mes) return []
+    try {
+      const startDate = new Date(dataInicio)
+      return calculateCycleDays(tipoCiclo as TipoCiclo, startDate, ano, mesNum)
+    } catch {
+      return []
+    }
+  }, [tipoCiclo, dataInicio, ano, mesNum, mes])
+
+  // Proximos plantões - memoizado para evitar re-renders desnecessários
+  const proximos = useMemo(() => {
+    const agora = new Date()
+    agora.setHours(0, 0, 0, 0)
+    return escalas
+      .filter((e) => {
+        const data = new Date(e.dataEscala)
+        data.setHours(0, 0, 0, 0)
+        return data >= agora
+      })
+      .sort((a, b) => new Date(a.dataEscala).getTime() - new Date(b.dataEscala).getTime())
+      .slice(0, 1)
+  }, [escalas])
+
+  // Salvar novo plantão
+  const handleSavePlantao = async (data: any) => {
+    try {
+      const res = await fetch('/api/escala/marcar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: data.data,
+          hora_inicio: data.horaInicio,
+          hora_fim: data.horaFim,
+          tipo: data.tipo,
+          local: data.local === 'outro' ? data.localManual : data.local,
+          observacao: data.observacao,
+          alarme_ativo: data.alarmeAtivo,
+        }),
+      })
+      if (res.ok) {
+        // Recarregar escalas
+        const res2 = await fetch(`/api/escala?mes=${mes}`)
+        const data2 = await res2.json()
+        if (data2.success) setEscalas(data2.data.escalas || [])
+        setShowPlantaoModal(false)
+        setEditingPlantao(null)
+      }
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const handleEdit = (escala: Escala) => {
-    setEditingEscala(escala)
-    // On mobile, scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const handleFormSuccess = () => {
-    setEditingEscala(null)
-  }
-
-  const handleCalendarDayClick = (date: string, escalas: Escala[]) => {
-    setDayModal({ date, escalas })
+  // Apagar plantão
+  const handleDeletePlantao = async (data: string, hora: string) => {
+    if (!confirm('Tem certeza que deseja apagar este plantão?')) return
+    try {
+      const res = await fetch('/api/escala/desmarcar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, hora_inicio: hora }),
+      })
+      if (res.ok) {
+        setEscalas(escalas.filter((e) => !(e.dataEscala.split('T')[0] === data && e.horaInicio === hora)))
+      }
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Escala de Trabalho
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Gerencie seus turnos e visualize sua agenda
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📅 Escala Ordinária</h1>
+          {savedCycleConfig && (
+            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+              ✅ Ciclo: {CYCLE_LABELS[savedCycleConfig.tipo]} • Início: {new Date(savedCycleConfig.dataInicio).toLocaleDateString('pt-BR')}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setShowConfigModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+        >
+          <Settings size={16} />
+          ⚙️ Configurar
+        </button>
+      </div>
+
+      {/* Grid Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Calendário */}
+        <div className="lg:col-span-2">
+          {mes && <Calendar mes={mes} escalas={escalas} previewDays={previewDays} onPrevMonth={handlePrevMonth} onNextMonth={handleNextMonth} />}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Filters toggle */}
-          <Button
-            variant={showFilters ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setShowFilters((v) => !v)}
-            leftIcon={<SlidersHorizontal size={15} />}
-            aria-pressed={showFilters}
-            aria-label="Mostrar/ocultar filtros"
-          >
-            Filtros
-          </Button>
+        {/* Coluna Direita */}
+        <div className="space-y-4">
+          {/* Escala Ativa */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+            <div className="font-bold text-gray-900 dark:text-white mb-3">🗓 Escala Ativa</div>
+            {savedCycleConfig ? (
+              <div className="space-y-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{CYCLE_LABELS[savedCycleConfig.tipo]}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{savedCycleConfig.horaInicio}h</div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSavedCycleConfig(null)
+                    setTipoCiclo('')
+                    setDataInicio('')
+                  }}
+                  className="w-full px-3 py-2 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100"
+                >
+                  🗑 Deletar Escala
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Nenhuma escala configurada</p>
+            )}
+          </div>
 
-          {/* View toggle */}
-          <div
-            className="flex items-center gap-1 p-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-            role="radiogroup"
-            aria-label="Modo de visualização"
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={view === 'table'}
-              onClick={() => setView('table')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                view === 'table'
-                  ? 'bg-white dark:bg-[#1E1E1E] shadow-sm text-gray-900 dark:text-gray-100'
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <LayoutList size={14} aria-hidden />
-              Lista
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={view === 'calendar'}
-              onClick={() => setView('calendar')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                view === 'calendar'
-                  ? 'bg-white dark:bg-[#1E1E1E] shadow-sm text-gray-900 dark:text-gray-100'
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <CalendarDays size={14} aria-hidden />
-              Calendário
-            </button>
+          {/* Próximo Plantão */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+            <div className="font-bold text-gray-900 dark:text-white mb-3">⏰ Próximo</div>
+            {proximos.length > 0 ? (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
+                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  {diasAte(proximos[0].dataEscala) === 0
+                    ? 'HOJE 🔥'
+                    : diasAte(proximos[0].dataEscala) === 1
+                      ? 'Amanhã'
+                      : `Em ${diasAte(proximos[0].dataEscala)}d`}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">{isoFmt(proximos[0].dataEscala.split('T')[0])}</div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Nenhum plantão</p>
+            )}
+          </div>
+
+          {/* Estatísticas */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+            <div className="font-bold text-gray-900 dark:text-white mb-3">📊 Mês</div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-gray-600 dark:text-gray-400 text-xs">Total</div>
+                <div className="font-bold text-2xl text-gray-900 dark:text-white">{escalas.length}</div>
+              </div>
+              <div>
+                <div className="text-gray-600 dark:text-gray-400 text-xs">Próx.</div>
+                <div className="font-bold text-2xl text-blue-600">{proximos.length}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <EscalaStats mes={filters.mes} />
-
-      {/* Filters panel */}
-      {showFilters && (
-        <FilterPanel
-          filters={filters}
-          onChange={handleFiltersChange}
-          onReset={() => setFilters(DEFAULT_FILTERS)}
-        />
-      )}
-
-      {/* Error state */}
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-400"
-        >
-          Erro ao carregar escalas: {error.message}
+      {/* Lista de Plantões */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
+        <div className="flex items-center justify-between mb-4">
+          <div className="font-bold text-gray-900 dark:text-white">📋 Plantões do Mês</div>
+          <button
+            onClick={() => {
+              setEditingPlantao(null)
+              setShowPlantaoModal(true)
+            }}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            ➕ Novo
+          </button>
         </div>
-      )}
-
-      {/* Main layout: content + form */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-        {/* Left: table or calendar */}
-        <div className="min-w-0">
-          {view === 'table' ? (
-            <EscalaTable
-              escalas={data?.escalas ?? []}
-              total={data?.total ?? 0}
-              page={page}
-              pageSize={pageSize}
-              isLoading={isLoading}
-              onPageChange={setPage}
-              onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
-              onEdit={handleEdit}
-            />
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {escalas.length > 0 ? (
+            escalas.map((e: any) => (
+              <div
+                key={`${e.id}-${e.dataEscala}`}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded text-sm border-l-3 border-blue-500"
+              >
+                <div className="flex-1">
+                  <div className="font-semibold text-gray-900 dark:text-white">
+                    {isoFmt(e.dataEscala.split('T')[0])}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {e.horaInicio || '07:00'}h — {e.localServico || 'Local não definido'}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => {
+                      setEditingPlantao(e)
+                      setShowPlantaoModal(true)
+                    }}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"
+                    title="Editar"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleDeletePlantao(
+                        e.dataEscala.split('T')[0],
+                        e.horaInicio || '07:00'
+                      )
+                    }
+                    className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400"
+                    title="Apagar"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))
           ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <EscalaCalendar
-                  escalas={data?.escalas ?? []}
-                  isLoading={isLoading}
-                  mes={filters.mes}
-                  onMesChange={(m) => setFilters((f) => ({ ...f, mes: m }))}
-                  onDayClick={handleCalendarDayClick}
-                />
-              </CardContent>
-            </Card>
+            <p className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">Nenhum plantão cadastrado</p>
           )}
         </div>
-
-        {/* Right: form */}
-        <aside aria-label="Formulário de escala">
-          <EscalaForm
-            editingEscala={editingEscala}
-            onSuccess={handleFormSuccess}
-            onCancel={editingEscala ? () => setEditingEscala(null) : undefined}
-          />
-        </aside>
       </div>
 
-      {/* Calendar day modal */}
-      {dayModal && (
-        <EscalaDayModal
-          date={dayModal.date}
-          escalas={dayModal.escalas}
-          open={!!dayModal}
-          onClose={() => setDayModal(null)}
-          onEdit={(e) => {
-            handleEdit(e)
-            setDayModal(null)
-          }}
-        />
+      {/* Modal Plantão */}
+      <ModalPlantao
+        isOpen={showPlantaoModal}
+        editingData={editingPlantao}
+        onClose={() => {
+          setShowPlantaoModal(false)
+          setEditingPlantao(null)
+        }}
+        onSave={handleSavePlantao}
+        hoje={hoje}
+      />
+
+      {/* Modal Configurar Ciclo */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">⚙️ Configurar Ciclo</h2>
+              <button
+                onClick={() => setShowConfigModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Tipo de Ciclo
+                </label>
+                <select
+                  value={tipoCiclo}
+                  onChange={(e) => setTipoCiclo(e.target.value as TipoCiclo)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">Selecione...</option>
+                  {CYCLE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {CYCLE_LABELS[type]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Data de Início
+                  </label>
+                  <input
+                    type="date"
+                    value={dataInicio}
+                    onChange={(e) => setDataInicio(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Hora de Início
+                  </label>
+                  <select
+                    value={horaInicio}
+                    onChange={(e) => setHoraInicio(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    {HORARIOS_DISPONIVEIS.map((h) => (
+                      <option key={h.value} value={h.value}>
+                        {h.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {tipoCiclo && dataInicio && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Dias de trabalho em {MONTHS[mesNum]} {ano}:
+                  </h3>
+                  <div className="grid grid-cols-7 gap-2">
+                    {Array.from({ length: new Date(ano, mesNum, 0).getDate() }).map((_, i) => {
+                      const day = i + 1
+                      const isWorkDay = previewDays.includes(day)
+                      return (
+                        <div
+                          key={day}
+                          className={`p-2 text-center text-sm font-medium rounded ${
+                            isWorkDay
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {day}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                    Total de {previewDays.length} dias de trabalho no mês
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={() => setShowConfigModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (tipoCiclo && dataInicio) {
+                      setSavedCycleConfig({
+                        tipo: tipoCiclo as TipoCiclo,
+                        dataInicio,
+                        horaInicio,
+                      })
+                      setShowConfigModal(false)
+                      setTipoCiclo('')
+                      setDataInicio('')
+                    }
+                  }}
+                  disabled={!tipoCiclo || !dataInicio}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  ✅ Aplicar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
+  )
+}
+
+// Página Principal — envolve EscalaPageInner em Suspense para permitir useSearchParams
+export default function EscalaPage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6">
+        <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
+      <EscalaPageInner />
+    </Suspense>
   )
 }

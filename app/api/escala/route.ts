@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       return errorResponse(parsed.error.errors[0].message)
     }
 
-    const { mes, status, tipoTurno, localServico, page, pageSize } = parsed.data
+    const { mes, status, tipoPlantao, localServico, page, pageSize } = parsed.data
 
     // Build WHERE clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
       where.status = status
     }
 
-    if (tipoTurno && tipoTurno !== 'all') {
-      where.tipoTurno = tipoTurno
+    if (tipoPlantao && tipoPlantao !== 'all') {
+      where.tipoPlantao = tipoPlantao
     }
 
     if (localServico) {
@@ -92,24 +92,33 @@ export async function POST(request: NextRequest) {
       return errorResponse(parsed.error.errors[0].message)
     }
 
-    const { dataEscala, tipoTurno, localServico } = parsed.data
+    const {
+      dataEscala,
+      tipoPlantao,
+      tipoCiclo,
+      horaInicio,
+      horaFim,
+      localServico,
+      observacoes,
+    } = parsed.data
 
     // Parse date as a UTC midnight value to avoid timezone drift in DB
     const [year, month, day] = dataEscala.split('-').map(Number)
     const dataEscalaDate = new Date(Date.UTC(year, month - 1, day))
 
-    // Business rule: no 2 agendadas escalas on same date for same user
+    // Business rule: unique constraint on (userId, dataEscala, horaInicio)
     const existing = await prisma.escala.findFirst({
       where: {
         userId: user.id,
         dataEscala: dataEscalaDate,
+        horaInicio,
         status: { not: 'cancelada' },
       },
     })
 
     if (existing) {
       return errorResponse(
-        'Já existe uma escala agendada para esta data. Cancele a existente antes de criar uma nova.',
+        'Já existe uma escala agendada para esta data e horário. Cancele a existente antes de criar uma nova.',
         409
       )
     }
@@ -118,8 +127,12 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         dataEscala: dataEscalaDate,
-        tipoTurno,
+        tipoTurno: tipoPlantao,
+        horaInicio,
+        horaFim,
         localServico: localServico ?? null,
+        observacoes: observacoes ?? null,
+        alarmeAtivo: true,
         status: 'agendada',
       },
     })

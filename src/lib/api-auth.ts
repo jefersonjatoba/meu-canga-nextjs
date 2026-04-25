@@ -1,10 +1,7 @@
 // Shared helper to extract the authenticated user from the NextAuth session
 // in API Route Handlers (Next.js 16 App Router).
 
-import { authConfig } from '@/lib/auth'
-import NextAuth from 'next-auth'
-
-const { auth } = NextAuth(authConfig)
+import { auth } from '@/auth'
 
 export type ApiUser = {
   id: string

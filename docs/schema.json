@@ -1,0 +1,457 @@
+{
+  "meta": {
+    "source": "https://github.com/jefersonjatoba/meu-canga",
+    "extracted_at": "2026-04-24",
+    "target": "Next.js 14 + Supabase (PostgreSQL)",
+    "original_stack": "Node.js 20 + Express 5 + SQLite/PostgreSQL"
+  },
+  "tables": {
+    "users": {
+      "description": "Usuários do sistema",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "nome_completo": { "type": "TEXT", "nullable": true },
+        "apelido": { "type": "TEXT", "nullable": true },
+        "cpf": { "type": "TEXT", "nullable": true, "unique": true },
+        "profissao": { "type": "TEXT", "nullable": true },
+        "unidade": { "type": "TEXT", "nullable": true, "description": "Unidade de trabalho/hospital" },
+        "email": { "type": "TEXT", "nullable": false, "unique": true },
+        "telefone": { "type": "TEXT", "nullable": true },
+        "meta_poupanca": { "type": "TEXT", "nullable": true, "description": "Meta de poupança em JSON" },
+        "meta_horas_ras": { "type": "TEXT", "nullable": true, "description": "Meta de horas RAS mensais" },
+        "foto_path": { "type": "TEXT", "nullable": true },
+        "is_admin": { "type": "INTEGER", "default": 0 },
+        "is_blocked": { "type": "INTEGER", "default": 0 },
+        "last_login": { "type": "TIMESTAMP", "nullable": true },
+        "plan": { "type": "TEXT", "default": "free", "enum": ["free", "pro", "trial"] },
+        "plan_expires_at": { "type": "TIMESTAMP", "nullable": true },
+        "totp_secret": { "type": "TEXT", "nullable": true, "description": "TOTP 2FA secret" },
+        "totp_enabled": { "type": "INTEGER", "default": 0 },
+        "lgpd_consent": { "type": "INTEGER", "default": 0 },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["email", "plan", "is_blocked"]
+    },
+    "accounts": {
+      "description": "Contas bancárias, cartões de crédito, carteiras de investimento",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "name": { "type": "TEXT", "nullable": false },
+        "type": {
+          "type": "TEXT",
+          "nullable": false,
+          "enum": ["banco", "credito", "investimento", "outro"],
+          "description": "banco=conta corrente/poupança, credito=cartão, investimento=portfolio, outro=personalizado"
+        },
+        "credit_limit": { "type": "INTEGER", "default": 0, "description": "Limite em centavos (apenas tipo credito)" },
+        "dia_fechamento": { "type": "INTEGER", "default": 5, "description": "Dia do fechamento da fatura (1-31)" },
+        "dia_vencimento": { "type": "INTEGER", "default": 10, "description": "Dia do vencimento da fatura (1-31)" },
+        "card_color": { "type": "TEXT", "nullable": true, "description": "Gradiente: 'cor1,cor2'" },
+        "custom_type": { "type": "TEXT", "nullable": true, "description": "Label personalizado para tipo outro" },
+        "meta_json": { "type": "TEXT", "nullable": true, "description": "Metadados adicionais em JSON" },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "type"]
+    },
+    "categories": {
+      "description": "Categorias de receitas e despesas",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "nome": { "type": "TEXT", "nullable": false, "max_length": 50 },
+        "icone": { "type": "TEXT", "default": "📂", "max_length": 4 },
+        "cor": { "type": "TEXT", "default": "#64748b", "description": "Hex color" },
+        "tipo": {
+          "type": "TEXT",
+          "default": "ambos",
+          "enum": ["expense", "income", "ambos"]
+        },
+        "ordem": { "type": "INTEGER", "default": 0, "description": "Ordem de exibição" }
+      },
+      "constraints": ["UNIQUE(user_id, nome)"],
+      "indexes": ["user_id", "tipo"]
+    },
+    "transactions": {
+      "description": "Lançamentos financeiros (receitas, despesas, RAS, aportes, resgates)",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "account_id": { "type": "INTEGER", "nullable": true, "foreign_key": "accounts.id" },
+        "category_id": { "type": "INTEGER", "nullable": true, "foreign_key": "categories.id" },
+        "parent_id": { "type": "INTEGER", "nullable": true, "foreign_key": "transactions.id", "description": "ID do lançamento pai (parcelamentos/recorrências)" },
+        "recorrencia_id": { "type": "INTEGER", "nullable": true, "foreign_key": "recorrencias.id" },
+        "type": {
+          "type": "TEXT",
+          "nullable": false,
+          "enum": ["income", "expense", "ras", "aporte", "resgate"],
+          "description": "ras=plantão RAS, aporte=entrada investimento, resgate=saída investimento"
+        },
+        "amount_cents": { "type": "INTEGER", "default": 0, "nullable": false, "description": "Valor em centavos" },
+        "description": { "type": "TEXT", "nullable": false },
+        "date": { "type": "DATE", "nullable": false, "description": "Data do lançamento YYYY-MM-DD" },
+        "competencia_at": { "type": "TEXT", "nullable": true, "description": "Mês de competência YYYY-MM (para fatura cartão)" },
+        "source": {
+          "type": "TEXT",
+          "nullable": true,
+          "enum": ["manual", "parcelado", "recorrente", "ras"],
+          "description": "Origem do lançamento"
+        },
+        "parcelas": { "type": "INTEGER", "default": 1, "description": "Total de parcelas" },
+        "parcela_atual": { "type": "INTEGER", "default": 1, "description": "Número da parcela atual" },
+        "meta_json": { "type": "TEXT", "nullable": true, "description": "JSON com graduacao, horas, local (para RAS)" },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "date", "type", "account_id", "category_id", "parent_id", "competencia_at"]
+    },
+    "recorrencias": {
+      "description": "Templates de lançamentos recorrentes (fixos mensais)",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "type": { "type": "TEXT", "nullable": false, "enum": ["income", "expense"] },
+        "amount_cents": { "type": "INTEGER", "default": 0, "nullable": false },
+        "description": { "type": "TEXT", "nullable": false },
+        "category_id": { "type": "INTEGER", "nullable": true, "foreign_key": "categories.id" },
+        "account_id": { "type": "INTEGER", "nullable": true, "foreign_key": "accounts.id" },
+        "dia_do_mes": { "type": "INTEGER", "default": 1, "description": "Dia do mês para lançar (1-31)" },
+        "frequency": {
+          "type": "TEXT",
+          "default": "mensal",
+          "enum": ["semanal", "quinzenal", "mensal", "bimestral", "anual"]
+        },
+        "ativo": { "type": "INTEGER", "default": 1, "description": "1=ativo, 0=pausado" },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "ativo"]
+    },
+    "budgets": {
+      "description": "Orçamento mensal por categoria",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "category_id": { "type": "INTEGER", "nullable": false, "foreign_key": "categories.id" },
+        "mes": { "type": "INTEGER", "nullable": false, "description": "Mês (1-12)" },
+        "ano": { "type": "INTEGER", "nullable": false, "description": "Ano (YYYY)" },
+        "amount_cents": { "type": "INTEGER", "default": 0 }
+      },
+      "constraints": ["UNIQUE(user_id, category_id, mes, ano)"],
+      "indexes": ["user_id", "mes", "ano"]
+    },
+    "metas": {
+      "description": "Metas de poupança e objetivos financeiros",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "nome": { "type": "TEXT", "nullable": false, "max_length": 100 },
+        "icone": { "type": "TEXT", "default": "🎯", "max_length": 4 },
+        "valor_alvo": { "type": "INTEGER", "default": 0, "description": "Valor alvo em centavos" },
+        "valor_atual": { "type": "INTEGER", "default": 0, "description": "Valor acumulado atual em centavos" },
+        "prazomes": { "type": "INTEGER", "nullable": true, "description": "Mês do prazo (1-12)" },
+        "prazoano": { "type": "INTEGER", "nullable": true, "description": "Ano do prazo (YYYY)" },
+        "ativo": { "type": "INTEGER", "default": 1, "description": "1=ativa, 0=pausada" },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "ativo"]
+    },
+    "escala": {
+      "description": "Escala ordinária de plantões (turnos de trabalho)",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "TEXT", "nullable": false, "foreign_key": "users.id" },
+        "data": { "type": "DATE", "nullable": false },
+        "hora_inicio": { "type": "TIME", "default": "07:00" },
+        "hora_fim": { "type": "TIME", "default": "19:00" },
+        "tipo": {
+          "type": "TEXT",
+          "default": "plantao",
+          "enum": ["plantao", "sobreaviso", "extra", "ferias", "folga"]
+        },
+        "local": { "type": "TEXT", "nullable": true },
+        "observacao": { "type": "TEXT", "nullable": true },
+        "alarme_ativo": { "type": "INTEGER", "default": 1 },
+        "alarme_enviado": { "type": "INTEGER", "default": 0 },
+        "criado_em": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "constraints": ["UNIQUE(user_id, data, hora_inicio)"],
+      "indexes": ["user_id", "data"]
+    },
+    "escala_config": {
+      "description": "Configuração do padrão de escala do usuário",
+      "columns": {
+        "user_id": { "type": "TEXT", "primary_key": true, "foreign_key": "users.id" },
+        "tipo": {
+          "type": "TEXT",
+          "nullable": true,
+          "enum": ["24x72", "24x48", "12x36-folgao", "12x24-12x72", "12x24-12x48"],
+          "description": "Padrão de escala em ciclos"
+        },
+        "hora_inicio": { "type": "TIME", "nullable": true },
+        "hora_fim": { "type": "TIME", "nullable": true },
+        "inicio_ciclo": { "type": "DATE", "nullable": true, "description": "Data de início do ciclo para cálculo automático" },
+        "local": { "type": "TEXT", "nullable": true },
+        "alarme_ativo": { "type": "INTEGER", "default": 1 },
+        "atualizado_em": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      }
+    },
+    "ras_agenda": {
+      "description": "Agenda de plantões RAS (Regime de Atividade Suplementar)",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "TEXT", "nullable": false, "foreign_key": "users.id" },
+        "data_ras": { "type": "DATE", "nullable": false },
+        "hora_inicio": { "type": "INTEGER", "nullable": false, "description": "Hora de início (0-23)" },
+        "duracao": { "type": "INTEGER", "default": 6, "description": "Duração em horas (6, 12)" },
+        "graduacao": {
+          "type": "TEXT",
+          "default": "enfermeiro",
+          "description": "Categoria profissional para cálculo de valor"
+        },
+        "tipo": {
+          "type": "TEXT",
+          "default": "voluntario",
+          "enum": ["voluntario", "compulsorio"],
+          "description": "voluntario=escolhido pelo profissional, compulsorio=obrigatório pela gestão"
+        },
+        "local": { "type": "TEXT", "nullable": true },
+        "valor_cents": { "type": "INTEGER", "default": 0, "description": "Valor calculado via tabela RAS_PRICE_TABLE" },
+        "tipo_vaga": {
+          "type": "TEXT",
+          "default": "titular",
+          "enum": ["titular", "reserva"],
+          "description": "titular=confirmado, reserva=substituto (oculto quando compulsorio)"
+        },
+        "status": {
+          "type": "TEXT",
+          "default": "agendado",
+          "enum": ["agendado", "confirmado", "realizado", "pendente", "cancelado"]
+        },
+        "observacao": { "type": "TEXT", "nullable": true },
+        "observacao_confirmacao": { "type": "TEXT", "nullable": true },
+        "notificado": { "type": "INTEGER", "default": 0 },
+        "notif_pendente_enviada": { "type": "INTEGER", "default": 0 },
+        "data_confirmacao": { "type": "TIMESTAMP", "nullable": true },
+        "comprovante_path": { "type": "TEXT", "nullable": true },
+        "data_registrado": { "type": "TIMESTAMP", "nullable": true },
+        "expires_at": { "type": "TIMESTAMP", "nullable": true, "description": "Expiração da janela de 72h para marcar como realizado" },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "constraints": ["UNIQUE(user_id, data_ras) -- para tipo voluntario/compulsorio pode haver mais de um por dia se horários distintos"],
+      "indexes": ["user_id", "data_ras", "status"]
+    },
+    "ras_pagamentos": {
+      "description": "Registro de pagamentos mensais do RAS",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "TEXT", "nullable": false, "foreign_key": "users.id" },
+        "mes_ref": { "type": "TEXT", "nullable": false, "description": "Mês de referência YYYY-MM" },
+        "valor_cents": { "type": "INTEGER", "default": 0 },
+        "status": {
+          "type": "TEXT",
+          "default": "pendente",
+          "enum": ["pendente", "pago", "cancelado"]
+        },
+        "data_pgto": { "type": "DATE", "nullable": true },
+        "observacao": { "type": "TEXT", "nullable": true },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "constraints": ["UNIQUE(user_id, mes_ref)"],
+      "indexes": ["user_id", "mes_ref", "status"]
+    },
+    "ras_cenarios_salvos": {
+      "description": "Cenários de simulação de horas RAS salvos pelo usuário",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "TEXT", "nullable": false, "foreign_key": "users.id" },
+        "nome": { "type": "TEXT", "nullable": true },
+        "items": { "type": "TEXT", "nullable": true, "description": "JSON array de itens do cenário" },
+        "total_horas": { "type": "INTEGER", "nullable": true },
+        "total_valor_cents": { "type": "INTEGER", "nullable": true },
+        "criado_em": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id"]
+    },
+    "subscriptions": {
+      "description": "Histórico de assinaturas e planos",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "TEXT", "nullable": false, "foreign_key": "users.id" },
+        "plan": { "type": "TEXT", "default": "free", "enum": ["free", "pro", "trial"] },
+        "status": {
+          "type": "TEXT",
+          "default": "active",
+          "enum": ["active", "cancelled", "expired", "superseded"]
+        },
+        "source": {
+          "type": "TEXT",
+          "default": "manual",
+          "enum": ["manual", "mercadopago", "trial", "admin"]
+        },
+        "amount_cents": { "type": "INTEGER", "default": 1990, "description": "R$ 19,90 por padrão" },
+        "starts_at": { "type": "TIMESTAMP", "nullable": false },
+        "ends_at": { "type": "TIMESTAMP", "nullable": true },
+        "payment_ref": { "type": "TEXT", "nullable": true, "description": "ID do pagamento no gateway" },
+        "notes": { "type": "TEXT", "nullable": true },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" },
+        "updated_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "status", "ends_at"]
+    },
+    "push_subscriptions": {
+      "description": "Subscriptions de Web Push (PWA notifications)",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "endpoint": { "type": "TEXT", "nullable": false, "unique": true },
+        "subscription_json": { "type": "TEXT", "nullable": false, "description": "Objeto completo de PushSubscription serializado" },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id"]
+    },
+    "login_logs": {
+      "description": "Log de acessos para auditoria e segurança",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "INTEGER", "nullable": false, "foreign_key": "users.id" },
+        "ip": { "type": "TEXT", "nullable": true },
+        "user_agent": { "type": "TEXT", "nullable": true },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "created_at"]
+    },
+    "audit_logs": {
+      "description": "Log de auditoria de ações do sistema",
+      "columns": {
+        "id": { "type": "INTEGER", "primary_key": true, "autoincrement": true },
+        "user_id": { "type": "TEXT", "nullable": true, "foreign_key": "users.id" },
+        "action": { "type": "TEXT", "nullable": false },
+        "resource": { "type": "TEXT", "nullable": true },
+        "ip": { "type": "TEXT", "nullable": true },
+        "user_agent": { "type": "TEXT", "nullable": true },
+        "status_code": { "type": "INTEGER", "nullable": true },
+        "details": { "type": "TEXT", "nullable": true },
+        "created_at": { "type": "TIMESTAMP", "default": "CURRENT_TIMESTAMP" }
+      },
+      "indexes": ["user_id", "action", "created_at"]
+    },
+    "rate_limits": {
+      "description": "Rate limiting em memória/banco",
+      "columns": {
+        "key": { "type": "TEXT", "primary_key": true },
+        "count": { "type": "INTEGER", "default": 0 },
+        "first_at": { "type": "INTEGER", "nullable": false, "description": "Unix timestamp do primeiro request" }
+      }
+    }
+  },
+  "relationships": [
+    { "from": "accounts.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "categories.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "transactions.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "transactions.account_id", "to": "accounts.id", "type": "many-to-one", "nullable": true },
+    { "from": "transactions.category_id", "to": "categories.id", "type": "many-to-one", "nullable": true },
+    { "from": "transactions.parent_id", "to": "transactions.id", "type": "self-referential", "nullable": true },
+    { "from": "transactions.recorrencia_id", "to": "recorrencias.id", "type": "many-to-one", "nullable": true },
+    { "from": "recorrencias.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "recorrencias.category_id", "to": "categories.id", "type": "many-to-one", "nullable": true },
+    { "from": "recorrencias.account_id", "to": "accounts.id", "type": "many-to-one", "nullable": true },
+    { "from": "budgets.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "budgets.category_id", "to": "categories.id", "type": "many-to-one" },
+    { "from": "metas.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "escala.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "escala_config.user_id", "to": "users.id", "type": "one-to-one" },
+    { "from": "ras_agenda.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "ras_pagamentos.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "ras_cenarios_salvos.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "subscriptions.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "push_subscriptions.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "login_logs.user_id", "to": "users.id", "type": "many-to-one" },
+    { "from": "audit_logs.user_id", "to": "users.id", "type": "many-to-one", "nullable": true }
+  ],
+  "plan_limits": {
+    "free": {
+      "lancamentos_por_mes": 10,
+      "contas": 3,
+      "categorias": 10,
+      "metas": 2,
+      "recorrencias": 3,
+      "ras_por_mes": 5,
+      "investimentos": false,
+      "assistente_ia": false,
+      "relatorios_pdf": false,
+      "backup_dados": false,
+      "relatorio_ir": false
+    },
+    "pro": {
+      "lancamentos_por_mes": "Infinity",
+      "contas": "Infinity",
+      "categorias": "Infinity",
+      "metas": "Infinity",
+      "recorrencias": "Infinity",
+      "ras_por_mes": "Infinity",
+      "investimentos": true,
+      "assistente_ia": true,
+      "relatorios_pdf": true,
+      "backup_dados": true,
+      "relatorio_ir": true
+    },
+    "trial": {
+      "duration_days": 7,
+      "same_as": "pro"
+    },
+    "pricing": {
+      "pro_monthly_cents": 1990,
+      "currency": "BRL",
+      "gateway": "Mercado Pago"
+    }
+  },
+  "ras_price_table": {
+    "description": "Tabela de valores RAS por graduação e duração em horas (valores em centavos - exemplos indicativos)",
+    "structure": "RAS_PRICE_TABLE[graduacao][duracao_horas]",
+    "graduacoes_example": ["tecnico_enfermagem", "enfermeiro", "medico", "farmaceutico"],
+    "duracoes": [6, 12],
+    "note": "Valores reais devem ser extraídos do arquivo utils/ras-price-table.js ou equivalente"
+  },
+  "ras_status_machine": {
+    "states": ["agendado", "confirmado", "realizado", "pendente", "cancelado"],
+    "transitions": [
+      { "from": "agendado", "to": "confirmado", "trigger": "data_ras no passado E criado no passado" },
+      { "from": "agendado", "to": "cancelado", "trigger": "usuário cancela" },
+      { "from": "agendado", "to": "realizado", "trigger": "usuário marca como realizado (dentro 72h)" },
+      { "from": "realizado", "to": "pendente", "trigger": "expires_at passou (72h window expirou)" },
+      { "from": "pendente", "to": "confirmado", "trigger": "confirmação manual do usuário" }
+    ],
+    "terminal_states": ["cancelado"],
+    "paid_states": ["realizado", "pendente", "confirmado"]
+  },
+  "external_integrations": {
+    "anthropic": {
+      "model": "claude-sonnet-4-20250514",
+      "max_tokens": 1024,
+      "use_case": "Assistente financeiro e classificação automática de categorias",
+      "features": ["chat_assistant", "category_suggestion"]
+    },
+    "mercadopago": {
+      "use_case": "Pagamentos e assinaturas PRO",
+      "events": ["payment.updated", "subscription_preapproval"],
+      "webhook_path": "/webhook/mercadopago"
+    },
+    "brapi_dev": {
+      "use_case": "Cotações de ações em tempo real",
+      "refresh_interval_seconds": 60
+    },
+    "web_push": {
+      "protocol": "VAPID",
+      "library": "web-push",
+      "use_case": "Notificações PWA de alarmes de plantão e lembretes"
+    },
+    "pdf_python": {
+      "scripts": ["pdf_mensal.py", "pdf_ir.py"],
+      "protocol": "subprocess stdin/stdout JSON",
+      "use_case": "Geração de relatórios PDF mensais e declaração IR"
+    },
+    "smtp": {
+      "use_case": "Reset de senha, alertas de plantão 12h antes",
+      "optional": true
+    }
+  }
+}

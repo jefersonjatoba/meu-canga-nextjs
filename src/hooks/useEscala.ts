@@ -12,7 +12,9 @@ import type {
   EscalaStats,
   CreateEscalaInput,
   UpdateEscalaInput,
+  TipoCiclo,
 } from '@/types/escala'
+import { calculateCycleDays } from '@/lib/escala-calculations'
 
 // ─── Query keys factory ───────────────────────────────────────────────────────
 
@@ -42,13 +44,14 @@ async function fetchEscalas(
 
   if (filters.mes) params.set('mes', filters.mes)
   if (filters.status && filters.status !== 'all') params.set('status', filters.status)
-  if (filters.tipoTurno && filters.tipoTurno !== 'all') params.set('tipoTurno', filters.tipoTurno)
+  if (filters.tipoPlantao && filters.tipoPlantao !== 'all') params.set('tipoPlantao', filters.tipoPlantao)
   if (filters.localServico) params.set('localServico', filters.localServico)
   if (filters.page) params.set('page', String(filters.page))
   if (filters.pageSize) params.set('pageSize', String(filters.pageSize))
 
   const res = await fetch(`/api/escala?${params.toString()}`, {
     cache: 'no-store',
+    credentials: 'include',
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Erro ao listar escalas')
@@ -56,7 +59,7 @@ async function fetchEscalas(
 }
 
 async function fetchEscala(id: string): Promise<Escala> {
-  const res = await fetch(`/api/escala/${id}`, { cache: 'no-store' })
+  const res = await fetch(`/api/escala/${id}`, { cache: 'no-store', credentials: 'include' })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Erro ao buscar escala')
   return json.data
@@ -64,7 +67,7 @@ async function fetchEscala(id: string): Promise<Escala> {
 
 async function fetchEscalaStats(mes?: string): Promise<EscalaStats> {
   const url = mes ? `/api/escala/stats?mes=${mes}` : '/api/escala/stats'
-  const res = await fetch(url, { cache: 'no-store' })
+  const res = await fetch(url, { cache: 'no-store', credentials: 'include' })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Erro ao buscar estatísticas')
   return json.data
@@ -75,6 +78,7 @@ async function createEscala(input: CreateEscalaInput): Promise<Escala> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
+    credentials: 'include',
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Erro ao criar escala')
@@ -92,6 +96,7 @@ async function updateEscala({
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
+    credentials: 'include',
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Erro ao atualizar escala')
@@ -99,7 +104,7 @@ async function updateEscala({
 }
 
 async function deleteEscala(id: string): Promise<Escala> {
-  const res = await fetch(`/api/escala/${id}`, { method: 'DELETE' })
+  const res = await fetch(`/api/escala/${id}`, { method: 'DELETE', credentials: 'include' })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Erro ao cancelar escala')
   return json.data
@@ -176,5 +181,46 @@ export function useEscalaDelete() {
       qc.invalidateQueries({ queryKey: escalaKeys.lists() })
       qc.invalidateQueries({ queryKey: escalaKeys.stats() })
     },
+  })
+}
+
+// ─── useCycleDays ─────────────────────────────────────────────────────────────
+
+const cycleDaysKeys = {
+  all: ['cycleDays'] as const,
+  month: (tipoCiclo: TipoCiclo, dataInicio: Date, mes: number, ano: number) =>
+    [...cycleDaysKeys.all, tipoCiclo, dataInicio.toISOString(), mes, ano] as const,
+}
+
+/**
+ * Query hook that calculates which days of a given month the user works,
+ * based purely on cycle arithmetic (no API call required).
+ *
+ * @param tipoCiclo   - The user's cycle type
+ * @param dataInicio  - The reference start date for the cycle
+ * @param mes         - Month (1-based)
+ * @param ano         - Full year (e.g. 2026)
+ * @returns           React Query result whose `data` is `number[]` (day numbers 1–31)
+ */
+export function useCycleDays(
+  tipoCiclo?: TipoCiclo,
+  dataInicio?: Date,
+  mes?: number,
+  ano?: number
+) {
+  const now = new Date()
+  const resolvedMes = mes ?? now.getMonth() + 1
+  const resolvedAno = ano ?? now.getFullYear()
+
+  return useQuery<number[]>({
+    queryKey: tipoCiclo && dataInicio
+      ? cycleDaysKeys.month(tipoCiclo, dataInicio, resolvedMes, resolvedAno)
+      : [...cycleDaysKeys.all, 'disabled'],
+    queryFn: () => {
+      if (!tipoCiclo || !dataInicio) return []
+      return calculateCycleDays(tipoCiclo, dataInicio, resolvedAno, resolvedMes)
+    },
+    enabled: !!tipoCiclo && !!dataInicio,
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours – pure calculation, very stable
   })
 }

@@ -10,38 +10,72 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Verificar sessão ao carregar
+    // Tentar usar cached auth state primeiro
+    const cachedSession = typeof window !== 'undefined'
+      ? localStorage.getItem('sb-auth-cache')
+      : null
+
+    if (cachedSession) {
+      try {
+        const session = JSON.parse(cachedSession)
+        setUser({
+          id: session.id,
+          email: session.email || '',
+          created_at: session.created_at || ''
+        })
+        setLoading(false)
+      } catch {
+        localStorage.removeItem('sb-auth-cache')
+        setLoading(false)
+      }
+    } else {
+      setLoading(false)
+    }
+
+    // Verificar sessão em background se houver cache
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        
+
         if (session?.user) {
-          setUser({
+          const userData = {
             id: session.user.id,
             email: session.user.email || '',
             created_at: session.user.created_at || ''
-          })
+          }
+          setUser(userData)
+          localStorage.setItem('sb-auth-cache', JSON.stringify(userData))
+        } else if (!cachedSession) {
+          setUser(null)
         }
       } catch (err) {
         console.error('Auth check error:', err)
-      } finally {
-        setLoading(false)
       }
     }
 
-    checkAuth()
+    // Executar verificação após a página renderizar em idle time
+    const timer = setTimeout(() => {
+      checkAuth()
+    }, 100)
 
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
     // Listener para mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
-          setUser({
+          const userData = {
             id: session.user.id,
             email: session.user.email || '',
             created_at: session.user.created_at || ''
-          })
+          }
+          setUser(userData)
+          localStorage.setItem('sb-auth-cache', JSON.stringify(userData))
         } else {
           setUser(null)
+          localStorage.removeItem('sb-auth-cache')
         }
       }
     )
