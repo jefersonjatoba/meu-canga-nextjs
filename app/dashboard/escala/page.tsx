@@ -138,35 +138,65 @@ const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPre
           const escalaDodia = escalaInfo?.escala
           const progresso = escalaInfo?.progresso || { pct: 0, status: 'futuro' }
 
+          // Classificação igual ao v1: plantao/extra → "marked" (azul); outros → "ras" (verde-azulado)
+          const tipoTurno = escalaDodia?.tipoTurno || ''
+          const isMarked = tipoTurno === 'plantao' || tipoTurno === 'extra'
+
+          // Largura da barra: futuro sempre 100% (amarelo); demais pelo pct real
+          const barraWidth = progresso.status === 'futuro' ? 100 : Math.min(progresso.pct, 100)
+          const barraCor =
+            progresso.status === 'futuro'    ? '#FBBF24' :
+            progresso.status === 'em_progresso' ? '#F59E0B' : '#10B981'
+
           return (
             <div
               key={iso}
-              className={`p-2 h-20 flex flex-col items-center justify-center text-sm font-medium cursor-pointer transition-colors relative ${
+              className={`p-1 h-20 flex flex-col items-center justify-start pt-2 text-sm font-medium cursor-pointer transition-colors relative overflow-hidden ${
                 isToday
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-blue-600 text-white border border-blue-600'
                   : isFromEscala
-                    ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700'
+                    ? isMarked
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border border-blue-400 dark:border-blue-700'
+                      : 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border border-teal-400 dark:border-teal-700'
                     : isFromCycle
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                      ? 'bg-blue-50/50 dark:bg-blue-900/10 text-blue-500 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-transparent'
               }`}
             >
-              <span className="font-bold">{day}</span>
-              {isFromEscala && <span className="text-xs mt-1">✅</span>}
-              {isFromCycle && !isFromEscala && <span className="text-xs mt-1">📅</span>}
-              {escalaDodia && progresso.pct > 0 && (
-                <div className="w-full h-1 bg-gray-300 rounded mt-1 overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${
-                      progresso.status === 'em_progresso' ? 'bg-amber-500' : 'bg-green-500'
-                    }`}
-                    style={{ width: `${Math.min(progresso.pct, 100)}%` }}
-                  />
+              <span className="font-bold text-sm">{day}</span>
+
+              {/* Barra de progresso — mostrada para TODOS os turnos, igual ao v1 */}
+              {isFromEscala && (
+                <div className="w-full mt-auto relative" style={{ height: 12 }}>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden absolute bottom-3">
+                    <div
+                      className="h-full rounded transition-all"
+                      style={{ width: `${barraWidth}%`, background: barraCor }}
+                    />
+                  </div>
+                  <span
+                    className="absolute bottom-0 left-0 right-0 text-center"
+                    style={{ fontSize: 9, color: '#94A3B8', fontWeight: 600 }}
+                  >
+                    {progresso.pct}%
+                  </span>
                 </div>
               )}
             </div>
           )
         })}
+      </div>
+
+      {/* Legenda — igual ao v1 */}
+      <div className="flex gap-4 flex-wrap px-3 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <span className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+          Plantão concluído
+        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+          Próximos plantões
+        </span>
       </div>
     </div>
   )
