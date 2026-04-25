@@ -10,6 +10,29 @@ import { RAS_LOCALS_BPM, RAS_LOCALS_SPECIAL, RAS_LOCALS_UPP } from '@/types/ras'
 const MONTHS = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
+// Duração e hint por tipo de ciclo — idêntico ao ESC_CFG do v1
+const ESC_CFG: Record<string, { dur: number; hint: string }> = {
+  '12x24-12x72': { dur: 12, hint: 'escala 12h' },
+  '12x24-12x48': { dur: 12, hint: 'escala 12h' },
+  '24x48':       { dur: 24, hint: 'escala 24h' },
+  '24x72':       { dur: 24, hint: 'escala 24h' },
+  '12x36-folgao':{ dur: 12, hint: '12h · Sem A: Seg/Qua/Sex · Sem B: Ter/Qui/Sáb' },
+}
+
+// Gera opções de turno "HH:mm|HH:mm" para o tipo selecionado
+function gerarOpcoesTurno(tipo: string): { value: string; label: string }[] {
+  const cfg = ESC_CFG[tipo]
+  if (!cfg) return []
+  const opts = []
+  for (let h = 0; h < 24; h++) {
+    const hS = String(h).padStart(2, '0') + ':00'
+    const fH = (h + cfg.dur) % 24
+    const fS = String(fH).padStart(2, '0') + ':00'
+    opts.push({ value: `${hS}|${fS}`, label: `${hS} → ${fS}` })
+  }
+  return opts
+}
+
 const TODOS_OS_LOCAIS = [
   { label: 'Batalhões', options: RAS_LOCALS_BPM },
   { label: 'Unidades Especiais', options: RAS_LOCALS_SPECIAL },
@@ -336,12 +359,19 @@ function EscalaPageInner() {
   // Config modal state
   const [tipoCiclo, setTipoCiclo] = useState<TipoCiclo | ''>('')
   const [dataInicio, setDataInicio] = useState('')
-  const [horaInicio, setHoraInicio] = useState('07:00')
-  const [horaFim, setHoraFim] = useState('19:00')
+  const [turnoSelecionado, setTurnoSelecionado] = useState('07:00|19:00') // "HH:mm|HH:mm"
   const [localConfig, setLocalConfig] = useState('')
   const [localManualConfig, setLocalManualConfig] = useState('')
   const [alarmeConfig, setAlarmeConfig] = useState(true)
   const [salvandoConfig, setSalvandoConfig] = useState(false)
+
+  // Opções de turno recalculadas quando tipo de ciclo muda
+  const turnoOptions = useMemo(() => gerarOpcoesTurno(tipoCiclo), [tipoCiclo])
+
+  // Extrair hora_inicio e hora_fim do turno selecionado
+  const [horaInicio, horaFim] = turnoSelecionado.includes('|')
+    ? turnoSelecionado.split('|')
+    : ['07:00', '19:00']
 
   const [savedCycleConfig, setSavedCycleConfig] = useState<{
     tipo: TipoCiclo
@@ -356,6 +386,16 @@ function EscalaPageInner() {
     const newMes = searchParams.get('mes') || currentMesBR()
     setMes(newMes)
   }, [searchParams])
+
+  // Quando tipo de ciclo muda, resetar turno para 07:00 com a duração correta
+  useEffect(() => {
+    if (!tipoCiclo) return
+    const cfg = ESC_CFG[tipoCiclo]
+    if (!cfg) return
+    const fH = (7 + cfg.dur) % 24
+    const fS = String(fH).padStart(2, '0') + ':00'
+    setTurnoSelecionado(`07:00|${fS}`)
+  }, [tipoCiclo])
 
   // Carregar configuração de ciclo salva na API
   useEffect(() => {
@@ -374,8 +414,7 @@ function EscalaPageInner() {
           })
           setTipoCiclo(c.tipo as TipoCiclo)
           setDataInicio(c.inicioCiclo)
-          setHoraInicio(c.horaInicio)
-          setHoraFim(c.horaFim)
+          setTurnoSelecionado(`${c.horaInicio}|${c.horaFim}`)
           setLocalConfig(c.localServico || '')
           setAlarmeConfig(c.alarmeAtivo)
         }
@@ -572,20 +611,31 @@ function EscalaPageInner() {
 
           {/* Próximo Plantão */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
-            <div className="font-bold text-gray-900 dark:text-white mb-3">⏰ Próximo</div>
-            {proximos.length > 0 ? (
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3">
-                <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {diasAte(proximos[0].dataEscala) === 0
-                    ? 'HOJE 🔥'
-                    : diasAte(proximos[0].dataEscala) === 1
-                      ? 'Amanhã'
-                      : `Em ${diasAte(proximos[0].dataEscala)}d`}
+            <div className="font-bold text-gray-900 dark:text-white mb-3">⏰ Próximo Plantão</div>
+            {proximos.length > 0 ? (() => {
+              const p = proximos[0]
+              const iso = p.dataEscala.split('T')[0]
+              const d = diasAte(iso)
+              const dataFormatada = new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', {
+                weekday: 'long', day: 'numeric', month: 'short'
+              })
+              return (
+                <div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center mb-3">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                      {d === 0 ? 'HOJE 🔥' : d === 1 ? 'Amanhã' : `Em ${d} dias`}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {dataFormatada} às {p.horaInicio || '07:00'}h
+                    </div>
+                  </div>
+                  {p.localServico && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">📍 {p.localServico}</div>
+                  )}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">{isoFmt(proximos[0].dataEscala.split('T')[0])}</div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">Nenhum plantão</p>
+              )
+            })() : (
+              <div className="text-sm text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-700/30 rounded">Nenhum plantão agendado</div>
             )}
           </div>
 
@@ -720,26 +770,25 @@ function EscalaPageInner() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {tipoCiclo && turnoOptions.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Horário de início</label>
-                  <input
-                    type="time"
-                    value={horaInicio}
-                    onChange={(e) => setHoraInicio(e.target.value)}
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Horário de início
+                    {ESC_CFG[tipoCiclo] && (
+                      <span className="ml-2 text-xs font-normal text-gray-400">({ESC_CFG[tipoCiclo].hint})</span>
+                    )}
+                  </label>
+                  <select
+                    value={turnoSelecionado}
+                    onChange={(e) => setTurnoSelecionado(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  />
+                  >
+                    {turnoOptions.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Horário de término</label>
-                  <input
-                    type="time"
-                    value={horaFim}
-                    onChange={(e) => setHoraFim(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Local de Serviço</label>
