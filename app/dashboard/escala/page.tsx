@@ -3,29 +3,12 @@
 import React, { useState, useMemo, useCallback, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Settings, X, Trash2, Edit2 } from 'lucide-react'
-import { calculateCycleDays, calculateShiftProgress } from '@/lib/escala-calculations'
+import { calculateCycleDays, calcularProgressoPlantao } from '@/lib/escala-calculations'
 import { CYCLE_LABELS, CYCLE_TYPES, type TipoCiclo } from '@/types/escala'
 import { RAS_LOCALS_BPM, RAS_LOCALS_SPECIAL, RAS_LOCALS_UPP } from '@/types/ras'
 
 const MONTHS = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-
-// Horários disponíveis começando às 7h
-const HORARIOS_DISPONIVEIS = [
-  { value: '07:00', label: '07:00h' },
-  { value: '08:00', label: '08:00h' },
-  { value: '09:00', label: '09:00h' },
-  { value: '10:00', label: '10:00h' },
-  { value: '11:00', label: '11:00h' },
-  { value: '12:00', label: '12:00h' },
-  { value: '13:00', label: '13:00h' },
-  { value: '14:00', label: '14:00h' },
-  { value: '15:00', label: '15:00h' },
-  { value: '16:00', label: '16:00h' },
-  { value: '17:00', label: '17:00h' },
-  { value: '18:00', label: '18:00h' },
-  { value: '19:00', label: '19:00h' },
-]
 
 const TODOS_OS_LOCAIS = [
   { label: 'Batalhões', options: RAS_LOCALS_BPM },
@@ -72,35 +55,30 @@ function diasAte(iso: string): number {
 }
 
 // Componente Calendar (memoizado para evitar re-renders desnecessários)
-const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPrevMonth, onNextMonth }: { mes: string; escalas: any[]; previewDays: number[]; onPrevMonth: () => void; onNextMonth: () => void }) {
+const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPrevMonth, onNextMonth, configTipo }: { mes: string; escalas: any[]; previewDays: number[]; onPrevMonth: () => void; onNextMonth: () => void; configTipo?: string }) {
   const [ano, m] = mes.split('-').map(Number)
   const hoje = getTodayBR()
 
   const firstWD = new Date(ano, m - 1, 1).getDay()
   const diasMes = new Date(ano, m, 0).getDate()
 
-  // Memoizar mapa de escalas e progressos para evitar recalcular
+  // Memoizar mapa de escalas e progressos usando lógica idêntica ao v1
   const escalasMap = useMemo(() => {
     const map: Record<string, { escala: any; progresso: { pct: number; status: string } }> = {}
     escalas.forEach((escala) => {
       const isoDate = escala.dataEscala.split('T')[0]
       if (!map[isoDate]) {
-        try {
-          const startDate = new Date(escala.dataEscala)
-          map[isoDate] = {
-            escala,
-            progresso: {
-              pct: calculateShiftProgress('12x24-12x72', startDate, new Date()),
-              status: isoDate === hoje ? 'em_progresso' : 'futuro'
-            }
-          }
-        } catch {
-          map[isoDate] = { escala, progresso: { pct: 0, status: 'futuro' } }
+        // Usa tipoConfig da configuração ativa, com fallback para "plantao" (24h)
+        const tipoParaCalculo = configTipo || escala.tipoTurno || 'plantao'
+        const horaInicio = escala.horaInicio || '07:00'
+        map[isoDate] = {
+          escala,
+          progresso: calcularProgressoPlantao(isoDate, horaInicio, tipoParaCalculo),
         }
       }
     })
     return map
-  }, [escalas, hoje])
+  }, [escalas, configTipo, hoje])
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -185,18 +163,23 @@ function ModalPlantao({
   onSave: (data: any) => void
   hoje: string
 }) {
-  const [formData, setFormData] = useState(
-    editingData || {
-      data: hoje,
-      tipo: 'plantao',
-      horaInicio: '07:00',
-      horaFim: '19:00',
-      local: '',
-      localManual: '',
-      observacao: '',
-      alarmeAtivo: true,
-    }
-  )
+  const defaultForm = {
+    data: hoje,
+    tipo: 'plantao',
+    horaInicio: '07:00',
+    horaFim: '19:00',
+    local: '',
+    localManual: '',
+    observacao: '',
+    alarmeAtivo: true,
+  }
+  const [formData, setFormData] = useState(editingData || defaultForm)
+
+  // Resetar formulário quando editingData ou isOpen mudar — igual ao v1
+  useEffect(() => {
+    setFormData(editingData || defaultForm)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingData, isOpen])
 
   return isOpen ? (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -238,21 +221,16 @@ function ModalPlantao({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Início</label>
-            <select
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horário de início</label>
+            <input
+              type="time"
               value={formData.horaInicio}
               onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-            >
-              {HORARIOS_DISPONIVEIS.map((h) => (
-                <option key={h.value} value={h.value}>
-                  {h.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Término</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Horário de término</label>
             <input
               type="time"
               value={formData.horaFim}
@@ -355,14 +333,22 @@ function EscalaPageInner() {
   const [showPlantaoModal, setShowPlantaoModal] = useState(false)
   const [editingPlantao, setEditingPlantao] = useState<any>(null)
 
+  // Config modal state
   const [tipoCiclo, setTipoCiclo] = useState<TipoCiclo | ''>('')
   const [dataInicio, setDataInicio] = useState('')
   const [horaInicio, setHoraInicio] = useState('07:00')
+  const [horaFim, setHoraFim] = useState('19:00')
+  const [localConfig, setLocalConfig] = useState('')
+  const [localManualConfig, setLocalManualConfig] = useState('')
+  const [alarmeConfig, setAlarmeConfig] = useState(true)
+  const [salvandoConfig, setSalvandoConfig] = useState(false)
 
   const [savedCycleConfig, setSavedCycleConfig] = useState<{
     tipo: TipoCiclo
     dataInicio: string
     horaInicio: string
+    horaFim: string
+    localServico?: string
   } | null>(null)
 
   // Sincronizar mês quando searchParams mudar (navegação prev/next)
@@ -370,6 +356,33 @@ function EscalaPageInner() {
     const newMes = searchParams.get('mes') || currentMesBR()
     setMes(newMes)
   }, [searchParams])
+
+  // Carregar configuração de ciclo salva na API
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/escala/config')
+        const data = await res.json()
+        if (data.success && data.data?.config) {
+          const c = data.data.config
+          setSavedCycleConfig({
+            tipo: c.tipo as TipoCiclo,
+            dataInicio: c.inicioCiclo,
+            horaInicio: c.horaInicio,
+            horaFim: c.horaFim,
+            localServico: c.localServico || undefined,
+          })
+          setTipoCiclo(c.tipo as TipoCiclo)
+          setDataInicio(c.inicioCiclo)
+          setHoraInicio(c.horaInicio)
+          setHoraFim(c.horaFim)
+          setLocalConfig(c.localServico || '')
+          setAlarmeConfig(c.alarmeAtivo)
+        }
+      } catch { /* config opcional */ }
+    }
+    loadConfig()
+  }, [])
 
   const hoje = getTodayBR()
   const [ano, mesNum] = mes ? mes.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1]
@@ -502,7 +515,7 @@ function EscalaPageInner() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendário */}
         <div className="lg:col-span-2">
-          {mes && <Calendar mes={mes} escalas={escalas} previewDays={previewDays} onPrevMonth={handlePrevMonth} onNextMonth={handleNextMonth} />}
+          {mes && <Calendar mes={mes} escalas={escalas} previewDays={previewDays} onPrevMonth={handlePrevMonth} onNextMonth={handleNextMonth} configTipo={savedCycleConfig?.tipo} />}
         </div>
 
         {/* Coluna Direita */}
@@ -513,19 +526,44 @@ function EscalaPageInner() {
             {savedCycleConfig ? (
               <div className="space-y-3">
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">{CYCLE_LABELS[savedCycleConfig.tipo]}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{savedCycleConfig.horaInicio}h</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <span className="bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full text-xs font-bold mr-2">
+                      {CYCLE_LABELS[savedCycleConfig.tipo]}
+                    </span>
+                    {savedCycleConfig.horaInicio} → {savedCycleConfig.horaFim}
+                  </div>
+                  {savedCycleConfig.localServico && (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">📍 {savedCycleConfig.localServico}</div>
+                  )}
+                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    Ciclo iniciado em {new Date(savedCycleConfig.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR')}
+                  </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSavedCycleConfig(null)
-                    setTipoCiclo('')
-                    setDataInicio('')
-                  }}
-                  className="w-full px-3 py-2 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100"
-                >
-                  🗑 Deletar Escala
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowConfigModal(true)}
+                    className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    ✏️ Reconfigurar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Tem certeza? Isso vai deletar a configuração e TODOS os plantões agendados.')) return
+                      if (!confirm('ÚLTIMA confirmação: Você realmente quer deletar tudo?')) return
+                      try {
+                        await fetch('/api/escala/config', { method: 'DELETE' })
+                        setSavedCycleConfig(null)
+                        setTipoCiclo('')
+                        setDataInicio('')
+                        setEscalas([])
+                      } catch { alert('Erro ao deletar') }
+                    }}
+                    className="px-3 py-2 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100"
+                    title="Deletar escala e todos os plantões"
+                  >
+                    🗑
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-gray-500">Nenhuma escala configurada</p>
@@ -646,39 +684,33 @@ function EscalaPageInner() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">⚙️ Configurar Ciclo</h2>
-              <button
-                onClick={() => setShowConfigModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">⚙️ Configurar Escala</h2>
+              <button onClick={() => setShowConfigModal(false)} className="text-gray-500 hover:text-gray-700">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Tipo de Ciclo
-                </label>
-                <select
-                  value={tipoCiclo}
-                  onChange={(e) => setTipoCiclo(e.target.value as TipoCiclo)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">Selecione...</option>
-                  {CYCLE_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {CYCLE_LABELS[type]}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">
+              Escolha o tipo de escala e a data de início — os dias de trabalho do mês serão preenchidos automaticamente.
+            </p>
 
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Data de Início
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Escala</label>
+                  <select
+                    value={tipoCiclo}
+                    onChange={(e) => setTipoCiclo(e.target.value as TipoCiclo)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">— Selecione —</option>
+                    {CYCLE_TYPES.map((type) => (
+                      <option key={type} value={type}>{CYCLE_LABELS[type]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Data de início do ciclo</label>
                   <input
                     type="date"
                     value={dataInicio}
@@ -686,49 +718,88 @@ function EscalaPageInner() {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Hora de Início
-                  </label>
-                  <select
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Horário de início</label>
+                  <input
+                    type="time"
                     value={horaInicio}
                     onChange={(e) => setHoraInicio(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  >
-                    {HORARIOS_DISPONIVEIS.map((h) => (
-                      <option key={h.value} value={h.value}>
-                        {h.label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Horário de término</label>
+                  <input
+                    type="time"
+                    value={horaFim}
+                    onChange={(e) => setHoraFim(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Local de Serviço</label>
+                <select
+                  value={localConfig}
+                  onChange={(e) => setLocalConfig(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">— Selecione um local —</option>
+                  {TODOS_OS_LOCAIS.map((grupo) => (
+                    <optgroup key={grupo.label} label={grupo.label}>
+                      {grupo.options.map((l) => (
+                        <option key={l} value={l}>{l}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value="outro">📝 Outros (digitar manualmente)</option>
+                </select>
+              </div>
+
+              {localConfig === 'outro' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Especificar local</label>
+                  <input
+                    type="text"
+                    value={localManualConfig}
+                    onChange={(e) => setLocalManualConfig(e.target.value)}
+                    placeholder="Digite o local..."
+                    maxLength={120}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="alarme-config"
+                  checked={alarmeConfig}
+                  onChange={(e) => setAlarmeConfig(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600"
+                />
+                <label htmlFor="alarme-config" className="text-sm text-gray-700 dark:text-gray-300">
+                  🔔 Notificação 12h antes do serviço
+                </label>
               </div>
 
               {tipoCiclo && dataInicio && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                    Dias de trabalho em {MONTHS[mesNum]} {ano}:
+                    📋 Dias calculados para {MONTHS[mesNum]} {ano}:
                   </h3>
-                  <div className="grid grid-cols-7 gap-2">
-                    {Array.from({ length: new Date(ano, mesNum, 0).getDate() }).map((_, i) => {
-                      const day = i + 1
-                      const isWorkDay = previewDays.includes(day)
-                      return (
-                        <div
-                          key={day}
-                          className={`p-2 text-center text-sm font-medium rounded ${
-                            isWorkDay
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                          }`}
-                        >
-                          {day}
-                        </div>
-                      )
-                    })}
+                  <div className="flex flex-wrap gap-1 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    {previewDays.map((d) => (
+                      <span key={d} className="bg-blue-600 text-white rounded px-2 py-0.5 text-xs font-bold">{d}</span>
+                    ))}
+                    {previewDays.length === 0 && <span className="text-xs text-gray-500">Nenhum dia calculado</span>}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                    Total de {previewDays.length} dias de trabalho no mês
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    {previewDays.length} dias de trabalho neste mês
                   </p>
                 </div>
               )}
@@ -741,22 +812,76 @@ function EscalaPageInner() {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => {
-                    if (tipoCiclo && dataInicio) {
+                  onClick={async () => {
+                    if (!tipoCiclo || !dataInicio) return
+                    const localFinal = localConfig === 'outro' ? localManualConfig : localConfig
+                    if (!localFinal.trim()) {
+                      alert('Selecione ou digite um local de serviço')
+                      return
+                    }
+                    setSalvandoConfig(true)
+                    try {
+                      // 1. Salvar config na API
+                      await fetch('/api/escala/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          tipo: tipoCiclo,
+                          hora_inicio: horaInicio,
+                          hora_fim: horaFim,
+                          inicio_ciclo: dataInicio,
+                          local: localFinal,
+                          alarme_ativo: alarmeConfig,
+                        }),
+                      })
+
+                      // 2. Criar registros de escala para cada dia calculado
+                      const [y, mo] = mes.split('-')
+                      let erros = 0
+                      for (const day of previewDays) {
+                        const iso = `${y}-${mo}-${String(day).padStart(2, '0')}`
+                        try {
+                          const r = await fetch('/api/escala/marcar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              data: iso,
+                              hora_inicio: horaInicio,
+                              hora_fim: horaFim,
+                              tipo: 'plantao',
+                              local: localFinal,
+                              observacao: tipoCiclo,
+                              alarme_ativo: alarmeConfig,
+                            }),
+                          })
+                          if (!r.ok) erros++
+                        } catch { erros++ }
+                      }
+
+                      // 3. Atualizar estado local
                       setSavedCycleConfig({
                         tipo: tipoCiclo as TipoCiclo,
                         dataInicio,
                         horaInicio,
+                        horaFim,
+                        localServico: localFinal,
                       })
+
+                      // 4. Recarregar escalas
+                      const res = await fetch(`/api/escala?mes=${mes}`)
+                      const data = await res.json()
+                      if (data.success) setEscalas(data.data.escalas || [])
+
                       setShowConfigModal(false)
-                      setTipoCiclo('')
-                      setDataInicio('')
+                      if (erros > 0) alert(`⚠️ ${erros} dias com erro ao salvar`)
+                    } finally {
+                      setSalvandoConfig(false)
                     }
                   }}
-                  disabled={!tipoCiclo || !dataInicio}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  disabled={!tipoCiclo || !dataInicio || salvandoConfig}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  ✅ Aplicar
+                  {salvandoConfig ? `Salvando ${previewDays.length} dias…` : '✅ Aplicar ao mês'}
                 </button>
               </div>
             </div>

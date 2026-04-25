@@ -127,12 +127,68 @@ export function calculateCycleDayOfWeek(
   return isWorkDay(tipoCiclo, df) ? 'work' : 'off'
 }
 
-// ─── Shift progress percentage ────────────────────────────────────────────────
+// ─── Shift progress (v1-compatible) ──────────────────────────────────────────
 
 /**
- * Returns 0-100 representing how far through the current shift cycle we are.
+ * Calcula o progresso real de um plantão específico com base na hora atual.
+ * Idêntico à função calcularProgressoEscala do MeuCanga_v1.
  *
- * Example: 12x24-12x72 has a 5-day cycle.  On day 3 of the cycle → 60%.
+ * @param dataStr     - data do plantão "YYYY-MM-DD"
+ * @param horaInicio  - hora de início "HH:mm"
+ * @param tipoConfig  - tipo do ciclo configurado ex: "12x24-12x72"
+ *                      o primeiro número indica duração em horas do turno
+ * @returns { pct: 0-100, status: 'futuro' | 'em_progresso' | 'concluido' }
+ */
+export function calcularProgressoPlantao(
+  dataStr: string,
+  horaInicio: string,
+  tipoConfig: string
+): { pct: number; status: 'futuro' | 'em_progresso' | 'concluido' } {
+  try {
+    // Hora atual em São Paulo
+    const agoraLocal = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+    )
+    const hojeStr = agoraLocal.toISOString().slice(0, 10)
+
+    // Data no passado → concluído
+    if (dataStr < hojeStr) {
+      return { pct: 100, status: 'concluido' }
+    }
+
+    // Extrair duração em horas do tipo (ex: "12x24-12x72" → 12)
+    const duracaoHoras = parseInt(tipoConfig.split('x')[0])
+    const duracao = isNaN(duracaoHoras) ? 24 : duracaoHoras
+
+    // Timestamps com offset de São Paulo (-03:00)
+    const inicioDateTime = new Date(`${dataStr}T${horaInicio}:00-03:00`)
+    const fimDateTime = new Date(inicioDateTime.getTime() + duracao * 3_600_000)
+
+    const agora = new Date(
+      new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+    )
+
+    if (agora < inicioDateTime) {
+      return { pct: 0, status: 'futuro' }
+    }
+    if (agora >= fimDateTime) {
+      return { pct: 100, status: 'concluido' }
+    }
+
+    // Em progresso: calcular %
+    const totalMs = fimDateTime.getTime() - inicioDateTime.getTime()
+    const decorridos = agora.getTime() - inicioDateTime.getTime()
+    const pct = Math.round((decorridos / totalMs) * 100)
+
+    return { pct: Math.min(pct, 99), status: 'em_progresso' }
+  } catch {
+    return { pct: 0, status: 'futuro' }
+  }
+}
+
+/**
+ * @deprecated Use calcularProgressoPlantao instead.
+ * Kept for backwards-compat. Returns cycle position as 0–100.
  */
 export function calculateShiftProgress(
   tipoCiclo: TipoCiclo,
@@ -149,9 +205,6 @@ export function calculateShiftProgress(
 
   const cycleLen = cycleLengths[tipoCiclo]
   const df = daysDiff(dataInicio, dataAtual)
-
-  // Position within the current cycle (0-based, always positive via modulo)
   const posInCycle = ((df % cycleLen) + cycleLen) % cycleLen
-
   return Math.round((posInCycle / cycleLen) * 100)
 }

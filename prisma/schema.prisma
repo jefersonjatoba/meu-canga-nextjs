@@ -23,6 +23,7 @@ model User {
 
   // Relacionamentos
   escalas        Escala[]
+  escalaConfig   EscalaConfig?
   rasAgendas     RasAgenda[]
   rasAgendamentos RasAgendamento[]
   rasPagamentos  RasPagamento[]
@@ -56,6 +57,18 @@ model Escala {
   @@index([userId])
   @@index([dataEscala])
   @@index([status])
+}
+
+model EscalaConfig {
+  userId       String   @id
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo         String   // "12x24-12x72", "12x24-12x48", etc.
+  horaInicio   String   // "07:00"
+  horaFim      String   // "19:00"
+  inicioCiclo  String   // "YYYY-MM-DD"
+  localServico String?
+  alarmeAtivo  Boolean  @default(true)
+  atualizadoEm DateTime @default(now())
 }
 
 // MÓDULO: RAS (Regime Adicional de Serviço)
