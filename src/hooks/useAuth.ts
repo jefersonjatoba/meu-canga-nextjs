@@ -4,6 +4,16 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { User } from '@/types/auth'
 
+// Salva o access token num cookie lido pelas API routes (getApiUser)
+function setSbTokenCookie(token: string | null) {
+  if (typeof document === 'undefined') return
+  if (token) {
+    document.cookie = `sb-token=${token}; path=/; max-age=3600; SameSite=Lax`
+  } else {
+    document.cookie = `sb-token=; path=/; max-age=0`
+  }
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -45,8 +55,11 @@ export function useAuth() {
           }
           setUser(userData)
           localStorage.setItem('sb-auth-cache', JSON.stringify(userData))
+          // Disponibilizar token para API routes server-side
+          setSbTokenCookie(session.access_token)
         } else if (!cachedSession) {
           setUser(null)
+          setSbTokenCookie(null)
         }
       } catch (err) {
         console.error('Auth check error:', err)
@@ -62,7 +75,7 @@ export function useAuth() {
   }, [])
 
   useEffect(() => {
-    // Listener para mudanças de autenticação
+    // Listener para mudanças de autenticação (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (session?.user) {
@@ -73,9 +86,12 @@ export function useAuth() {
           }
           setUser(userData)
           localStorage.setItem('sb-auth-cache', JSON.stringify(userData))
+          // Atualizar cookie sempre que o token mudar (login, refresh, etc.)
+          setSbTokenCookie(session.access_token)
         } else {
           setUser(null)
           localStorage.removeItem('sb-auth-cache')
+          setSbTokenCookie(null)
         }
       }
     )

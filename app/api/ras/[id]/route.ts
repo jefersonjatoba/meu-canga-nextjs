@@ -1,10 +1,12 @@
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
+  getApiUser,
   okResponse,
   errorResponse,
   notFoundResponse,
   forbiddenResponse,
+  unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/api-auth'
 import { updateRasAgendaSchema } from '@/lib/validations/ras'
@@ -12,14 +14,15 @@ import type { StatusRas } from '@/types/ras'
 
 // ─── Valid status transitions ─────────────────────────────────────────────────
 // agendado → realizado → pendente → confirmado
+// realizado → confirmado (confirmação direta sem passar por pendente)
 // Any non-confirmed status → cancelado
 
 const ALLOWED_TRANSITIONS: Record<StatusRas, StatusRas[]> = {
   agendado: ['realizado', 'cancelado'],
-  realizado: ['pendente', 'cancelado'],
-  pendente: ['confirmado', 'cancelado'],
+  realizado: ['pendente', 'confirmado', 'cancelado'],
+  pendente:  ['confirmado', 'cancelado'],
   confirmado: [],
-  cancelado: [],
+  cancelado:  [],
 }
 
 // ─── GET /api/ras/[id] ────────────────────────────────────────────────────────
@@ -29,19 +32,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // TODO: Implement proper auth - temporarily disabled for testing
-    const user = { id: '1', email: 'user@example.com', name: 'Test User', role: 'user' }
-    // const user = await getApiUser()
-    // if (!user) return unauthorizedResponse()
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
 
     const { id } = await params
 
     const rasAgenda = await prisma.rasAgenda.findUnique({
       where: { id },
-      include: {
-        agendamentos: true,
-        pagamentos: true,
-      },
+      include: { agendamentos: true, pagamentos: true },
     })
 
     if (!rasAgenda) return notFoundResponse('RAS')
@@ -60,10 +58,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // TODO: Implement proper auth - temporarily disabled for testing
-    const user = { id: '1', email: 'user@example.com', name: 'Test User', role: 'user' }
-    // const user = await getApiUser()
-    // if (!user) return unauthorizedResponse()
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
 
     const { id } = await params
 
@@ -95,27 +91,33 @@ export async function PATCH(
       }
     }
 
-    // ── Prevent changes to realizado/confirmado (except status transitions) ──
-    const immutableStatuses: StatusRas[] = ['confirmado']
-    if (immutableStatuses.includes(existing.status as StatusRas)) {
+    // ── Prevent field changes on confirmado ──────────────────────────────────
+    if (existing.status === 'confirmado') {
       const hasFieldChange = Object.keys(updates).some((k) => k !== 'status')
       if (hasFieldChange) {
-        return errorResponse(
-          'Não é possível alterar dados de um RAS confirmado',
-          422
-        )
+        return errorResponse('Não é possível alterar dados de um RAS confirmado', 422)
       }
     }
 
-    // ── Parse new date if rescheduling ────────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = { ...updates }
 
+    // ── expiresAt: set 72h window when marking as realizado ──────────────────
+    if (updates.status === 'realizado') {
+      // eventStart = data + horaInicio (São Paulo timezone)
+      const eventDateStr = existing.data.toISOString().slice(0, 10)
+      const [eh, em] = existing.horaInicio.split(':').map(Number)
+      const eventStartSP = new Date(
+        new Date(`${eventDateStr}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00-03:00`).getTime()
+      )
+      updateData.expiresAt = new Date(eventStartSP.getTime() + 72 * 60 * 60 * 1000)
+    }
+
+    // ── Parse new date if rescheduling ────────────────────────────────────────
     if (updates.data) {
       const [year, month, day] = updates.data.split('-').map(Number)
       const newDate = new Date(Date.UTC(year, month - 1, day))
 
-      // Check for duplicate booking at new date+time
       const horaInicio = updates.horaInicio ?? existing.horaInicio
       const duplicate = await prisma.rasAgenda.findFirst({
         where: {
@@ -128,10 +130,7 @@ export async function PATCH(
       })
 
       if (duplicate) {
-        return errorResponse(
-          'Já existe um RAS agendado para esta data e horário',
-          409
-        )
+        return errorResponse('Já existe um RAS agendado para esta data e horário', 409)
       }
 
       updateData.data = newDate
@@ -140,10 +139,7 @@ export async function PATCH(
     const updated = await prisma.rasAgenda.update({
       where: { id },
       data: updateData,
-      include: {
-        agendamentos: true,
-        pagamentos: true,
-      },
+      include: { agendamentos: true, pagamentos: true },
     })
 
     return okResponse(updated)
@@ -153,17 +149,15 @@ export async function PATCH(
 }
 
 // ─── DELETE /api/ras/[id] ─────────────────────────────────────────────────────
-// Soft-cancel: sets status = 'cancelado'. Not allowed if already confirmed.
+// Soft-cancel: sets status = 'cancelado'.
 
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // TODO: Implement proper auth - temporarily disabled for testing
-    const user = { id: '1', email: 'user@example.com', name: 'Test User', role: 'user' }
-    // const user = await getApiUser()
-    // if (!user) return unauthorizedResponse()
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
 
     const { id } = await params
 
@@ -172,10 +166,7 @@ export async function DELETE(
     if (existing.userId !== user.id) return forbiddenResponse()
 
     if (existing.status === 'confirmado') {
-      return errorResponse(
-        'Não é possível cancelar um RAS já confirmado',
-        422
-      )
+      return errorResponse('Não é possível cancelar um RAS já confirmado', 422)
     }
 
     if (existing.status === 'cancelado') {
@@ -185,10 +176,7 @@ export async function DELETE(
     const cancelled = await prisma.rasAgenda.update({
       where: { id },
       data: { status: 'cancelado' },
-      include: {
-        agendamentos: true,
-        pagamentos: true,
-      },
+      include: { agendamentos: true, pagamentos: true },
     })
 
     return okResponse(cancelled)

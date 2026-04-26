@@ -62,6 +62,14 @@ const localRefine = (local: string, ctx: z.RefinementCtx) => {
   }
 }
 
+const tipoRasEnum = z.enum(['voluntario', 'compulsorio'], {
+  errorMap: () => ({ message: 'Tipo deve ser voluntario ou compulsorio' }),
+})
+
+const tipoVagaRasEnum = z.enum(['titular', 'reserva'], {
+  errorMap: () => ({ message: 'Tipo de vaga deve ser titular ou reserva' }),
+})
+
 // ─── Create RasAgenda ─────────────────────────────────────────────────────────
 
 export const createRasAgendaSchema = z
@@ -72,6 +80,8 @@ export const createRasAgendaSchema = z
     duracao: duracaoEnum,
     local: z.string({ required_error: 'Local é obrigatório' }),
     graduacao: graduacaoEnum,
+    tipo: tipoRasEnum.default('voluntario'),
+    tipoVaga: tipoVagaRasEnum.default('titular'),
     competencia: competenciaSchema,
     observacoes: z
       .string()
@@ -117,6 +127,8 @@ export const updateRasAgendaSchema = z
     duracao: duracaoEnum.optional(),
     local: z.string().optional(),
     graduacao: graduacaoEnum.optional(),
+    tipo: tipoRasEnum.optional(),
+    tipoVaga: tipoVagaRasEnum.optional(),
     competencia: competenciaSchema.optional(),
     status: statusRasEnum.optional(),
     observacoes: z

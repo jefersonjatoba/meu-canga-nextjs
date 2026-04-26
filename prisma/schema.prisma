@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Meu Canga — Prisma Schema
+// Regra: campos monetários sempre em centavos (Int). Float proibido para dinheiro.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,49 +11,54 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  cpf       String     @unique
+  id        String   @id @default(cuid())
+  email     String   @unique
+  cpf       String   @unique
   name      String
   phone     String?
-  password  String // hash BCrypt
-  role      String     @default("user") // user, admin
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  password  String
+  role      String   @default("user") // user, admin
+  plan      String   @default("free") // free, pro
+  planExpiresAt DateTime?
+  horasRasAlvo  Int?    // meta de horas RAS por mês
+  metaMensal    Int?    // meta financeira mensal em centavos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relacionamentos
-  escalas        Escala[]
-  escalaConfig   EscalaConfig?
-  rasAgendas     RasAgenda[]
+  escalas         Escala[]
+  escalaConfig    EscalaConfig?
+  rasAgendas      RasAgenda[]
   rasAgendamentos RasAgendamento[]
-  rasPagamentos  RasPagamento[]
-  rasCenarios    RasCenarioSalvo[]
-  lancamentos    Lancamento[]
-  investimentos Investimento[]
-  metas     Meta[]
-  recorrencias Recorrencia[]
-  contas    Conta[]
+  rasPagamentos   RasPagamento[]
+  rasCenarios     RasCenarioSalvo[]
+  lancamentos     Lancamento[]
+  investimentos   Investimento[]
+  metas           Meta[]
+  recorrencias    Recorrencia[]
+  contas          Conta[]
 
   @@index([email])
   @@index([cpf])
 }
 
-// MÓDULO: ESCALA (Turnos de trabalho)
-model Escala {
-  id             String    @id @default(cuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dataEscala     DateTime  // Data do turno
-  tipoTurno      String    // plantao, sobreaviso, extra, folga, ferias
-  horaInicio     String    @default("07:00") // HH:mm
-  horaFim        String    @default("19:00") // HH:mm
-  localServico   String?
-  observacoes    String?
-  alarmeAtivo    Boolean   @default(true)
-  status         String    @default("agendada") // agendada, realizada, cancelada
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+// ─── MÓDULO: ESCALA ──────────────────────────────────────────────────────────
 
+model Escala {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataEscala   DateTime
+  tipoTurno    String   // plantao | sobreaviso | extra | folga | ferias
+  horaInicio   String   @default("07:00")
+  horaFim      String   @default("19:00")
+  localServico String?
+  observacoes  String?
+  alarmeAtivo  Boolean  @default(true)
+  status       String   @default("agendada") // agendada | realizada | cancelada
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, dataEscala, horaInicio])
   @@index([userId])
   @@index([dataEscala])
   @@index([status])
@@ -62,225 +67,234 @@ model Escala {
 model EscalaConfig {
   userId       String   @id
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tipo         String   // "12x24-12x72", "12x24-12x48", etc.
-  horaInicio   String   // "07:00"
-  horaFim      String   // "19:00"
-  inicioCiclo  String   // "YYYY-MM-DD"
+  tipo         String   // 12x24-12x72 | 12x24-12x48 | 24x48 | 24x72 | 12x36-folgao
+  horaInicio   String   // HH:mm
+  horaFim      String   // HH:mm
+  inicioCiclo  String   // YYYY-MM-DD — âncora do ciclo
   localServico String?
   alarmeAtivo  Boolean  @default(true)
   atualizadoEm DateTime @default(now())
 }
 
-// MÓDULO: RAS (Regime Adicional de Serviço)
+// ─── MÓDULO: RAS ─────────────────────────────────────────────────────────────
 
-// RasAgenda – planning record for a single RAS event
 model RasAgenda {
-  id             String           @id @default(cuid())
-  userId         String
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  data           DateTime         // Date of the RAS event (date part only)
-  horaInicio     String           // HH:mm
-  horaFim        String           // HH:mm
-  duracao        Int              // 6 | 8 | 12 | 24 (hours)
-  local          String           // Must be in RAS_ALL_LOCALS
-  graduacao      String           // SD/CB | SGT/SUBTEN
-  valorCentavos  Int              // From RAS_PRICE_TABLE at creation time (cents)
-  status         String           @default("agendado") // agendado, realizado, pendente, confirmado, cancelado
-  competencia    String           // yyyy-MM – month this RAS counts toward
-  observacoes    String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data          DateTime
+  horaInicio    String
+  horaFim       String
+  duracao       Int              // 6 | 8 | 12 | 24 (horas)
+  local         String
+  graduacao     String           // SD/CB | SGT/SUBTEN
+  valorCentavos Int              // preço fixado no momento do agendamento
+  status        String           @default("agendado") // agendado | realizado | pendente | confirmado | cancelado
+  competencia   String           // yyyy-MM
+  tipo          String           @default("voluntario")  // voluntario | compulsorio
+  tipoVaga      String           @default("titular")     // titular | reserva
+  expiresAt     DateTime?        // janela de 72h para realizado → pendente
+  observacoes   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
-  // Relations
-  agendamentos   RasAgendamento[]
-  pagamentos     RasPagamento[]
+  agendamentos  RasAgendamento[]
+  pagamentos    RasPagamento[]
 
-  @@unique([userId, data, horaInicio])       // no duplicate bookings same day+time
+  @@unique([userId, data, horaInicio])
   @@index([userId])
   @@index([data])
   @@index([status])
   @@index([competencia])
 }
 
-// RasAgendamento – booking/confirmation slot within an RasAgenda
 model RasAgendamento {
-  id              String     @id @default(cuid())
-  rasAgendaId     String
-  rasAgenda       RasAgenda  @relation(fields: [rasAgendaId], references: [id], onDelete: Cascade)
-  userId          String
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status          String     @default("agendado") // agendado, realizado, pendente, confirmado, cancelado
-  dataRealizacao  DateTime?  // Timestamp when event was carried out
-  observacoes     String?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-
-  @@index([rasAgendaId])
-  @@index([userId])
-  @@index([status])
-}
-
-// RasPagamento – payment tracking for a realized RAS
-model RasPagamento {
   id             String     @id @default(cuid())
   rasAgendaId    String
   rasAgenda      RasAgenda  @relation(fields: [rasAgendaId], references: [id], onDelete: Cascade)
   userId         String
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  valorCentavos  Int        // Actual paid amount in cents
-  competencia    String     // yyyy-MM
-  dataPagamento  DateTime?
-  comprovante    String?    // URL or file reference
+  status         String     @default("agendado")
+  dataRealizacao DateTime?
   observacoes    String?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   @@index([rasAgendaId])
   @@index([userId])
+  @@index([status])
+}
+
+model RasPagamento {
+  id            String     @id @default(cuid())
+  rasAgendaId   String
+  rasAgenda     RasAgenda  @relation(fields: [rasAgendaId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  valorCentavos Int
+  competencia   String     // yyyy-MM
+  dataPagamento DateTime?
+  comprovante   String?
+  observacoes   String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([rasAgendaId])
+  @@index([userId])
   @@index([competencia])
 }
 
-// RasCenarioSalvo – saved projection/scenario for RAS earnings
 model RasCenarioSalvo {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nome           String
-  descricao      String?
-  mes            String   // yyyy-MM the scenario is modeled for
-  graduacao      String   // SD/CB | SGT/SUBTEN
-  eventos        Json     // RasCenarioEvento[] serialized
-  totalHoras     Int
-  totalCentavos  Int
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome          String
+  descricao     String?
+  mes           String   // yyyy-MM
+  graduacao     String
+  eventos       Json
+  totalHoras    Int
+  totalCentavos Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([userId])
   @@index([mes])
 }
 
-// MÓDULO: LANÇAMENTOS (Transações financeiras)
+// ─── MÓDULO: LANÇAMENTOS ─────────────────────────────────────────────────────
+// tipo: income | expense | ras | investment_aporte | investment_resgate | transfer
+// source: manual | recorrente | parcelado
+
 model Lancamento {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contaId   String
-  conta     Conta      @relation(fields: [contaId], references: [id], onDelete: Cascade)
-  descricao String
-  tipo      String     // RECEITA, DESPESA
-  categoria String     // Salário, Aluguel, Alimentação, etc
-  valor     Float
-  data      DateTime
-  recorrenciaId String?
-  recorrencia Recorrencia? @relation(fields: [recorrenciaId], references: [id])
-  status    String     @default("confirmada") // pendente, confirmada
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId        String
+  conta          Conta        @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  descricao      String
+  tipo           String       // income | expense | ras | investment_aporte | investment_resgate | transfer
+  categoria      String
+  valorCentavos  Int          // valor em centavos — nunca Float
+  data           DateTime     // data do lançamento
+  competenciaAt  String?      // yyyy-MM — mês de competência (pode diferir da data real)
+  source         String       @default("manual") // manual | recorrente | parcelado
+  parcelas       Int?         // total de parcelas (se parcelado)
+  parcelaAtual   Int?         // número da parcela atual (1-based)
+  parentId       String?      // id da transação-pai (para parcelas filhas)
+  parent         Lancamento?  @relation("Parcelas", fields: [parentId], references: [id])
+  filhos         Lancamento[] @relation("Parcelas")
+  metaJson       Json?        // dados extras (ex.: ras_horas, ativo)
+  recorrenciaId  String?
+  recorrencia    Recorrencia? @relation(fields: [recorrenciaId], references: [id])
+  status         String       @default("confirmada") // pendente | confirmada
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([userId])
   @@index([contaId])
   @@index([data])
+  @@index([competenciaAt])
   @@index([categoria])
+  @@index([tipo])
 }
 
-// MÓDULO: INVESTIMENTOS (Carteira de investimentos)
+// ─── MÓDULO: CONTAS ──────────────────────────────────────────────────────────
+// tipo: checking | savings | credit | investment | wallet | custom
+
+model Conta {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome            String
+  tipo            String       // checking | savings | credit | investment | wallet | custom
+  saldoCentavos   Int          @default(0) // saldo em centavos
+  limiteCentavos  Int?         // limite de crédito (cartões)
+  diaFechamento   Int?         // dia de fechamento (cartão de crédito, 1-31)
+  diaVencimento   Int?         // dia de vencimento da fatura
+  banco           String?
+  cor             String?      // hex color para UI
+  ativa           Boolean      @default(true)
+  lancamentos     Lancamento[]
+  recorrencias    Recorrencia[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([ativa])
+}
+
+// ─── MÓDULO: INVESTIMENTOS ───────────────────────────────────────────────────
+
 model Investimento {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nome      String     // Nome do ativo (ex: PETR4, RENDA FIXA, etc)
-  tipo      String     // ACAO, FUNDO, CRIPTO, RENDA_FIXA
-  quantidade Float
-  precoMedio Float
-  precoAtual Float?
-  valor     Float      // quantidade * precoAtual (ou precoMedio se precoAtual null)
-  dataCompra DateTime
-  observacoes String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome               String
+  tipo               String   // ACAO | FUNDO | CRIPTO | RENDA_FIXA
+  quantidade         Float    // número de cotas/ações — NÃO é dinheiro, Float OK
+  precoMedioCentavos Int      // preço médio de compra em centavos
+  precoAtualCentavos Int?     // preço atual de mercado em centavos
+  valorCentavos      Int      // quantidade × precoAtual (ou precoMedio) em centavos
+  dataCompra         DateTime
+  observacoes        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([userId])
   @@index([tipo])
 }
 
-// MÓDULO: METAS (Metas financeiras)
+// ─── MÓDULO: METAS ───────────────────────────────────────────────────────────
+
 model Meta {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  descricao String
-  categoria String     // POUPANCA, INVESTIMENTO, LIMITE_DESPESA
-  valorAlvo Float
-  valorAtual Float     @default(0)
-  dataInicio DateTime
-  dataAlvo  DateTime   // Quando quer atingir
-  status    String     @default("em_progresso") // em_progresso, concluida, cancelada
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  descricao           String
+  categoria           String   // POUPANCA | INVESTIMENTO | LIMITE_DESPESA
+  valorAlvoCentavos   Int
+  valorAtualCentavos  Int      @default(0)
+  dataInicio          DateTime
+  dataAlvo            DateTime
+  status              String   @default("em_progresso") // em_progresso | concluida | cancelada
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
 }
 
-// MÓDULO: RECORRÊNCIAS (Transações automáticas)
+// ─── MÓDULO: RECORRÊNCIAS ────────────────────────────────────────────────────
+
 model Recorrencia {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contaId   String
-  conta     Conta      @relation(fields: [contaId], references: [id], onDelete: Cascade)
-  descricao String
-  tipo      String     // RECEITA, DESPESA
-  categoria String
-  valor     Float
-  frequencia String    // MENSAL, BIMENSAL, TRIMESTRAL, ANUAL
-  diaVencimento Int    // Dia do mês (1-31)
-  dataInicio DateTime
-  dataFim   DateTime?
-  ativa     Boolean    @default(true)
-  lancamentos Lancamento[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId        String
+  conta          Conta        @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  descricao      String
+  tipo           String       // income | expense
+  categoria      String
+  valorCentavos  Int
+  frequencia     String       // MENSAL | BIMENSAL | TRIMESTRAL | ANUAL
+  diaVencimento  Int          // 1-31
+  dataInicio     DateTime
+  dataFim        DateTime?
+  ativa          Boolean      @default(true)
+  lancamentos    Lancamento[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([userId])
   @@index([ativa])
 }
 
-// MÓDULO: CONTAS (Múltiplas contas bancárias/carteiras)
-model Conta {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nome      String     // Nome da conta (Conta Corrente, Poupança, etc)
-  tipo      String     // CONTA_CORRENTE, POUPANCA, CARTEIRA, INVESTIMENTO
-  saldoAtual Float     @default(0)
-  banco     String?    // Nome do banco
-  agencia   String?
-  numero    String?
-  ativa     Boolean    @default(true)
-  lancamentos Lancamento[]
-  recorrencias Recorrencia[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+// ─── AUTH ────────────────────────────────────────────────────────────────────
 
-  @@index([userId])
-  @@index([ativa])
-}
-
-// ─── Field value constraints and documentation ──────────────────────────────
-// Note: String fields use database-level constraints for data integrity.
-// - tipoPlantao: must be in ['plantao', 'sobreaviso', 'extra', 'folga', 'ferias']
-// - tipoCiclo: must be in ['12x24-12x72', '12x24-12x48', '24x48', '24x72', '12x36-folgao']
-// - status: must be in ['agendada', 'realizada', 'cancelada'] for Escala
-// - RAS status: must be in ['agendado', 'realizado', 'pendente', 'confirmado', 'cancelado']
-// - RAS graduacao: must be in ['SD/CB', 'SGT/SUBTEN']
-// - RAS duracao: must be in [6, 8, 12, 24] (hours)
-// - RAS local: must match one of 70 valid locations (BPM, SPECIAL, UPP units)
-
-// MÓDULO: AUTENTICAÇÃO (NextAuth sessions)
 model VerificationToken {
   identifier String
-  token      String     @unique
+  token      String   @unique
   expires    DateTime
 
   @@unique([identifier, token])

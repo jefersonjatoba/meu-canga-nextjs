@@ -19,19 +19,43 @@ export async function POST(request: NextRequest) {
     const [year, month, day] = data.split('-').map(Number)
     const dataEscalaDate = new Date(Date.UTC(year, month - 1, day))
 
-    const escala = await prisma.escala.create({
-      data: {
+    // Upsert: ON CONFLICT(userId, dataEscala, horaInicio) DO UPDATE — idêntico ao v1
+    const existing = await prisma.escala.findFirst({
+      where: {
         userId: user.id,
         dataEscala: dataEscalaDate,
-        tipoTurno: tipo || 'plantao',
-        horaInicio: hora_inicio || '07:00',
-        horaFim: hora_fim || '19:00',
-        localServico: local || null,
-        observacoes: observacao || null,
-        alarmeAtivo: alarme_ativo !== false,
-        status: 'agendada',
+        horaInicio: hora_inicio,
       },
     })
+
+    let escala
+    if (existing) {
+      escala = await prisma.escala.update({
+        where: { id: existing.id },
+        data: {
+          tipoTurno: tipo || 'plantao',
+          horaFim: hora_fim || '19:00',
+          localServico: local || null,
+          observacoes: observacao || null,
+          alarmeAtivo: alarme_ativo !== false,
+          status: 'agendada',
+        },
+      })
+    } else {
+      escala = await prisma.escala.create({
+        data: {
+          userId: user.id,
+          dataEscala: dataEscalaDate,
+          tipoTurno: tipo || 'plantao',
+          horaInicio: hora_inicio || '07:00',
+          horaFim: hora_fim || '19:00',
+          localServico: local || null,
+          observacoes: observacao || null,
+          alarmeAtivo: alarme_ativo !== false,
+          status: 'agendada',
+        },
+      })
+    }
 
     return okResponse(escala)
   } catch (err) {

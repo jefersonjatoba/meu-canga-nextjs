@@ -1,27 +1,25 @@
 import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
+  getApiUser,
   okResponse,
   errorResponse,
+  unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/api-auth'
 import {
   RAS_MAX_MONTHLY_HOURS,
   RAS_WARNING_THRESHOLD,
 } from '@/types/ras'
-import type { StatusRas, GraduacaoRas, DuracaoRas } from '@/types/ras'
+import type { StatusRas, GraduacaoRas, RasHistoricoMes } from '@/types/ras'
 
 // ─── GET /api/ras/stats ───────────────────────────────────────────────────────
-// Returns aggregated RAS statistics for a given month (competência).
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Implement proper auth - temporarily disabled for testing
-    const user = { id: '1', email: 'user@example.com', name: 'Test User', role: 'user' }
-    // const user = await getApiUser()
-    // if (!user) return unauthorizedResponse()
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
 
-    // Resolve competência from query params
     const mesParam = request.nextUrl.searchParams.get('mes') // yyyy-MM
     const anoParam = request.nextUrl.searchParams.get('ano') // yyyy (fallback)
 
@@ -30,27 +28,22 @@ export async function GET(request: NextRequest) {
     if (mesParam && /^\d{4}-\d{2}$/.test(mesParam)) {
       competencia = mesParam
     } else if (anoParam && /^\d{4}$/.test(anoParam)) {
-      // If only year given, use current month of that year
       const nowBR = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
       )
       const month = String(nowBR.getMonth() + 1).padStart(2, '0')
       competencia = `${anoParam}-${month}`
     } else {
-      // Default: current Brazil month
       const nowBR = new Date(
         new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
       )
-      const year = nowBR.getFullYear()
-      const month = String(nowBR.getMonth() + 1).padStart(2, '0')
-      competencia = `${year}-${month}`
+      competencia = `${nowBR.getFullYear()}-${String(nowBR.getMonth() + 1).padStart(2, '0')}`
     }
 
     if (!/^\d{4}-\d{2}$/.test(competencia)) {
       return errorResponse('Parâmetro "mes" deve estar no formato AAAA-MM')
     }
 
-    // ── Fetch all non-cancelled RAS for this competência ──────────────────────
     const rasAgendas = await prisma.rasAgenda.findMany({
       where: {
         userId: user.id,
@@ -65,7 +58,6 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // ── Aggregate totals ──────────────────────────────────────────────────────
     let totalHoras = 0
     let totalCentavos = 0
     let totalEventos = 0
@@ -74,11 +66,13 @@ export async function GET(request: NextRequest) {
 
     const horasPorGraduacao: Record<string, number> = {}
     const contagemPorStatus: Record<StatusRas, number> = {
-      agendado: 0,
-      realizado: 0,
-      pendente: 0,
-      confirmado: 0,
-      cancelado: 0,
+      agendado: 0, realizado: 0, pendente: 0, confirmado: 0, cancelado: 0,
+    }
+    const horasPorStatus: Record<StatusRas, number> = {
+      agendado: 0, realizado: 0, pendente: 0, confirmado: 0, cancelado: 0,
+    }
+    const centavosPorStatus: Record<StatusRas, number> = {
+      agendado: 0, realizado: 0, pendente: 0, confirmado: 0, cancelado: 0,
     }
 
     for (const ra of rasAgendas) {
@@ -90,12 +84,13 @@ export async function GET(request: NextRequest) {
       totalEventos++
 
       contagemPorStatus[status] = (contagemPorStatus[status] ?? 0) + 1
+      horasPorStatus[status] = (horasPorStatus[status] ?? 0) + ra.duracao
+      centavosPorStatus[status] = (centavosPorStatus[status] ?? 0) + ra.valorCentavos
 
       if (status === 'pendente') eventosPendentes++
       if (status === 'confirmado') eventosConfirmados++
 
-      horasPorGraduacao[graduacao] =
-        (horasPorGraduacao[graduacao] ?? 0) + ra.duracao
+      horasPorGraduacao[graduacao] = (horasPorGraduacao[graduacao] ?? 0) + ra.duracao
     }
 
     const percentualLimite = Math.min(
@@ -103,7 +98,32 @@ export async function GET(request: NextRequest) {
       100
     )
 
-    const horasRestantes = Math.max(RAS_MAX_MONTHLY_HOURS - totalHoras, 0)
+    // ── Histórico 3 meses anteriores (confirmados) ───────────────────────────
+    const [cy, cm] = competencia.split('-').map(Number)
+    const prev3: string[] = []
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(cy, cm - 1 - i, 1)
+      prev3.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    }
+
+    const hist3Raw = await prisma.rasAgenda.groupBy({
+      by: ['competencia'],
+      where: {
+        userId: user.id,
+        status: 'confirmado',
+        competencia: { in: prev3 },
+      },
+      _sum: { duracao: true, valorCentavos: true },
+    })
+
+    const historico3Meses: RasHistoricoMes[] = prev3.map((comp) => {
+      const found = hist3Raw.find((r) => r.competencia === comp)
+      return {
+        competencia: comp,
+        totalHoras: found?._sum.duracao ?? 0,
+        totalCentavos: found?._sum.valorCentavos ?? 0,
+      }
+    })
 
     return okResponse({
       competencia,
@@ -114,9 +134,12 @@ export async function GET(request: NextRequest) {
       eventosConfirmados,
       percentualLimite,
       alertaLimite: totalHoras >= RAS_WARNING_THRESHOLD,
-      horasRestantes,
+      horasRestantes: Math.max(RAS_MAX_MONTHLY_HOURS - totalHoras, 0),
       horasPorGraduacao,
       contagemPorStatus,
+      horasPorStatus,
+      centavosPorStatus,
+      historico3Meses,
     })
   } catch (err) {
     return serverErrorResponse(err)

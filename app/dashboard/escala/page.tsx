@@ -78,7 +78,7 @@ function diasAte(iso: string): number {
 }
 
 // Componente Calendar (memoizado para evitar re-renders desnecessários)
-const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPrevMonth, onNextMonth, configTipo }: { mes: string; escalas: any[]; previewDays: number[]; onPrevMonth: () => void; onNextMonth: () => void; configTipo?: string }) {
+const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPrevMonth, onNextMonth, configTipo, onDayClick }: { mes: string; escalas: any[]; previewDays: number[]; onPrevMonth: () => void; onNextMonth: () => void; configTipo?: string; onDayClick: (iso: string, escala?: any) => void }) {
   const [ano, m] = mes.split('-').map(Number)
   const hoje = getTodayBR()
 
@@ -105,12 +105,13 @@ const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPre
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-800 dark:to-blue-900 px-4 py-3 flex items-center justify-between">
-        <button onClick={onPrevMonth} className="p-2 hover:bg-blue-700 rounded">
+      {/* Header dark navy idêntico ao v1 */}
+      <div className="px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(135deg,#0F172A 0%,#1E3A5F 100%)' }}>
+        <button onClick={onPrevMonth} className="p-2 rounded transition-all hover:bg-white/20 border border-white/20">
           <ChevronLeft size={18} className="text-white" />
         </button>
-        <h3 className="text-white font-bold text-base">{MONTHS[m]} {ano}</h3>
-        <button onClick={onNextMonth} className="p-2 hover:bg-blue-700 rounded">
+        <h3 className="text-white font-bold text-base tracking-tight">{MONTHS[m]} {ano}</h3>
+        <button onClick={onNextMonth} className="p-2 rounded transition-all hover:bg-white/20 border border-white/20">
           <ChevronRight size={18} className="text-white" />
         </button>
       </div>
@@ -151,6 +152,7 @@ const Calendar = React.memo(function Calendar({ mes, escalas, previewDays, onPre
           return (
             <div
               key={iso}
+              onClick={() => onDayClick(iso, escalaDodia)}
               className={`p-1 h-20 flex flex-col items-center justify-start pt-2 text-sm font-medium cursor-pointer transition-colors relative overflow-hidden ${
                 isToday
                   ? 'bg-blue-600 text-white border border-blue-600'
@@ -208,16 +210,20 @@ function ModalPlantao({
   editingData,
   onClose,
   onSave,
+  onDelete,
   hoje,
+  defaultDate,
 }: {
   isOpen: boolean
   editingData?: any
   onClose: () => void
   onSave: (data: any) => void
+  onDelete?: (data: any) => void
   hoje: string
+  defaultDate?: string
 }) {
   const defaultForm = {
-    data: hoje,
+    data: defaultDate || hoje,
     tipo: 'plantao',
     horaInicio: '07:00',
     horaFim: '19:00',
@@ -228,15 +234,21 @@ function ModalPlantao({
   }
   const [formData, setFormData] = useState(editingData || defaultForm)
 
-  // Resetar formulário quando editingData ou isOpen mudar — igual ao v1
+  // Resetar formulário quando editingData, isOpen ou defaultDate mudar — igual ao v1
   useEffect(() => {
-    setFormData(editingData || defaultForm)
+    setFormData(editingData || { ...defaultForm, data: defaultDate || hoje })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editingData, isOpen])
+  }, [editingData, isOpen, defaultDate])
 
   return isOpen ? (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             {editingData ? '✏️ Editar Plantão' : '➕ Novo Plantão'}
@@ -365,6 +377,18 @@ function ModalPlantao({
             ✅ Salvar
           </button>
         </div>
+
+        {/* Botão deletar — visível apenas ao editar, idêntico ao btn-del do v1 */}
+        {editingData?.id && onDelete && (
+          <div className="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <button
+              onClick={() => onDelete(editingData)}
+              className="w-full px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 font-semibold"
+            >
+              🗑 Remover este plantão
+            </button>
+          </div>
+        )}
       </div>
     </div>
   ) : null
@@ -385,6 +409,8 @@ function EscalaPageInner() {
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [showPlantaoModal, setShowPlantaoModal] = useState(false)
   const [editingPlantao, setEditingPlantao] = useState<any>(null)
+  const [plantaoDefaultDate, setPlantaoDefaultDate] = useState<string | undefined>(undefined)
+  const [tick, setTick] = useState(0)
 
   // Config modal state
   const [tipoCiclo, setTipoCiclo] = useState<TipoCiclo | ''>('')
@@ -453,6 +479,23 @@ function EscalaPageInner() {
     loadConfig()
   }, [])
 
+  // Fechar modais com ESC — idêntico ao v1
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      if (showConfigModal) { setShowConfigModal(false); e.preventDefault(); return }
+      if (showPlantaoModal) { setShowPlantaoModal(false); setEditingPlantao(null); e.preventDefault() }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [showConfigModal, showPlantaoModal])
+
+  // Atualizar countdown a cada 60s — idêntico ao setInterval do v1
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60000)
+    return () => clearInterval(id)
+  }, [])
+
   const hoje = getTodayBR()
   const [ano, mesNum] = mes ? mes.split('-').map(Number) : [new Date().getFullYear(), new Date().getMonth() + 1]
 
@@ -499,8 +542,9 @@ function EscalaPageInner() {
     }
   }, [tipoCiclo, dataInicio, ano, mesNum, mes])
 
-  // Proximos plantões - memoizado para evitar re-renders desnecessários
+  // Proximos plantões — tick força reavaliação a cada minuto (igual ao setInterval do v1)
   const proximos = useMemo(() => {
+    void tick
     const agora = new Date()
     agora.setHours(0, 0, 0, 0)
     return escalas
@@ -511,7 +555,48 @@ function EscalaPageInner() {
       })
       .sort((a, b) => new Date(a.dataEscala).getTime() - new Date(b.dataEscala).getTime())
       .slice(0, 1)
-  }, [escalas])
+  }, [escalas, tick])
+
+  // Click na célula do calendário — abre modal com dados do dia (igual ao v1)
+  const handleDayClick = useCallback((iso: string, escala?: any) => {
+    if (escala) {
+      setEditingPlantao({
+        id: escala.id,
+        data: iso,
+        tipo: escala.tipoTurno || 'plantao',
+        horaInicio: escala.horaInicio || '07:00',
+        horaFim: escala.horaFim || '19:00',
+        local: escala.localServico || '',
+        localManual: '',
+        observacao: escala.observacoes || '',
+        alarmeAtivo: escala.alarmeAtivo !== false,
+      })
+      setPlantaoDefaultDate(undefined)
+    } else {
+      setEditingPlantao(null)
+      setPlantaoDefaultDate(iso)
+    }
+    setShowPlantaoModal(true)
+  }, [])
+
+  // Deletar plantão via botão dentro do modal — igual ao btn-del do v1
+  const handleDeleteFromModal = async (escalaData: any) => {
+    if (!confirm('Remover este plantão?')) return
+    try {
+      const res = await fetch('/api/escala/desmarcar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: escalaData.data, hora_inicio: escalaData.horaInicio }),
+      })
+      if (res.ok) {
+        setEscalas(escalas.filter((e) => !(e.dataEscala.split('T')[0] === escalaData.data && e.horaInicio === escalaData.horaInicio)))
+        setShowPlantaoModal(false)
+        setEditingPlantao(null)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   // Salvar novo plantão
   const handleSavePlantao = async (data: any) => {
@@ -560,60 +645,122 @@ function EscalaPageInner() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-4">
+      {/* Header — idêntico ao v1 */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📅 Escala Ordinária</h1>
-          {savedCycleConfig && (
-            <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-              ✅ Ciclo: {CYCLE_LABELS[savedCycleConfig.tipo]} • Início: {new Date(savedCycleConfig.dataInicio).toLocaleDateString('pt-BR')}
-            </p>
-          )}
+          <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">📅 Escala Ordinária</h1>
+          <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted, #94A3B8)' }}>
+            {savedCycleConfig
+              ? `🗓 Escala ativa: ${CYCLE_LABELS[savedCycleConfig.tipo]}`
+              : <span className="text-gray-400">Nenhuma escala configurada</span>}
+          </p>
         </div>
         <button
           onClick={() => setShowConfigModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          className="flex items-center gap-2 px-4 py-2 text-white rounded-lg font-semibold text-sm"
+          style={{ background: 'linear-gradient(135deg,#2563EB,#7C3AED)' }}
         >
-          <Settings size={16} />
-          ⚙️ Configurar
+          ⚙️ Configurar Escala
         </button>
       </div>
 
-      {/* Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendário */}
-        <div className="lg:col-span-2">
-          {mes && <Calendar mes={mes} escalas={escalas} previewDays={previewDays} onPrevMonth={handlePrevMonth} onNextMonth={handleNextMonth} configTipo={savedCycleConfig?.tipo} />}
+      {/* Grid Principal — layout idêntico ao v1: 2 colunas, 2 linhas */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Col 1, Linha 1: Calendário */}
+        <div>
+          {mes && <Calendar mes={mes} escalas={escalas} previewDays={previewDays} onPrevMonth={handlePrevMonth} onNextMonth={handleNextMonth} configTipo={savedCycleConfig?.tipo} onDayClick={handleDayClick} />}
         </div>
 
-        {/* Coluna Direita */}
-        <div className="space-y-4">
+        {/* Col 2, Linhas 1-2: Plantões do Mês (altura total — idêntico ao v1 grid-row:1/3) */}
+        <div className="lg:row-span-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 p-5 flex flex-col">
+          <div className="font-bold text-gray-900 dark:text-white mb-3 text-sm">📋 Plantões do Mês</div>
+          <div className="space-y-2 overflow-y-auto flex-1">
+            {escalas.length > 0 ? (
+              escalas.map((e: any) => {
+                const iso = e.dataEscala.split('T')[0]
+                const [y, m, d] = iso.split('-')
+                const dataLocal = new Date(Number(y), Number(m) - 1, Number(d))
+                const dataFmt = dataLocal.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' })
+                const loc = e.localServico ? ` · ${e.localServico}` : ''
+                return (
+                  <div
+                    key={`${e.id}-${iso}`}
+                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm"
+                    style={{ borderLeft: '3px solid #2563EB' }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-900 dark:text-white text-xs">
+                        {dataFmt}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                        {e.horaInicio || '07:00'}–{e.horaFim || '19:00'}h{loc}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingPlantao({
+                          id: e.id,
+                          data: iso,
+                          tipo: e.tipoTurno || 'plantao',
+                          horaInicio: e.horaInicio || '07:00',
+                          horaFim: e.horaFim || '19:00',
+                          local: e.localServico || '',
+                          localManual: '',
+                          observacao: e.observacoes || '',
+                          alarmeAtivo: e.alarmeAtivo !== false,
+                        })
+                        setShowPlantaoModal(true)
+                      }}
+                      className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-500"
+                      title="Editar"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => handleDeletePlantao(iso, e.horaInicio || '07:00')}
+                      className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+                      title="Apagar"
+                    >
+                      🗑
+                    </button>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-xs">
+                Nenhum plantão cadastrado
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Col 1, Linha 2: Escala Ativa + Próximo Plantão lado a lado (idêntico ao v1) */}
+        <div className="grid grid-cols-2 gap-4">
+
           {/* Escala Ativa */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
-            <div className="font-bold text-gray-900 dark:text-white mb-3">🗓 Escala Ativa</div>
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-white dark:bg-gray-800">
+            <div className="font-bold text-gray-900 dark:text-white mb-3 text-sm">🗓 Escala Ativa</div>
             {savedCycleConfig ? (
-              <div className="space-y-3">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                    <span className="bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full text-xs font-bold mr-2">
-                      {CYCLE_LABELS[savedCycleConfig.tipo]}
-                    </span>
-                    {savedCycleConfig.horaInicio} → {savedCycleConfig.horaFim}
-                  </div>
-                  {savedCycleConfig.localServico && (
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">📍 {savedCycleConfig.localServico}</div>
-                  )}
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    Ciclo iniciado em {new Date(savedCycleConfig.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR')}
-                  </div>
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: 'rgba(37,99,235,.15)', color: '#2563EB' }}>
+                    {CYCLE_LABELS[savedCycleConfig.tipo]}
+                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {savedCycleConfig.horaInicio} – {savedCycleConfig.horaFim}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-400 mb-3">
+                  Ciclo iniciado em {new Date(savedCycleConfig.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR')}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowConfigModal(true)}
-                    className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
                   >
-                    ✏️ Reconfigurar
+                    ⚙️ Reconfigurar
                   </button>
                   <button
                     onClick={async () => {
@@ -627,123 +774,52 @@ function EscalaPageInner() {
                         setEscalas([])
                       } catch { alert('Erro ao deletar') }
                     }}
-                    className="px-3 py-2 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100"
+                    className="px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                     title="Deletar escala e todos os plantões"
                   >
                     🗑
                   </button>
                 </div>
-              </div>
+              </>
             ) : (
-              <p className="text-sm text-gray-500">Nenhuma escala configurada</p>
+              <p className="text-xs text-gray-400 text-center py-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                Nenhuma escala configurada
+              </p>
             )}
           </div>
 
           {/* Próximo Plantão */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
-            <div className="font-bold text-gray-900 dark:text-white mb-3">⏰ Próximo Plantão</div>
+          <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-5 bg-white dark:bg-gray-800">
+            <div className="font-bold text-gray-900 dark:text-white mb-3 text-sm">⏰ Próximo Plantão</div>
             {proximos.length > 0 ? (() => {
               const p = proximos[0]
               const iso = p.dataEscala.split('T')[0]
               const d = diasAte(iso)
-              const dataFormatada = new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR', {
-                weekday: 'long', day: 'numeric', month: 'short'
+              const [y, m, day] = iso.split('-')
+              const dataLocal = new Date(Number(y), Number(m) - 1, Number(day))
+              const dataFormatada = dataLocal.toLocaleDateString('pt-BR', {
+                weekday: 'long', month: 'short', day: 'numeric'
               })
               return (
-                <div>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center mb-3">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                <>
+                  <div className="text-center p-3 rounded-xl mb-2" style={{ background: '#EFF6FF' }}>
+                    <div className="text-xl font-extrabold mb-1" style={{ color: '#2563EB' }}>
                       {d === 0 ? 'HOJE 🔥' : d === 1 ? 'Amanhã' : `Em ${d} dias`}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {dataFormatada} às {p.horaInicio || '07:00'}h
-                    </div>
+                    <div className="text-xs text-gray-500">{dataFormatada} às {p.horaInicio || '07:00'}h</div>
                   </div>
                   {p.localServico && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400">📍 {p.localServico}</div>
+                    <div className="text-xs text-gray-400 mt-1">📍 {p.localServico}</div>
                   )}
-                </div>
+                </>
               )
             })() : (
-              <div className="text-sm text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-700/30 rounded">Nenhum plantão agendado</div>
+              <div className="text-xs text-gray-400 text-center py-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                Nenhum plantão agendado
+              </div>
             )}
           </div>
 
-          {/* Estatísticas */}
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
-            <div className="font-bold text-gray-900 dark:text-white mb-3">📊 Mês</div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-gray-600 dark:text-gray-400 text-xs">Total</div>
-                <div className="font-bold text-2xl text-gray-900 dark:text-white">{escalas.length}</div>
-              </div>
-              <div>
-                <div className="text-gray-600 dark:text-gray-400 text-xs">Próx.</div>
-                <div className="font-bold text-2xl text-blue-600">{proximos.length}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Lista de Plantões */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <div className="font-bold text-gray-900 dark:text-white">📋 Plantões do Mês</div>
-          <button
-            onClick={() => {
-              setEditingPlantao(null)
-              setShowPlantaoModal(true)
-            }}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            ➕ Novo
-          </button>
-        </div>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {escalas.length > 0 ? (
-            escalas.map((e: any) => (
-              <div
-                key={`${e.id}-${e.dataEscala}`}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded text-sm border-l-3 border-blue-500"
-              >
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900 dark:text-white">
-                    {isoFmt(e.dataEscala.split('T')[0])}
-                  </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {e.horaInicio || '07:00'}h — {e.localServico || 'Local não definido'}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => {
-                      setEditingPlantao(e)
-                      setShowPlantaoModal(true)
-                    }}
-                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"
-                    title="Editar"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleDeletePlantao(
-                        e.dataEscala.split('T')[0],
-                        e.horaInicio || '07:00'
-                      )
-                    }
-                    className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-600 dark:text-red-400"
-                    title="Apagar"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">Nenhum plantão cadastrado</p>
-          )}
         </div>
       </div>
 
@@ -751,18 +827,27 @@ function EscalaPageInner() {
       <ModalPlantao
         isOpen={showPlantaoModal}
         editingData={editingPlantao}
+        defaultDate={plantaoDefaultDate}
         onClose={() => {
           setShowPlantaoModal(false)
           setEditingPlantao(null)
+          setPlantaoDefaultDate(undefined)
         }}
         onSave={handleSavePlantao}
+        onDelete={handleDeleteFromModal}
         hoje={hoje}
       />
 
       {/* Modal Configurar Ciclo */}
       {showConfigModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowConfigModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">⚙️ Configurar Escala</h2>
               <button onClick={() => setShowConfigModal(false)} className="text-gray-500 hover:text-gray-700">
@@ -853,17 +938,22 @@ function EscalaPageInner() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="alarme-config"
-                  checked={alarmeConfig}
-                  onChange={(e) => setAlarmeConfig(e.target.checked)}
-                  className="w-4 h-4 accent-blue-600"
-                />
-                <label htmlFor="alarme-config" className="text-sm text-gray-700 dark:text-gray-300">
-                  🔔 Notificação 12h antes do serviço
-                </label>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="alarme-config"
+                    checked={alarmeConfig}
+                    onChange={(e) => setAlarmeConfig(e.target.checked)}
+                    className="w-4 h-4 accent-blue-600"
+                  />
+                  <label htmlFor="alarme-config" className="text-sm text-gray-700 dark:text-gray-300">
+                    🔔 Notificação 12h antes do serviço
+                  </label>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 ml-6">
+                  A notificação será enviada via email e push
+                </p>
               </div>
 
               {tipoCiclo && dataInicio && (
@@ -958,7 +1048,8 @@ function EscalaPageInner() {
                     }
                   }}
                   disabled={!tipoCiclo || !dataInicio || salvandoConfig}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 text-white rounded-lg disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg,#2563EB,#7C3AED)' }}
                 >
                   {salvandoConfig ? `Salvando ${previewDays.length} dias…` : '✅ Aplicar ao mês'}
                 </button>
