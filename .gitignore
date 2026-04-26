@@ -46,6 +46,9 @@ next-env.d.ts
 .env.*.local
 !.env.example
 
+# Local Claude Code settings (may contain commands with secrets)
+.claude/
+
 # IDE
 .vscode/
 .idea/
