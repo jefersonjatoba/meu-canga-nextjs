@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -8,6 +7,7 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowLeftRight,
+  Pencil,
   Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -56,7 +56,8 @@ const tipoSign: Record<TipoLancamento, string> = {
 
 interface LancamentoItemProps {
   item: LancamentoAPIItem
-  onDelete: (id: string) => void
+  onEdit: (item: LancamentoAPIItem) => void
+  onDelete: (item: LancamentoAPIItem) => void
   isLast?: boolean
 }
 
@@ -69,19 +70,8 @@ function formatItemDate(dateStr: string): string {
   }
 }
 
-export function LancamentoItem({ item, onDelete, isLast = false }: LancamentoItemProps) {
-  const [deleting, setDeleting] = useState(false)
+export function LancamentoItem({ item, onEdit, onDelete, isLast = false }: LancamentoItemProps) {
   const Icon = tipoIcon[item.tipo] ?? ArrowLeftRight
-
-  const handleDelete = async () => {
-    if (!window.confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return
-    setDeleting(true)
-    try {
-      await onDelete(item.id)
-    } finally {
-      setDeleting(false)
-    }
-  }
 
   return (
     <li
@@ -139,15 +129,23 @@ export function LancamentoItem({ item, onDelete, isLast = false }: LancamentoIte
         {tipoSign[item.tipo] ?? ''}{formatBRL(item.valorCentavos)}
       </span>
 
-      {/* Delete */}
-      <button
-        onClick={handleDelete}
-        disabled={deleting}
-        aria-label="Excluir lançamento"
-        className="opacity-0 group-hover:opacity-100 focus:opacity-100 ml-1 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-30"
-      >
-        <Trash2 size={14} aria-hidden />
-      </button>
+      {/* Actions — visible on hover/focus */}
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <button
+          onClick={() => onEdit(item)}
+          aria-label="Editar lançamento"
+          className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+        >
+          <Pencil size={14} aria-hidden />
+        </button>
+        <button
+          onClick={() => onDelete(item)}
+          aria-label="Excluir lançamento"
+          className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <Trash2 size={14} aria-hidden />
+        </button>
+      </div>
     </li>
   )
 }

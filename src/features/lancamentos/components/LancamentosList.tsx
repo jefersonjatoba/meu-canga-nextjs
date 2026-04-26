@@ -10,7 +10,8 @@ interface LancamentosListProps {
   total: number
   loading: boolean
   error: string | null
-  onDelete: (id: string) => void
+  onEdit: (item: LancamentoAPIItem) => void
+  onDelete: (item: LancamentoAPIItem) => void
   onNovo: () => void
 }
 
@@ -19,6 +20,7 @@ export function LancamentosList({
   total,
   loading,
   error,
+  onEdit,
   onDelete,
   onNovo,
 }: LancamentosListProps) {
@@ -58,6 +60,7 @@ export function LancamentosList({
           <LancamentoItem
             key={item.id}
             item={item}
+            onEdit={onEdit}
             onDelete={onDelete}
             isLast={idx === items.length - 1}
           />

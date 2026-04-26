@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useToast } from '@/components/ui/Toast'
 import { LancamentosHeader } from '@/features/lancamentos/components/LancamentosHeader'
 import { LancamentosFilters } from '@/features/lancamentos/components/LancamentosFilters'
 import { LancamentosList } from '@/features/lancamentos/components/LancamentosList'
 import { LancamentoModal } from '@/features/lancamentos/components/LancamentoModal'
+import { DeleteLancamentoDialog } from '@/features/lancamentos/components/DeleteLancamentoDialog'
 import {
   listLancamentos,
   getLancamentosSummary,
@@ -30,6 +32,8 @@ function formatMesLabel(mes: string): string {
 }
 
 export default function LancamentosPage() {
+  const { toast } = useToast()
+
   const [mes, setMes]               = useState<string>(currentMes)
   const [tipo, setTipo]             = useState<TipoFilter>('all')
   const [items, setItems]           = useState<LancamentoAPIItem[]>([])
@@ -38,8 +42,12 @@ export default function LancamentosPage() {
   const [contas, setContas]         = useState<ContaOption[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
-  const [modalOpen, setModalOpen]   = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+
+  // Modal state
+  const [createOpen, setCreateOpen]         = useState(false)
+  const [editTarget, setEditTarget]         = useState<LancamentoAPIItem | null>(null)
+  const [deleteTarget, setDeleteTarget]     = useState<LancamentoAPIItem | null>(null)
 
   // Fetch list + summary
   useEffect(() => {
@@ -72,15 +80,36 @@ export default function LancamentosPage() {
   useEffect(() => {
     listContas()
       .then(setContas)
-      .catch(() => {}) // non-blocking — form shows error if contas empty
+      .catch(() => {})
   }, [])
 
   const refetch = useCallback(() => setRefreshKey(k => k + 1), [])
 
-  const handleDelete = useCallback(async (id: string) => {
-    await deleteLancamento(id)
+  const handleCreateSuccess = useCallback(() => {
     refetch()
-  }, [refetch])
+    toast({ type: 'success', title: 'Lançamento criado', description: 'O lançamento foi registrado com sucesso.' })
+  }, [refetch, toast])
+
+  const handleEditSuccess = useCallback(() => {
+    setEditTarget(null)
+    refetch()
+    toast({ type: 'success', title: 'Lançamento atualizado', description: 'As alterações foram salvas.' })
+  }, [refetch, toast])
+
+  const handleDeleteConfirm = useCallback(async (id: string) => {
+    try {
+      await deleteLancamento(id)
+      setDeleteTarget(null)
+      refetch()
+      toast({ type: 'success', title: 'Lançamento excluído' })
+    } catch (e) {
+      toast({
+        type: 'error',
+        title: 'Erro ao excluir',
+        description: e instanceof Error ? e.message : 'Não foi possível excluir o lançamento.',
+      })
+    }
+  }, [refetch, toast])
 
   const periodoLabel = formatMesLabel(mes)
 
@@ -89,7 +118,7 @@ export default function LancamentosPage() {
       <LancamentosHeader
         periodoLabel={periodoLabel}
         summary={summary}
-        onNovo={() => setModalOpen(true)}
+        onNovo={() => setCreateOpen(true)}
       />
 
       <LancamentosFilters
@@ -104,15 +133,35 @@ export default function LancamentosPage() {
         total={total}
         loading={loading}
         error={error}
-        onDelete={handleDelete}
-        onNovo={() => setModalOpen(true)}
+        onEdit={setEditTarget}
+        onDelete={setDeleteTarget}
+        onNovo={() => setCreateOpen(true)}
       />
 
+      {/* Modal: Novo lançamento */}
       <LancamentoModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        mode="create"
         contas={contas}
-        onSuccess={refetch}
+        onSuccess={handleCreateSuccess}
+      />
+
+      {/* Modal: Editar lançamento */}
+      <LancamentoModal
+        open={!!editTarget}
+        onOpenChange={(open) => { if (!open) setEditTarget(null) }}
+        mode="edit"
+        initialData={editTarget ?? undefined}
+        contas={contas}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Dialog: Confirmar exclusão */}
+      <DeleteLancamentoDialog
+        item={deleteTarget}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setDeleteTarget(null)}
       />
     </div>
   )

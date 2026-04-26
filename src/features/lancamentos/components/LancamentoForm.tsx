@@ -9,8 +9,8 @@ import { todayBR } from '@/lib/dates'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { MoneyInput } from './MoneyInput'
-import { createLancamento } from '../api'
-import type { ContaOption } from '../api'
+import { createLancamento, updateLancamento } from '../api'
+import type { ContaOption, LancamentoAPIItem } from '../api'
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
@@ -53,10 +53,23 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function centsToDisplay(centavos: number): string {
+  return (centavos / 100).toFixed(2).replace('.', ',')
+}
+
+function itemDateToInput(dateStr: string): string {
+  // ISO datetime "2026-04-15T03:00:00.000Z" → "2026-04-15"
+  return dateStr.slice(0, 10)
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface LancamentoFormProps {
   contas: ContaOption[]
+  mode?: 'create' | 'edit'
+  initialData?: LancamentoAPIItem
   defaultTipo?: 'income' | 'expense'
   onSuccess: () => void
   onCancel: () => void
@@ -64,11 +77,14 @@ interface LancamentoFormProps {
 
 export function LancamentoForm({
   contas,
+  mode = 'create',
+  initialData,
   defaultTipo = 'income',
   onSuccess,
   onCancel,
 }: LancamentoFormProps) {
   const [apiError, setApiError] = useState<string | null>(null)
+  const isEdit = mode === 'edit' && !!initialData
 
   const {
     register,
@@ -80,23 +96,33 @@ export function LancamentoForm({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      tipo:         defaultTipo,
-      contaId:      contas[0]?.id ?? '',
-      descricao:    '',
-      categoria:    '',
-      valorDisplay: '',
-      data:         todayBR(),
-      status:       'confirmada',
-    },
+    defaultValues: isEdit
+      ? {
+          tipo:         initialData.tipo,
+          contaId:      initialData.conta?.id ?? (contas[0]?.id ?? ''),
+          descricao:    initialData.descricao,
+          categoria:    initialData.categoria,
+          valorDisplay: centsToDisplay(initialData.valorCentavos),
+          data:         itemDateToInput(initialData.data),
+          status:       (initialData.status as 'confirmada' | 'pendente') ?? 'confirmada',
+        }
+      : {
+          tipo:         defaultTipo,
+          contaId:      contas[0]?.id ?? '',
+          descricao:    '',
+          categoria:    '',
+          valorDisplay: '',
+          data:         todayBR(),
+          status:       'confirmada',
+        },
   })
 
   const tipo = watch('tipo')
 
-  // Reset categoria when tipo changes
+  // Reset categoria when tipo changes — only in create mode to avoid clobbering edit data
   useEffect(() => {
-    setValue('categoria', '')
-  }, [tipo, setValue])
+    if (!isEdit) setValue('categoria', '')
+  }, [tipo, setValue, isEdit])
 
   // Auto-select first conta if only one
   useEffect(() => {
@@ -107,15 +133,26 @@ export function LancamentoForm({
     setApiError(null)
     try {
       const valorCentavos = toCents(values.valorDisplay.replace(',', '.'))
-      await createLancamento({
-        contaId:      values.contaId,
-        descricao:    values.descricao,
-        tipo:         values.tipo,
-        categoria:    values.categoria,
-        valorCentavos,
-        data:         values.data,
-        status:       values.status,
-      })
+      if (isEdit) {
+        await updateLancamento(initialData.id, {
+          descricao:    values.descricao,
+          tipo:         values.tipo,
+          categoria:    values.categoria,
+          valorCentavos,
+          data:         values.data,
+          status:       values.status,
+        })
+      } else {
+        await createLancamento({
+          contaId:      values.contaId,
+          descricao:    values.descricao,
+          tipo:         values.tipo,
+          categoria:    values.categoria,
+          valorCentavos,
+          data:         values.data,
+          status:       values.status,
+        })
+      }
       reset()
       onSuccess()
     } catch (e) {
@@ -256,7 +293,7 @@ export function LancamentoForm({
           Cancelar
         </Button>
         <Button type="submit" variant="primary" isLoading={isSubmitting} loadingText="Salvando…">
-          Salvar lançamento
+          {isEdit ? 'Atualizar lançamento' : 'Salvar lançamento'}
         </Button>
       </div>
     </form>

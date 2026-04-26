@@ -39,6 +39,15 @@ export interface CreateLancamentoPayload {
   status?: 'confirmada' | 'pendente'
 }
 
+export interface UpdateLancamentoPayload {
+  descricao?: string
+  tipo?: TipoLancamento
+  categoria?: string
+  valorCentavos?: number
+  data?: string   // YYYY-MM-DD
+  status?: 'confirmada' | 'pendente'
+}
+
 type ApiResponse<T> = { success: true; data: T } | { success: false; error: string }
 
 async function handle<T>(res: Response): Promise<T> {
@@ -70,6 +79,15 @@ export async function getLancamentosSummary(mes: string): Promise<LancamentoSumm
 export async function createLancamento(input: CreateLancamentoPayload): Promise<LancamentoAPIItem> {
   const res = await fetch('/api/lancamentos', {
     method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(input),
+  })
+  return handle<LancamentoAPIItem>(res)
+}
+
+export async function updateLancamento(id: string, input: UpdateLancamentoPayload): Promise<LancamentoAPIItem> {
+  const res = await fetch(`/api/lancamentos/${encodeURIComponent(id)}`, {
+    method:  'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(input),
   })
