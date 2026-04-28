@@ -11,6 +11,7 @@ import type { CreateLancamentoSchema, UpdateLancamentoSchema, LancamentoFiltersS
 // ─── Conta select shape included in most queries ──────────────────────────────
 
 const contaSelect = { select: { id: true, nome: true, tipo: true } } as const
+const categoriaSelect = { select: { id: true, nome: true, tipo: true } } as const
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ export async function createLancamento(
     data: {
       userId,
       contaId:       data.contaId,
+      categoriaId:   data.categoriaId,
       descricao:     data.descricao,
       tipo:          data.tipo,
       categoria:     data.categoria,
@@ -32,7 +34,7 @@ export async function createLancamento(
       status:        data.status,
       metaJson:      toJsonInput(data.metaJson),
     },
-    include: { conta: contaSelect },
+    include: { conta: contaSelect, categoriaRef: categoriaSelect },
   })
 }
 
@@ -49,6 +51,7 @@ export async function updateLancamento(
     data: {
       descricao:     data.descricao,
       tipo:          data.tipo,
+      categoriaId:   data.categoriaId,
       categoria:     data.categoria,
       valorCentavos: data.valorCentavos,
       data:          data.data ? parseUTCDate(data.data) : undefined,
@@ -71,7 +74,7 @@ export async function deleteLancamento(userId: string, id: string) {
 export async function findLancamentoById(userId: string, id: string) {
   return prisma.lancamento.findFirst({
     where: { id, userId },
-    include: { conta: contaSelect },
+    include: { conta: contaSelect, categoriaRef: categoriaSelect },
   })
 }
 
@@ -95,7 +98,7 @@ export async function listLancamentosByUser(
   const [items, total] = await prisma.$transaction([
     prisma.lancamento.findMany({
       where,
-      include: { conta: contaSelect },
+      include: { conta: contaSelect, categoriaRef: categoriaSelect },
       orderBy: { data: 'desc' },
       skip,
       take: filters.pageSize,

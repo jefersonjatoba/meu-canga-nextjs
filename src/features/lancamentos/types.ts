@@ -17,6 +17,7 @@ export interface LancamentoDTO {
   id: string
   userId: string
   contaId: string
+  categoriaId?: string | null
   descricao: string
   tipo: TipoLancamento
   categoria: string
@@ -33,12 +34,14 @@ export interface LancamentoDTO {
   createdAt: string
   updatedAt: string
   conta?: { id: string; nome: string; tipo: string }
+  categoriaRef?: { id: string; nome: string; tipo: string } | null
 }
 
 // ─── Inputs ───────────────────────────────────────────────────────────────────
 
 export interface CreateLancamentoInput {
   contaId: string
+  categoriaId?: string | null
   descricao: string
   tipo: TipoLancamento
   categoria: string
@@ -53,6 +56,7 @@ export interface CreateLancamentoInput {
 export interface UpdateLancamentoInput {
   descricao?: string
   tipo?: TipoLancamento
+  categoriaId?: string | null
   categoria?: string
   valorCentavos?: number
   data?: string

@@ -9,6 +9,7 @@ const COMPETENCIA_REGEX = /^\d{4}-\d{2}$/
 
 export const createLancamentoSchema = z.object({
   contaId:        z.string().cuid('contaId inválido'),
+  categoriaId:    z.string().min(1, 'categoriaId invalido').max(100).optional().nullable(),
   descricao:      z.string().min(1, 'Descrição obrigatória').max(255, 'Descrição muito longa'),
   tipo:           z.enum(TIPOS_LANCAMENTO, { errorMap: () => ({ message: 'Tipo de lançamento inválido' }) }),
   categoria:      z.string().min(1, 'Categoria obrigatória').max(100),
@@ -25,6 +26,7 @@ export const createLancamentoSchema = z.object({
 export const updateLancamentoSchema = z.object({
   descricao:      z.string().min(1).max(255).optional(),
   tipo:           z.enum(TIPOS_LANCAMENTO).optional(),
+  categoriaId:    z.string().min(1).max(100).optional().nullable(),
   categoria:      z.string().min(1).max(100).optional(),
   valorCentavos:  z.number().int().positive().optional(),
   data:           z.string().regex(DATE_REGEX).optional(),

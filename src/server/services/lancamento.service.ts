@@ -17,6 +17,7 @@ import type {
   LancamentoSummaryDTO,
 } from '@/features/lancamentos/types'
 import * as repo from '@/server/repositories/lancamento.repository'
+import { ensureCategoriaBelongsToUser } from '@/server/services/categoria.service'
 import {
   calculateTotals,
   calculateSavingsRate,
@@ -30,9 +31,14 @@ export async function createLancamentoForUser(
   input: CreateLancamentoInput,
 ) {
   const validated = createLancamentoSchema.parse(input)
+  const categoria = await ensureCategoriaBelongsToUser(userId, validated.categoriaId)
   // Derive competenciaAt from data when not explicitly provided
   const competenciaAt = validated.competenciaAt ?? validated.data.slice(0, 7)
-  return repo.createLancamento(userId, { ...validated, competenciaAt })
+  return repo.createLancamento(userId, {
+    ...validated,
+    categoria: categoria?.nome ?? validated.categoria,
+    competenciaAt,
+  })
 }
 
 // ─── Update ───────────────────────────────────────────────────────────────────
@@ -43,7 +49,11 @@ export async function updateLancamentoForUser(
   input: UpdateLancamentoInput,
 ) {
   const validated = updateLancamentoSchema.parse(input)
-  const result = await repo.updateLancamento(userId, id, validated)
+  const categoria = await ensureCategoriaBelongsToUser(userId, validated.categoriaId)
+  const result = await repo.updateLancamento(userId, id, {
+    ...validated,
+    categoria: categoria?.nome ?? validated.categoria,
+  })
   if (result.count === 0) throw new NotFoundOrForbiddenError()
   // Return the updated record so the API can respond with the full object
   return repo.findLancamentoById(userId, id)

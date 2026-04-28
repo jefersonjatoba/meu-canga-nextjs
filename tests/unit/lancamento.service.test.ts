@@ -12,7 +12,12 @@ vi.mock('@/server/repositories/lancamento.repository', () => ({
   getLancamentosForFinancialSnapshot:  vi.fn(),
 }))
 
+vi.mock('@/server/services/categoria.service', () => ({
+  ensureCategoriaBelongsToUser: vi.fn(),
+}))
+
 import * as repo from '@/server/repositories/lancamento.repository'
+import { ensureCategoriaBelongsToUser } from '@/server/services/categoria.service'
 import {
   createLancamentoForUser,
   updateLancamentoForUser,
@@ -63,6 +68,7 @@ const mockLancamento = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(ensureCategoriaBelongsToUser).mockResolvedValue(null)
 })
 
 // ─── createLancamentoForUser ──────────────────────────────────────────────────
@@ -170,6 +176,45 @@ describe('createLancamentoForUser', () => {
       expect.objectContaining({ status: 'confirmada' }),
     )
   })
+
+  it('continua criando com categoria string sem categoriaId', async () => {
+    vi.mocked(repo.createLancamento).mockResolvedValue(mockLancamento as never)
+
+    await createLancamentoForUser(USER_A, baseInput)
+
+    expect(ensureCategoriaBelongsToUser).toHaveBeenCalledWith(USER_A, undefined)
+    expect(repo.createLancamento).toHaveBeenCalledWith(
+      USER_A,
+      expect.objectContaining({ categoria: 'Salário' }),
+    )
+    expect(vi.mocked(repo.createLancamento).mock.calls[0][1]).not.toHaveProperty('categoriaId')
+  })
+
+  it('valida categoriaId e sincroniza categoria string no create', async () => {
+    vi.mocked(ensureCategoriaBelongsToUser).mockResolvedValue({
+      id: 'cat_111',
+      nome: 'Moradia',
+      tipo: 'expense',
+    })
+    vi.mocked(repo.createLancamento).mockResolvedValue({
+      ...mockLancamento,
+      categoriaId: 'cat_111',
+      categoria: 'Moradia',
+    } as never)
+
+    await createLancamentoForUser(USER_A, {
+      ...baseInput,
+      categoriaId: 'cat_111',
+      categoria: 'Aluguel',
+      tipo: 'expense',
+    })
+
+    expect(ensureCategoriaBelongsToUser).toHaveBeenCalledWith(USER_A, 'cat_111')
+    expect(repo.createLancamento).toHaveBeenCalledWith(
+      USER_A,
+      expect.objectContaining({ categoriaId: 'cat_111', categoria: 'Moradia' }),
+    )
+  })
 })
 
 // ─── updateLancamentoForUser ──────────────────────────────────────────────────
@@ -212,6 +257,28 @@ describe('updateLancamentoForUser', () => {
       updateLancamentoForUser(USER_A, LANCAMENTO_ID, { valorCentavos: 0 }),
     ).rejects.toThrow(ZodError)
     expect(repo.updateLancamento).not.toHaveBeenCalled()
+  })
+
+  it('valida categoriaId e sincroniza categoria string no update', async () => {
+    vi.mocked(ensureCategoriaBelongsToUser).mockResolvedValue({
+      id: 'cat_222',
+      nome: 'Educacao',
+      tipo: 'expense',
+    })
+    vi.mocked(repo.updateLancamento).mockResolvedValue({ count: 1 })
+    vi.mocked(repo.findLancamentoById).mockResolvedValue({
+      ...mockLancamento,
+      categoriaId: 'cat_222',
+      categoria: 'Educacao',
+    } as never)
+
+    await updateLancamentoForUser(USER_A, LANCAMENTO_ID, { categoriaId: 'cat_222' })
+
+    expect(repo.updateLancamento).toHaveBeenCalledWith(
+      USER_A,
+      LANCAMENTO_ID,
+      expect.objectContaining({ categoriaId: 'cat_222', categoria: 'Educacao' }),
+    )
   })
 })
 

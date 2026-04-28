@@ -12,6 +12,7 @@ import {
   deleteLancamentoForUser,
   NotFoundOrForbiddenError,
 } from '@/server/services/lancamento.service'
+import { CategoriaNotFoundOrForbiddenError } from '@/server/services/categoria.service'
 import { ZodError } from 'zod'
 
 // ─── PATCH /api/lancamentos/[id] ─────────────────────────────────────────────
@@ -34,6 +35,7 @@ export async function PATCH(
   } catch (err) {
     if (err instanceof ZodError) return errorResponse(err.errors[0].message)
     if (err instanceof NotFoundOrForbiddenError) return notFoundResponse('Lançamento')
+    if (err instanceof CategoriaNotFoundOrForbiddenError) return notFoundResponse('Categoria')
     return serverErrorResponse(err)
   }
 }

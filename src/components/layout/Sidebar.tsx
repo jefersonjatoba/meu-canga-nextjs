@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   CalendarDays,
   Wallet,
+  Tags,
+  Landmark,
   TrendingUp,
   Target,
   FileBarChart2,
@@ -29,6 +31,8 @@ const navItems: NavItem[] = [
   { href: '/dashboard/escala', label: 'Escala', icon: CalendarDays },
   { href: '/dashboard/ras', label: 'RAS', icon: Shield },
   { href: '/dashboard/lancamentos', label: 'Lançamentos', icon: Wallet },
+  { href: '/dashboard/contas', label: 'Contas', icon: Landmark },
+  { href: '/dashboard/categorias', label: 'Categorias', icon: Tags },
   { href: '/dashboard/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/dashboard/metas', label: 'Metas', icon: Target },
 ]

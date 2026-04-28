@@ -7,12 +7,14 @@ export interface LancamentoAPIItem {
   id: string
   descricao: string
   tipo: TipoLancamento
+  categoriaId?: string | null
   categoria: string
   valorCentavos: number
   data: string           // ISO datetime string from JSON
   competenciaAt: string
   status: string
   conta?: { id: string; nome: string; tipo: string } | null
+  categoriaRef?: { id: string; nome: string; tipo: string } | null
 }
 
 export interface ListResult {
@@ -31,6 +33,7 @@ export interface ContaOption {
 
 export interface CreateLancamentoPayload {
   contaId: string
+  categoriaId?: string | null
   descricao: string
   tipo: TipoLancamento
   categoria: string
@@ -42,6 +45,7 @@ export interface CreateLancamentoPayload {
 export interface UpdateLancamentoPayload {
   descricao?: string
   tipo?: TipoLancamento
+  categoriaId?: string | null
   categoria?: string
   valorCentavos?: number
   data?: string   // YYYY-MM-DD

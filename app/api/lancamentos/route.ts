@@ -13,6 +13,7 @@ import {
   getLancamentosSummaryForUser,
   NotFoundOrForbiddenError,
 } from '@/server/services/lancamento.service'
+import { CategoriaNotFoundOrForbiddenError } from '@/server/services/categoria.service'
 import { ZodError } from 'zod'
 
 // ─── GET /api/lancamentos ─────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (err instanceof ZodError) return errorResponse(err.errors[0].message)
     if (err instanceof NotFoundOrForbiddenError) return errorResponse(err.message, 404)
+    if (err instanceof CategoriaNotFoundOrForbiddenError) return errorResponse(err.message, 404)
     return serverErrorResponse(err)
   }
 }
