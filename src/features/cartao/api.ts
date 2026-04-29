@@ -25,6 +25,13 @@ export async function criarCompraCartao(input: CreateCompraCartaoInput): Promise
   return handle<CompraCartaoDTO>(res)
 }
 
+export async function cancelarCompraCartao(id: string): Promise<CompraCartaoDTO> {
+  const res = await fetch(`/api/cartao/compras/${encodeURIComponent(id)}/cancelar`, {
+    method: 'POST',
+  })
+  return handle<CompraCartaoDTO>(res)
+}
+
 export async function listarFaturasCartao(
   filters: FaturaCartaoFilters = {},
 ): Promise<FaturaCartaoDTO[]> {

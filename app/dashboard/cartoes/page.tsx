@@ -91,6 +91,15 @@ export default function CartoesPage() {
     })
   }, [loadBase, toast])
 
+  const handleCancelamentoSuccess = useCallback(() => {
+    loadBase()
+    toast({
+      type: 'success',
+      title: 'Compra cancelada',
+      description: 'As parcelas foram canceladas e o historico foi preservado.',
+    })
+  }, [loadBase, toast])
+
   const updateFiltersUrl = useCallback((next: { cartao?: string; status?: StatusFilter }) => {
     const params = new URLSearchParams(searchParams.toString())
     const cartao = next.cartao ?? selectedContaId
@@ -197,6 +206,7 @@ export default function CartoesPage() {
         open={!!detalheTarget}
         onOpenChange={(open) => { if (!open) setDetalheTarget(null) }}
         fatura={detalheTarget}
+        onCancelSuccess={handleCancelamentoSuccess}
       />
 
       <PagarFaturaModal

@@ -8,7 +8,7 @@ export type TipoLancamento =
   | 'investment_resgate'
   | 'transfer'
 
-export type StatusLancamento = 'pendente' | 'confirmada'
+export type StatusLancamento = 'pendente' | 'confirmada' | 'cancelada'
 export type SourceLancamento = 'manual' | 'recorrente' | 'parcelado'
 
 // ─── DTO — what the API returns to the client ─────────────────────────────────
@@ -113,5 +113,9 @@ export const TIPOS_LANCAMENTO = [
   'income', 'expense', 'ras', 'investment_aporte', 'investment_resgate', 'transfer',
 ] as const satisfies TipoLancamento[]
 
-export const STATUS_LANCAMENTO = ['pendente', 'confirmada'] as const satisfies StatusLancamento[]
+export const STATUS_LANCAMENTO = [
+  'pendente',
+  'confirmada',
+  'cancelada',
+] as const satisfies StatusLancamento[]
 export const SOURCE_LANCAMENTO = ['manual', 'recorrente', 'parcelado'] as const satisfies SourceLancamento[]

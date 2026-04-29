@@ -1,7 +1,7 @@
 // Client-side fetch helpers for the lancamentos API.
 // All functions throw on non-success responses so callers can catch and display errors.
 
-import type { LancamentoSummaryDTO, TipoLancamento } from './types'
+import type { LancamentoSummaryDTO, StatusLancamento, TipoLancamento } from './types'
 
 export interface LancamentoAPIItem {
   id: string
@@ -39,7 +39,7 @@ export interface CreateLancamentoPayload {
   categoria: string
   valorCentavos: number
   data: string    // YYYY-MM-DD
-  status?: 'confirmada' | 'pendente'
+  status?: StatusLancamento
 }
 
 export interface UpdateLancamentoPayload {
@@ -49,7 +49,7 @@ export interface UpdateLancamentoPayload {
   categoria?: string
   valorCentavos?: number
   data?: string   // YYYY-MM-DD
-  status?: 'confirmada' | 'pendente'
+  status?: StatusLancamento
 }
 
 type ApiResponse<T> = { success: true; data: T } | { success: false; error: string }

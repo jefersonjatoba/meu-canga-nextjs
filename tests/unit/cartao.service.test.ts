@@ -11,6 +11,12 @@ vi.mock('@/server/repositories/cartao.repository', () => ({
   createLancamentoForParcelaCartao: vi.fn(),
   linkParcelaToLancamento: vi.fn(),
   findCompraCartaoById: vi.fn(),
+  findCompraCartaoForCancellation: vi.fn(),
+  updateCompraCartaoStatus: vi.fn(),
+  updateParcelasCartaoStatusByCompra: vi.fn(),
+  updateLancamentosStatusByIds: vi.fn(),
+  decrementFaturaTotal: vi.fn(),
+  cancelFaturaIfZero: vi.fn(),
   listFaturasByUser: vi.fn(),
   findFaturaById: vi.fn(),
   findFaturaByIdForUpdate: vi.fn(),
@@ -24,9 +30,12 @@ vi.mock('@/server/repositories/cartao.repository', () => ({
 import * as repo from '@/server/repositories/cartao.repository'
 import {
   CategoriaCartaoNotFoundOrForbiddenError,
+  CompraCartaoInvalidStateError,
+  CompraCartaoNotFoundOrForbiddenError,
   ContaCartaoInvalidaError,
   ContaCartaoNotFoundOrForbiddenError,
   ContaPagamentoInvalidaError,
+  cancelarCompraCartao,
   criarCompraCartao,
   listarFaturas,
   obterFatura,
@@ -260,6 +269,184 @@ describe('faturas', () => {
 
     await expect(obterFatura(USER_A, FATURA_ID)).resolves.toEqual({ id: FATURA_ID })
     expect(repo.findFaturaById).toHaveBeenCalledWith(USER_A, FATURA_ID)
+  })
+})
+
+describe('cancelarCompraCartao', () => {
+  const compraCancelavel = {
+    id: COMPRA_ID,
+    userId: USER_A,
+    status: 'ativa',
+    parcelas: [
+      {
+        id: 'parcela_1',
+        userId: USER_A,
+        faturaCartaoId: FATURA_ID,
+        valorCentavos: 6_000,
+        status: 'lancada',
+        faturaCartao: {
+          id: FATURA_ID,
+          userId: USER_A,
+          status: 'aberta',
+          pagamentos: [],
+        },
+        lancamento: {
+          id: 'lancamento_1',
+          userId: USER_A,
+          status: 'confirmada',
+        },
+      },
+      {
+        id: 'parcela_2',
+        userId: USER_A,
+        faturaCartaoId: 'fatura_222',
+        valorCentavos: 4_000,
+        status: 'lancada',
+        faturaCartao: {
+          id: 'fatura_222',
+          userId: USER_A,
+          status: 'aberta',
+          pagamentos: [],
+        },
+        lancamento: {
+          id: 'lancamento_2',
+          userId: USER_A,
+          status: 'confirmada',
+        },
+      },
+    ],
+  }
+
+  beforeEach(() => {
+    vi.mocked(repo.findCompraCartaoForCancellation).mockResolvedValue(compraCancelavel as never)
+    vi.mocked(repo.updateCompraCartaoStatus).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(repo.updateParcelasCartaoStatusByCompra).mockResolvedValue({ count: 2 } as never)
+    vi.mocked(repo.updateLancamentosStatusByIds).mockResolvedValue({ count: 2 } as never)
+    vi.mocked(repo.decrementFaturaTotal).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(repo.cancelFaturaIfZero).mockResolvedValue({ count: 0 } as never)
+    vi.mocked(repo.findCompraCartaoById).mockResolvedValue({
+      ...compraCancelavel,
+      status: 'cancelada',
+    } as never)
+  })
+
+  it('cancela compra valida dentro de transacao', async () => {
+    await cancelarCompraCartao(USER_A, COMPRA_ID)
+
+    expect(repo.runInTransaction).toHaveBeenCalledOnce()
+    expect(repo.findCompraCartaoForCancellation).toHaveBeenCalledWith(tx, USER_A, COMPRA_ID)
+    expect(repo.updateCompraCartaoStatus).toHaveBeenCalledWith(tx, USER_A, COMPRA_ID, 'cancelada')
+    expect(repo.updateParcelasCartaoStatusByCompra).toHaveBeenCalledWith(
+      tx,
+      USER_A,
+      COMPRA_ID,
+      'cancelada',
+    )
+  })
+
+  it('marca lancamentos como cancelada para deixarem de impactar o dashboard', async () => {
+    await cancelarCompraCartao(USER_A, COMPRA_ID)
+
+    expect(repo.updateLancamentosStatusByIds).toHaveBeenCalledWith(
+      tx,
+      USER_A,
+      ['lancamento_1', 'lancamento_2'],
+      'cancelada',
+    )
+  })
+
+  it('decrementa as faturas afetadas sem permitir total negativo', async () => {
+    await cancelarCompraCartao(USER_A, COMPRA_ID)
+
+    expect(repo.decrementFaturaTotal).toHaveBeenCalledWith(tx, USER_A, FATURA_ID, 6_000)
+    expect(repo.decrementFaturaTotal).toHaveBeenCalledWith(tx, USER_A, 'fatura_222', 4_000)
+    expect(repo.cancelFaturaIfZero).toHaveBeenCalledWith(tx, USER_A, FATURA_ID)
+    expect(repo.cancelFaturaIfZero).toHaveBeenCalledWith(tx, USER_A, 'fatura_222')
+  })
+
+  it('rejeita compra inexistente ou de outro usuario', async () => {
+    vi.mocked(repo.findCompraCartaoForCancellation).mockResolvedValue(null)
+
+    await expect(cancelarCompraCartao(USER_B, COMPRA_ID)).rejects.toThrow(
+      CompraCartaoNotFoundOrForbiddenError,
+    )
+    expect(repo.updateCompraCartaoStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejeita compra que nao esta ativa', async () => {
+    vi.mocked(repo.findCompraCartaoForCancellation).mockResolvedValue({
+      ...compraCancelavel,
+      status: 'cancelada',
+    } as never)
+
+    await expect(cancelarCompraCartao(USER_A, COMPRA_ID)).rejects.toThrow(
+      CompraCartaoInvalidStateError,
+    )
+    expect(repo.updateCompraCartaoStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejeita fatura que nao esta aberta', async () => {
+    vi.mocked(repo.findCompraCartaoForCancellation).mockResolvedValue({
+      ...compraCancelavel,
+      parcelas: [
+        {
+          ...compraCancelavel.parcelas[0],
+          faturaCartao: {
+            ...compraCancelavel.parcelas[0].faturaCartao,
+            status: 'paga',
+          },
+        },
+      ],
+    } as never)
+
+    await expect(cancelarCompraCartao(USER_A, COMPRA_ID)).rejects.toThrow(
+      CompraCartaoInvalidStateError,
+    )
+    expect(repo.updateCompraCartaoStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejeita fatura com pagamento confirmado', async () => {
+    vi.mocked(repo.findCompraCartaoForCancellation).mockResolvedValue({
+      ...compraCancelavel,
+      parcelas: [
+        {
+          ...compraCancelavel.parcelas[0],
+          faturaCartao: {
+            ...compraCancelavel.parcelas[0].faturaCartao,
+            pagamentos: [{ id: 'pagamento_1' }],
+          },
+        },
+      ],
+    } as never)
+
+    await expect(cancelarCompraCartao(USER_A, COMPRA_ID)).rejects.toThrow(
+      CompraCartaoInvalidStateError,
+    )
+    expect(repo.updateCompraCartaoStatus).not.toHaveBeenCalled()
+  })
+
+  it('rejeita lancamento ausente ou de outro usuario', async () => {
+    vi.mocked(repo.findCompraCartaoForCancellation).mockResolvedValue({
+      ...compraCancelavel,
+      parcelas: [
+        {
+          ...compraCancelavel.parcelas[0],
+          lancamento: { id: 'lancamento_1', userId: USER_B, status: 'confirmada' },
+        },
+      ],
+    } as never)
+
+    await expect(cancelarCompraCartao(USER_A, COMPRA_ID)).rejects.toThrow(
+      CompraCartaoInvalidStateError,
+    )
+    expect(repo.updateCompraCartaoStatus).not.toHaveBeenCalled()
+  })
+
+  it('propaga erro e depende da transacao para rollback atomico', async () => {
+    vi.mocked(repo.decrementFaturaTotal).mockRejectedValue(new Error('falha decremento'))
+
+    await expect(cancelarCompraCartao(USER_A, COMPRA_ID)).rejects.toThrow('falha decremento')
+    expect(repo.runInTransaction).toHaveBeenCalledOnce()
   })
 })
 

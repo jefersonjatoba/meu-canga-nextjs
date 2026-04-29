@@ -177,6 +177,23 @@ describe('createLancamentoForUser', () => {
     )
   })
 
+  it('aceita status=cancelada sem impactar compatibilidade do schema', async () => {
+    vi.mocked(repo.createLancamento).mockResolvedValue({
+      ...mockLancamento,
+      status: 'cancelada',
+    } as never)
+
+    await createLancamentoForUser(USER_A, {
+      ...baseInput,
+      status: 'cancelada',
+    })
+
+    expect(repo.createLancamento).toHaveBeenCalledWith(
+      USER_A,
+      expect.objectContaining({ status: 'cancelada' }),
+    )
+  })
+
   it('continua criando com categoria string sem categoriaId', async () => {
     vi.mocked(repo.createLancamento).mockResolvedValue(mockLancamento as never)
 

@@ -37,7 +37,7 @@ const formSchema = z.object({
       return isFinite(n) && n > 0
     }, 'Valor deve ser maior que zero'),
   data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data invalida'),
-  status: z.enum(['confirmada', 'pendente'] as const),
+  status: z.enum(['confirmada', 'pendente', 'cancelada'] as const),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -97,7 +97,7 @@ export function LancamentoForm({
           categoria: initialData.categoria,
           valorDisplay: centsToDisplay(initialData.valorCentavos),
           data: itemDateToInput(initialData.data),
-          status: (initialData.status as 'confirmada' | 'pendente') ?? 'confirmada',
+          status: (initialData.status as 'confirmada' | 'pendente' | 'cancelada') ?? 'confirmada',
         }
       : {
           tipo: defaultTipo,

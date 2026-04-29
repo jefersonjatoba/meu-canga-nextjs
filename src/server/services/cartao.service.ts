@@ -80,6 +80,77 @@ export async function obterFatura(userId: string, faturaId: string) {
   return fatura
 }
 
+export async function cancelarCompraCartao(userId: string, compraCartaoId: string) {
+  await repo.runInTransaction(async tx => {
+    const compra = await repo.findCompraCartaoForCancellation(tx, userId, compraCartaoId)
+    if (!compra) throw new CompraCartaoNotFoundOrForbiddenError()
+    if (compra.status !== 'ativa') throw new CompraCartaoInvalidStateError()
+    if (compra.parcelas.length === 0) throw new CompraCartaoInvalidStateError()
+
+    const lancamentoIds: string[] = []
+    const decrementosPorFatura = new Map<string, number>()
+
+    for (const parcela of compra.parcelas) {
+      if (!['lancada', 'prevista'].includes(parcela.status)) {
+        throw new CompraCartaoInvalidStateError()
+      }
+      if (parcela.faturaCartao.status !== 'aberta') {
+        throw new CompraCartaoInvalidStateError()
+      }
+      if (parcela.faturaCartao.pagamentos.length > 0) {
+        throw new CompraCartaoInvalidStateError()
+      }
+      if (!parcela.lancamento || parcela.lancamento.userId !== userId) {
+        throw new CompraCartaoInvalidStateError()
+      }
+
+      lancamentoIds.push(parcela.lancamento.id)
+      decrementosPorFatura.set(
+        parcela.faturaCartaoId,
+        (decrementosPorFatura.get(parcela.faturaCartaoId) ?? 0) + parcela.valorCentavos,
+      )
+    }
+
+    const compraResult = await repo.updateCompraCartaoStatus(
+      tx,
+      userId,
+      compraCartaoId,
+      'cancelada',
+    )
+    if (compraResult.count !== 1) throw new CompraCartaoNotFoundOrForbiddenError()
+
+    const parcelasResult = await repo.updateParcelasCartaoStatusByCompra(
+      tx,
+      userId,
+      compraCartaoId,
+      'cancelada',
+    )
+    if (parcelasResult.count !== compra.parcelas.length) throw new CompraCartaoInvalidStateError()
+
+    const lancamentosResult = await repo.updateLancamentosStatusByIds(
+      tx,
+      userId,
+      lancamentoIds,
+      'cancelada',
+    )
+    if (lancamentosResult.count !== lancamentoIds.length) throw new CompraCartaoInvalidStateError()
+
+    for (const [faturaCartaoId, valorCentavos] of decrementosPorFatura) {
+      const decrementResult = await repo.decrementFaturaTotal(
+        tx,
+        userId,
+        faturaCartaoId,
+        valorCentavos,
+      )
+      if (decrementResult.count !== 1) throw new FaturaCartaoInvalidStateError()
+
+      await repo.cancelFaturaIfZero(tx, userId, faturaCartaoId)
+    }
+  })
+
+  return repo.findCompraCartaoById(userId, compraCartaoId)
+}
+
 export async function pagarFatura(
   userId: string,
   input: PagarFaturaInput,
@@ -245,6 +316,22 @@ export class CategoriaCartaoNotFoundOrForbiddenError extends Error {
   constructor() {
     super('Categoria nao encontrada ou acesso negado')
     this.name = 'CategoriaCartaoNotFoundOrForbiddenError'
+  }
+}
+
+export class CompraCartaoNotFoundOrForbiddenError extends Error {
+  readonly statusCode = 404
+  constructor() {
+    super('Compra no cartao nao encontrada ou acesso negado')
+    this.name = 'CompraCartaoNotFoundOrForbiddenError'
+  }
+}
+
+export class CompraCartaoInvalidStateError extends Error {
+  readonly statusCode = 422
+  constructor() {
+    super('Compra no cartao nao permite cancelamento neste estado')
+    this.name = 'CompraCartaoInvalidStateError'
   }
 }
 

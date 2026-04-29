@@ -237,6 +237,107 @@ export async function findCompraCartaoById(userId: string, id: string) {
   })
 }
 
+export async function findCompraCartaoForCancellation(
+  tx: PrismaTx,
+  userId: string,
+  id: string,
+) {
+  return tx.compraCartao.findFirst({
+    where: { id, userId },
+    include: {
+      parcelas: {
+        orderBy: { numero: 'asc' },
+        include: {
+          faturaCartao: {
+            include: {
+              pagamentos: {
+                select: { id: true },
+              },
+            },
+          },
+          lancamento: {
+            select: {
+              id: true,
+              userId: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  })
+}
+
+export async function updateCompraCartaoStatus(
+  tx: PrismaTx,
+  userId: string,
+  compraCartaoId: string,
+  status: string,
+) {
+  return tx.compraCartao.updateMany({
+    where: { id: compraCartaoId, userId },
+    data: { status },
+  })
+}
+
+export async function updateParcelasCartaoStatusByCompra(
+  tx: PrismaTx,
+  userId: string,
+  compraCartaoId: string,
+  status: string,
+) {
+  return tx.parcelaCartao.updateMany({
+    where: { compraCartaoId, userId },
+    data: { status },
+  })
+}
+
+export async function updateLancamentosStatusByIds(
+  tx: PrismaTx,
+  userId: string,
+  lancamentoIds: string[],
+  status: string,
+) {
+  if (lancamentoIds.length === 0) return { count: 0 }
+
+  return tx.lancamento.updateMany({
+    where: { id: { in: lancamentoIds }, userId },
+    data: { status },
+  })
+}
+
+export async function decrementFaturaTotal(
+  tx: PrismaTx,
+  userId: string,
+  faturaCartaoId: string,
+  valorCentavos: number,
+) {
+  return tx.faturaCartao.updateMany({
+    where: {
+      id: faturaCartaoId,
+      userId,
+      totalCentavos: { gte: valorCentavos },
+    },
+    data: { totalCentavos: { decrement: valorCentavos } },
+  })
+}
+
+export async function cancelFaturaIfZero(
+  tx: PrismaTx,
+  userId: string,
+  faturaCartaoId: string,
+) {
+  return tx.faturaCartao.updateMany({
+    where: {
+      id: faturaCartaoId,
+      userId,
+      totalCentavos: 0,
+      status: 'aberta',
+    },
+    data: { status: 'cancelada' },
+  })
+}
+
 export async function listFaturasByUser(
   userId: string,
   filters: FaturaCartaoFiltersSchema,
