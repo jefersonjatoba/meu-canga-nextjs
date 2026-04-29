@@ -200,6 +200,7 @@ model Lancamento {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  @@unique([userId, recorrenciaId, competenciaAt])
   @@index([userId])
   @@index([contaId])
   @@index([categoriaId])
@@ -224,6 +225,7 @@ model Categoria {
   ordem         Int            @default(0)
   lancamentos   Lancamento[]
   comprasCartao CompraCartao[]
+  recorrencias  Recorrencia[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -407,25 +409,30 @@ model Meta {
 // ─── MÓDULO: RECORRÊNCIAS ────────────────────────────────────────────────────
 
 model Recorrencia {
-  id            String       @id @default(cuid())
-  userId        String
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contaId       String
-  conta         Conta        @relation(fields: [contaId], references: [id], onDelete: Cascade)
-  descricao     String
-  tipo          String // income | expense
-  categoria     String
-  valorCentavos Int
-  frequencia    String // MENSAL | BIMENSAL | TRIMESTRAL | ANUAL
-  diaVencimento Int // 1-31
-  dataInicio    DateTime
-  dataFim       DateTime?
-  ativa         Boolean      @default(true)
-  lancamentos   Lancamento[]
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId         String
+  conta           Conta        @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  categoriaId     String?
+  categoriaRef    Categoria?   @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  descricao       String
+  tipo            String // income | expense
+  categoria       String
+  valorCentavos   Int
+  frequencia      String // MENSAL | BIMENSAL | TRIMESTRAL | ANUAL
+  diaVencimento   Int // 1-31
+  dataInicio      DateTime
+  dataFim         DateTime?
+  proximaExecucao DateTime?
+  ultimaExecucao  DateTime?
+  ativa           Boolean      @default(true)
+  lancamentos     Lancamento[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   @@index([userId])
+  @@index([categoriaId])
   @@index([ativa])
 }
 

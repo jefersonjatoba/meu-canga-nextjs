@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  Repeat2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/escala', label: 'Escala', icon: CalendarDays },
   { href: '/dashboard/ras', label: 'RAS', icon: Shield },
   { href: '/dashboard/lancamentos', label: 'Lançamentos', icon: Wallet },
+  { href: '/dashboard/recorrencias', label: 'Recorrências', icon: Repeat2 },
   { href: '/dashboard/cartoes', label: 'Cartões', icon: CreditCard },
   { href: '/dashboard/contas', label: 'Contas', icon: Landmark },
   { href: '/dashboard/categorias', label: 'Categorias', icon: Tags },
