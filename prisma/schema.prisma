@@ -25,18 +25,22 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  escalas         Escala[]
-  escalaConfig    EscalaConfig?
-  rasAgendas      RasAgenda[]
-  rasAgendamentos RasAgendamento[]
-  rasPagamentos   RasPagamento[]
-  rasCenarios     RasCenarioSalvo[]
-  lancamentos     Lancamento[]
-  investimentos   Investimento[]
-  metas           Meta[]
-  recorrencias    Recorrencia[]
-  contas          Conta[]
-  categorias      Categoria[]
+  escalas          Escala[]
+  escalaConfig     EscalaConfig?
+  rasAgendas       RasAgenda[]
+  rasAgendamentos  RasAgendamento[]
+  rasPagamentos    RasPagamento[]
+  rasCenarios      RasCenarioSalvo[]
+  lancamentos      Lancamento[]
+  investimentos    Investimento[]
+  metas            Meta[]
+  recorrencias     Recorrencia[]
+  contas           Conta[]
+  categorias       Categoria[]
+  faturasCartao    FaturaCartao[]
+  comprasCartao    CompraCartao[]
+  parcelasCartao   ParcelaCartao[]
+  pagamentosFatura PagamentoFatura[]
 
   @@index([email])
   @@index([cpf])
@@ -168,31 +172,33 @@ model RasCenarioSalvo {
 // source: manual | recorrente | parcelado
 
 model Lancamento {
-  id            String       @id @default(cuid())
-  userId        String
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contaId       String
-  conta         Conta        @relation(fields: [contaId], references: [id], onDelete: Cascade)
-  categoriaId   String?
-  categoriaRef  Categoria?   @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
-  descricao     String
-  tipo          String // income | expense | ras | investment_aporte | investment_resgate | transfer
-  categoria     String
-  valorCentavos Int // valor em centavos — nunca Float
-  data          DateTime // data do lançamento
-  competenciaAt String? // yyyy-MM — mês de competência (pode diferir da data real)
-  source        String       @default("manual") // manual | recorrente | parcelado
-  parcelas      Int? // total de parcelas (se parcelado)
-  parcelaAtual  Int? // número da parcela atual (1-based)
-  parentId      String? // id da transação-pai (para parcelas filhas)
-  parent        Lancamento?  @relation("Parcelas", fields: [parentId], references: [id])
-  filhos        Lancamento[] @relation("Parcelas")
-  metaJson      Json? // dados extras (ex.: ras_horas, ativo)
-  recorrenciaId String?
-  recorrencia   Recorrencia? @relation(fields: [recorrenciaId], references: [id])
-  status        String       @default("confirmada") // pendente | confirmada
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId          String
+  conta            Conta             @relation(fields: [contaId], references: [id], onDelete: Cascade)
+  categoriaId      String?
+  categoriaRef     Categoria?        @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  descricao        String
+  tipo             String // income | expense | ras | investment_aporte | investment_resgate | transfer
+  categoria        String
+  valorCentavos    Int // valor em centavos — nunca Float
+  data             DateTime // data do lançamento
+  competenciaAt    String? // yyyy-MM — mês de competência (pode diferir da data real)
+  source           String            @default("manual") // manual | recorrente | parcelado
+  parcelas         Int? // total de parcelas (se parcelado)
+  parcelaAtual     Int? // número da parcela atual (1-based)
+  parentId         String? // id da transação-pai (para parcelas filhas)
+  parent           Lancamento?       @relation("Parcelas", fields: [parentId], references: [id])
+  filhos           Lancamento[]      @relation("Parcelas")
+  metaJson         Json? // dados extras (ex.: ras_horas, ativo)
+  recorrenciaId    String?
+  recorrencia      Recorrencia?      @relation(fields: [recorrenciaId], references: [id])
+  status           String            @default("confirmada") // pendente | confirmada
+  parcelasCartao   ParcelaCartao[]   @relation("ParcelaLancamento")
+  pagamentosFatura PagamentoFatura[] @relation("PagamentoFaturaLancamento")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([userId])
   @@index([contaId])
@@ -207,18 +213,19 @@ model Lancamento {
 // tipo: income | expense | both
 
 model Categoria {
-  id          String       @id @default(cuid())
-  userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nome        String
-  tipo        String // income | expense | both
-  icone       String?
-  cor         String?
-  ativa       Boolean      @default(true)
-  ordem       Int          @default(0)
-  lancamentos Lancamento[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome          String
+  tipo          String // income | expense | both
+  icone         String?
+  cor           String?
+  ativa         Boolean        @default(true)
+  ordem         Int            @default(0)
+  lancamentos   Lancamento[]
+  comprasCartao CompraCartao[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@unique([userId, nome, tipo])
   @@index([userId])
@@ -230,28 +237,133 @@ model Categoria {
 // tipo: checking | savings | credit | investment | wallet | custom
 
 model Conta {
-  id             String        @id @default(cuid())
-  userId         String
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nome           String
-  tipo           String // checking | savings | credit | investment | wallet | custom
-  saldoCentavos  Int           @default(0) // saldo em centavos
-  limiteCentavos Int? // limite de crédito (cartões)
-  diaFechamento  Int? // dia de fechamento (cartão de crédito, 1-31)
-  diaVencimento  Int? // dia de vencimento da fatura
-  banco          String?
-  cor            String? // hex color para UI
-  ativa          Boolean       @default(true)
-  lancamentos    Lancamento[]
-  recorrencias   Recorrencia[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id               String            @id @default(cuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nome             String
+  tipo             String // checking | savings | credit | investment | wallet | custom
+  saldoCentavos    Int               @default(0) // saldo em centavos
+  limiteCentavos   Int? // limite de crédito (cartões)
+  diaFechamento    Int? // dia de fechamento (cartão de crédito, 1-31)
+  diaVencimento    Int? // dia de vencimento da fatura
+  banco            String?
+  cor              String? // hex color para UI
+  ativa            Boolean           @default(true)
+  lancamentos      Lancamento[]
+  recorrencias     Recorrencia[]
+  faturasCartao    FaturaCartao[]    @relation("CartaoFaturas")
+  comprasCartao    CompraCartao[]    @relation("CartaoCompras")
+  pagamentosFatura PagamentoFatura[] @relation("ContaPagamentoFatura")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@index([userId])
   @@index([ativa])
 }
 
 // ─── MÓDULO: INVESTIMENTOS ───────────────────────────────────────────────────
+
+// MODULO: CARTAO DE CREDITO
+// status fatura: aberta | fechada | paga | vencida | cancelada
+// status compra: ativa | cancelada
+// status parcela: prevista | lancada | paga | cancelada
+// status pagamento: confirmado | estornado
+
+model FaturaCartao {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId        String
+  conta          Conta             @relation("CartaoFaturas", fields: [contaId], references: [id], onDelete: Restrict)
+  competencia    String
+  dataFechamento DateTime
+  dataVencimento DateTime
+  status         String            @default("aberta")
+  totalCentavos  Int               @default(0)
+  parcelas       ParcelaCartao[]
+  pagamentos     PagamentoFatura[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([contaId, competencia])
+  @@index([userId])
+  @@index([contaId])
+  @@index([userId, status])
+}
+
+model CompraCartao {
+  id                 String          @id @default(cuid())
+  userId             String
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId            String
+  conta              Conta           @relation("CartaoCompras", fields: [contaId], references: [id], onDelete: Restrict)
+  categoriaId        String?
+  categoriaRef       Categoria?      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  categoria          String
+  descricao          String
+  valorTotalCentavos Int
+  dataCompra         DateTime
+  quantidadeParcelas Int
+  status             String          @default("ativa")
+  parcelas           ParcelaCartao[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([contaId])
+  @@index([categoriaId])
+  @@index([userId, status])
+}
+
+model ParcelaCartao {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  compraCartaoId String
+  compraCartao   CompraCartao @relation(fields: [compraCartaoId], references: [id], onDelete: Restrict)
+  faturaCartaoId String
+  faturaCartao   FaturaCartao @relation(fields: [faturaCartaoId], references: [id], onDelete: Restrict)
+  lancamentoId   String?
+  lancamento     Lancamento?  @relation("ParcelaLancamento", fields: [lancamentoId], references: [id], onDelete: SetNull)
+  numero         Int
+  totalParcelas  Int
+  valorCentavos  Int
+  competencia    String
+  dataVencimento DateTime
+  status         String       @default("prevista")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([compraCartaoId, numero])
+  @@index([userId])
+  @@index([compraCartaoId])
+  @@index([faturaCartaoId])
+  @@index([lancamentoId])
+  @@index([userId, competencia])
+}
+
+model PagamentoFatura {
+  id               String       @id @default(cuid())
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faturaCartaoId   String
+  faturaCartao     FaturaCartao @relation(fields: [faturaCartaoId], references: [id], onDelete: Restrict)
+  contaPagamentoId String
+  contaPagamento   Conta        @relation("ContaPagamentoFatura", fields: [contaPagamentoId], references: [id], onDelete: Restrict)
+  lancamentoId     String?
+  lancamento       Lancamento?  @relation("PagamentoFaturaLancamento", fields: [lancamentoId], references: [id], onDelete: SetNull)
+  valorCentavos    Int
+  dataPagamento    DateTime
+  status           String       @default("confirmado")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([faturaCartaoId])
+  @@index([contaPagamentoId])
+  @@index([lancamentoId])
+  @@index([userId, dataPagamento])
+}
 
 model Investimento {
   id                 String   @id @default(cuid())

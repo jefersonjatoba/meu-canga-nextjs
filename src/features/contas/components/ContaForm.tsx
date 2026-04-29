@@ -19,7 +19,13 @@ const formSchema = z.object({
   banco:         z.string().max(100).optional(),
   cor:           z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   saldoDisplay:  z.string().optional(),
-})
+  limiteDisplay: z.string().optional(),
+  diaFechamento: z.coerce.number().int().min(1, 'Dia entre 1 e 31').max(31, 'Dia entre 1 e 31').optional(),
+  diaVencimento: z.coerce.number().int().min(1, 'Dia entre 1 e 31').max(31, 'Dia entre 1 e 31').optional(),
+}).refine(
+  data => data.tipo !== 'credit' || (data.diaFechamento != null && data.diaVencimento != null),
+  { path: ['diaFechamento'], message: 'Informe fechamento e vencimento do cartao' },
+)
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -43,6 +49,11 @@ export function ContaForm({ mode = 'create', initialData, onSuccess, onCancel }:
           banco:        initialData.banco ?? '',
           cor:          initialData.cor ?? COR_PRESETS[0],
           saldoDisplay: (fromCents(initialData.saldoCentavos)).toFixed(2).replace('.', ','),
+          limiteDisplay: initialData.limiteCentavos
+            ? fromCents(initialData.limiteCentavos).toFixed(2).replace('.', ',')
+            : '',
+          diaFechamento: initialData.diaFechamento ?? undefined,
+          diaVencimento: initialData.diaVencimento ?? undefined,
         }
       : {
           nome:         '',
@@ -50,10 +61,15 @@ export function ContaForm({ mode = 'create', initialData, onSuccess, onCancel }:
           banco:        '',
           cor:          COR_PRESETS[0],
           saldoDisplay: '',
+          limiteDisplay: '',
+          diaFechamento: undefined,
+          diaVencimento: undefined,
         },
   })
 
   const cor = watch('cor') ?? COR_PRESETS[0]
+  const tipo = watch('tipo')
+  const isCredit = tipo === 'credit'
 
   const onSubmit = async (values: FormValues) => {
     setApiError(null)
@@ -61,6 +77,21 @@ export function ContaForm({ mode = 'create', initialData, onSuccess, onCancel }:
       const saldoCentavos = values.saldoDisplay
         ? toCents(values.saldoDisplay.replace(',', '.'))
         : 0
+      const limiteCentavos = values.limiteDisplay
+        ? toCents(values.limiteDisplay.replace(',', '.'))
+        : null
+
+      const cardFields = isCredit
+        ? {
+            limiteCentavos,
+            diaFechamento: values.diaFechamento,
+            diaVencimento: values.diaVencimento,
+          }
+        : {
+            limiteCentavos: null,
+            diaFechamento: null,
+            diaVencimento: null,
+          }
 
       if (isEdit) {
         await updateConta(initialData.id, {
@@ -68,6 +99,7 @@ export function ContaForm({ mode = 'create', initialData, onSuccess, onCancel }:
           tipo:  values.tipo,
           banco: values.banco || null,
           cor:   values.cor || null,
+          ...cardFields,
         })
       } else {
         await createConta({
@@ -76,6 +108,7 @@ export function ContaForm({ mode = 'create', initialData, onSuccess, onCancel }:
           banco:         values.banco || undefined,
           cor:           values.cor || undefined,
           saldoCentavos,
+          ...cardFields,
         })
       }
       onSuccess()
@@ -135,6 +168,55 @@ export function ContaForm({ mode = 'create', initialData, onSuccess, onCancel }:
           />
         )}
       </div>
+
+      {isCredit && (
+        <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Configuracao do cartao</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Usada para calcular fechamento, vencimento e faturas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Input
+              label="Fechamento"
+              type="number"
+              min={1}
+              max={31}
+              required
+              placeholder="10"
+              error={errors.diaFechamento?.message}
+              {...register('diaFechamento', { valueAsNumber: true })}
+            />
+
+            <Input
+              label="Vencimento"
+              type="number"
+              min={1}
+              max={31}
+              required
+              placeholder="20"
+              error={errors.diaVencimento?.message}
+              {...register('diaVencimento', { valueAsNumber: true })}
+            />
+
+            <Controller
+              name="limiteDisplay"
+              control={control}
+              render={({ field }) => (
+                <MoneyInput
+                  label="Limite"
+                  error={errors.limiteDisplay?.message}
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
+              )}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Cor */}
       <div className="flex flex-col gap-1.5">

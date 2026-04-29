@@ -5,15 +5,21 @@ vi.mock('@/server/services/lancamento.service', () => ({
   listLancamentosForUser: vi.fn(),
 }))
 
+vi.mock('@/server/services/cartao.service', () => ({
+  getCreditCardDashboardSummary: vi.fn(),
+}))
+
 vi.mock('@/lib/dates', () => ({
   currentMonthBR: vi.fn(() => '2026-04'),
 }))
 
 import { getDashboardSummaryForUser } from '@/server/services/dashboard.service'
 import * as lancamentoService from '@/server/services/lancamento.service'
+import * as cartaoService from '@/server/services/cartao.service'
 
 const mockGetSummary    = vi.mocked(lancamentoService.getLancamentosSummaryForUser)
 const mockListLancamentos = vi.mocked(lancamentoService.listLancamentosForUser)
+const mockGetCartaoSummary = vi.mocked(cartaoService.getCreditCardDashboardSummary)
 
 const emptySummary = {
   competenciaAt:   '2026-04',
@@ -35,9 +41,21 @@ const emptyListResult = {
   totalPages: 0,
 }
 
+const emptyCartaoSummary = {
+  totalCartoes: 0,
+  totalLimiteCentavos: 0,
+  limiteUsadoCentavos: 0,
+  limiteDisponivelCentavos: 0,
+  totalFaturasAbertas: 0,
+  valorFaturasAbertasCentavos: 0,
+  proximaFatura: null,
+  faturasProximas: [],
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetSummary.mockResolvedValue(emptySummary)
+  mockGetCartaoSummary.mockResolvedValue(emptyCartaoSummary)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockListLancamentos.mockResolvedValue(emptyListResult as any)
 })
@@ -50,6 +68,7 @@ describe('getDashboardSummaryForUser', () => {
     expect(result.totalDespesasCentavos).toBe(0)
     expect(result.hasLancamentos).toBe(false)
     expect(result.lancamentosRecentes).toHaveLength(0)
+    expect(result.cartao).toEqual(emptyCartaoSummary)
   })
 
   it('uses currentMonthBR when no mes param provided', async () => {
@@ -132,5 +151,38 @@ describe('getDashboardSummaryForUser', () => {
     await getDashboardSummaryForUser('user-xyz', { mes: '2026-04' })
     expect(mockGetSummary).toHaveBeenCalledWith('user-xyz', '2026-04')
     expect(mockListLancamentos).toHaveBeenCalledWith('user-xyz', expect.any(Object))
+    expect(mockGetCartaoSummary).toHaveBeenCalledWith('user-xyz')
+  })
+
+  it('inclui resumo operacional de cartao sem alterar despesas financeiras', async () => {
+    mockGetSummary.mockResolvedValue({
+      ...emptySummary,
+      totalExpense: 120000,
+      balance: -120000,
+    })
+    mockGetCartaoSummary.mockResolvedValue({
+      totalCartoes: 1,
+      totalLimiteCentavos: 500000,
+      limiteUsadoCentavos: 120000,
+      limiteDisponivelCentavos: 380000,
+      totalFaturasAbertas: 1,
+      valorFaturasAbertasCentavos: 120000,
+      proximaFatura: {
+        id: 'fat_1',
+        contaId: 'card_1',
+        contaNome: 'Nubank',
+        competencia: '2026-05',
+        dataVencimento: new Date('2026-05-10T00:00:00Z'),
+        status: 'aberta',
+        totalCentavos: 120000,
+      },
+      faturasProximas: [],
+    })
+
+    const result = await getDashboardSummaryForUser('user1', { mes: '2026-04' })
+
+    expect(result.totalDespesasCentavos).toBe(120000)
+    expect(result.cartao.valorFaturasAbertasCentavos).toBe(120000)
+    expect(result.saldoOperacionalCentavos).toBe(-120000)
   })
 })

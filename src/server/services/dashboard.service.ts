@@ -9,6 +9,7 @@ import {
   getLancamentosSummaryForUser,
   listLancamentosForUser,
 } from '@/server/services/lancamento.service'
+import { getCreditCardDashboardSummary } from '@/server/services/cartao.service'
 import type { DashboardSummaryDTO, RecentTransactionItem } from '@/features/dashboard/types'
 import type { TipoLancamento } from '@/features/lancamentos/types'
 
@@ -32,9 +33,10 @@ export async function getDashboardSummaryForUser(
   const mes =
     params.mes && COMPETENCIA_REGEX.test(params.mes) ? params.mes : currentMonthBR()
 
-  const [summary, recentResult] = await Promise.all([
+  const [summary, recentResult, cartao] = await Promise.all([
     getLancamentosSummaryForUser(userId, mes),
     listLancamentosForUser(userId, { mes, pageSize: RECENT_PAGE_SIZE }),
+    getCreditCardDashboardSummary(userId),
   ])
 
   const lancamentosRecentes: RecentTransactionItem[] = recentResult.items.map(l => ({
@@ -62,5 +64,6 @@ export async function getDashboardSummaryForUser(
     taxaPoupancaPercentual: summary.savingsRate,
     lancamentosRecentes,
     hasLancamentos: recentResult.total > 0,
+    cartao,
   }
 }

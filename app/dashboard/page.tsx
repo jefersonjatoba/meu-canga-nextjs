@@ -4,6 +4,7 @@ import { getDashboardSummaryForUser } from '@/server/services/dashboard.service'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
 import { FinancialHeroCard } from '@/features/dashboard/components/FinancialHeroCard'
 import { CashflowCards } from '@/features/dashboard/components/CashflowCards'
+import { CreditCardOverview } from '@/features/dashboard/components/CreditCardOverview'
 import { RecentTransactions } from '@/features/dashboard/components/RecentTransactions'
 import { DashboardEmptyState } from '@/features/dashboard/components/DashboardEmptyState'
 
@@ -32,6 +33,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         patrimonioInvestidoCentavos={summary.patrimonioInvestidoCentavos}
         taxaPoupancaPercentual={summary.taxaPoupancaPercentual}
       />
+      <CreditCardOverview summary={summary.cartao} />
       {summary.hasLancamentos ? (
         <RecentTransactions items={summary.lancamentosRecentes} />
       ) : (

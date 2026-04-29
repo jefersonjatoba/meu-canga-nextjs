@@ -7,6 +7,9 @@ export interface ContaDTO {
   banco?: string | null
   cor?: string | null
   saldoCentavos: number
+  limiteCentavos?: number | null
+  diaFechamento?: number | null
+  diaVencimento?: number | null
   ativa: boolean
   createdAt: string
 }
@@ -17,6 +20,9 @@ export interface CreateContaInput {
   banco?: string
   cor?: string
   saldoCentavos?: number
+  limiteCentavos?: number | null
+  diaFechamento?: number | null
+  diaVencimento?: number | null
 }
 
 export interface UpdateContaInput {
@@ -24,6 +30,9 @@ export interface UpdateContaInput {
   tipo?: TipoConta
   banco?: string | null
   cor?: string | null
+  limiteCentavos?: number | null
+  diaFechamento?: number | null
+  diaVencimento?: number | null
   ativa?: boolean
 }
 

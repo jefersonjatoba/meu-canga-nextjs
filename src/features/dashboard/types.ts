@@ -1,4 +1,8 @@
 import type { TipoLancamento } from '@/features/lancamentos/types'
+import type {
+  CreditCardDashboardInvoiceItem,
+  CreditCardDashboardSummaryDTO,
+} from '@/features/cartao/types'
 
 export interface RecentTransactionItem {
   id: string
@@ -24,4 +28,7 @@ export interface DashboardSummaryDTO {
   taxaPoupancaPercentual: number      // 0–100
   lancamentosRecentes: RecentTransactionItem[]
   hasLancamentos: boolean
+  cartao: CreditCardDashboardSummaryDTO
 }
+
+export type { CreditCardDashboardInvoiceItem, CreditCardDashboardSummaryDTO }
