@@ -1,6 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { Plus, Repeat2, RefreshCw } from 'lucide-react'
 import {
   Dialog,
@@ -9,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/Dialog'
-import { Badge } from '@/components/ui/Badge'
+import { Badge, type BadgeVariant } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -33,7 +40,6 @@ import {
   type FrequenciaRecorrencia,
   type RecorrenciaDTO,
 } from '@/features/recorrencias/types'
-import type { TipoLancamento } from '@/features/lancamentos/types'
 
 const MANUAL_CATEGORY = '__manual__'
 
@@ -50,6 +56,12 @@ type RecorrenciaFormState = {
   dataFim: string
 }
 
+type RecorrenciaVisualStatus = {
+  label: string
+  variant: BadgeVariant
+  title: string
+}
+
 export default function RecorrenciasPage() {
   const { toast } = useToast()
   const [recorrencias, setRecorrencias] = useState<RecorrenciaDTO[]>([])
@@ -60,6 +72,7 @@ export default function RecorrenciasPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<RecorrenciaDTO | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [processResult, setProcessResult] = useState<string | null>(null)
 
   const contasFinanceiras = useMemo(
     () => contas.filter(conta => conta.tipo !== 'credit' && conta.ativa),
@@ -129,13 +142,20 @@ export default function RecorrenciasPage() {
 
   const handleProcessar = useCallback(async () => {
     setProcessing(true)
+    setProcessResult(null)
+
     try {
       const result = await processarRecorrencias()
+      const description = result.lancamentosCriados > 0
+        ? `${result.lancamentosCriados} lancamento${result.lancamentosCriados !== 1 ? 's' : ''} gerado${result.lancamentosCriados !== 1 ? 's' : ''}.`
+        : 'Nenhuma nova recorrencia para processar.'
+
+      setProcessResult(description)
       loadBase()
       toast({
         type: 'success',
-        title: 'Recorrencias processadas',
-        description: `${result.lancamentosCriados} lancamento${result.lancamentosCriados !== 1 ? 's' : ''} criado${result.lancamentosCriados !== 1 ? 's' : ''}.`,
+        title: result.lancamentosCriados > 0 ? 'Recorrencias processadas' : 'Tudo em dia',
+        description,
       })
     } catch (e) {
       toast({
@@ -158,10 +178,19 @@ export default function RecorrenciasPage() {
               ? 'Nenhuma recorrencia cadastrada'
               : `${recorrencias.length} recorrencia${recorrencias.length !== 1 ? 's' : ''} financeira${recorrencias.length !== 1 ? 's' : ''}`}
           </p>
+          <p className="mt-1 max-w-2xl text-xs text-gray-400 dark:text-gray-500">
+            Templates recorrentes geram lancamentos uma unica vez por competencia, podem ser pausados e nao duplicam o financeiro.
+          </p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button variant="outline" onClick={handleProcessar} isLoading={processing} loadingText="Processando...">
+          <Button
+            variant="outline"
+            onClick={handleProcessar}
+            isLoading={processing}
+            loadingText="Processando..."
+            title="Processa recorrencias vencidas sem duplicar lancamentos ja gerados"
+          >
             <RefreshCw size={16} className="mr-1.5" aria-hidden />
             Processar recorrencias
           </Button>
@@ -171,6 +200,12 @@ export default function RecorrenciasPage() {
           </Button>
         </div>
       </div>
+
+      {processResult && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-200">
+          {processResult}
+        </div>
+      )}
 
       <RecorrenciasList
         recorrencias={recorrencias}
@@ -222,7 +257,7 @@ function RecorrenciasList({
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(item => (
-          <Skeleton key={item} className="h-[92px] w-full rounded-xl" />
+          <Skeleton key={item} className="h-[104px] w-full rounded-xl" />
         ))}
       </div>
     )
@@ -243,13 +278,13 @@ function RecorrenciasList({
           <Repeat2 size={22} aria-hidden />
         </div>
         <h2 className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-          Automatize contas fixas
+          Voce ainda nao criou recorrencias.
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
-          Crie recorrencias para gerar lancamentos mensais sem duplicar o financeiro.
+          Use para automatizar salario, aluguel e contas fixas.
         </p>
         <Button className="mt-5" variant="primary" onClick={onNova}>
-          Nova recorrencia
+          Criar recorrencia
         </Button>
       </div>
     )
@@ -257,51 +292,62 @@ function RecorrenciasList({
 
   return (
     <div className="space-y-3">
-      {recorrencias.map(recorrencia => (
-        <div
-          key={recorrencia.id}
-          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-[#111111]"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-semibold text-gray-900 dark:text-gray-100">
-                  {recorrencia.descricao}
-                </h2>
-                <Badge variant={recorrencia.ativa ? 'success' : 'default'} size="sm">
-                  {recorrencia.ativa ? 'ativa' : 'pausada'}
-                </Badge>
-                <Badge variant="outline" size="sm">
-                  {recorrencia.tipo === 'income' ? 'Receita' : 'Despesa'}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {recorrencia.conta?.nome ?? 'Conta'} - {recorrencia.categoria} - dia {recorrencia.diaVencimento}
-              </p>
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                {FREQUENCIA_LABELS[recorrencia.frequencia]} · próxima: {recorrencia.proximaExecucao ? formatDate(recorrencia.proximaExecucao) : 'sem próxima execução'}
-              </p>
-            </div>
+      {recorrencias.map(recorrencia => {
+        const status = getRecorrenciaVisualStatus(recorrencia)
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-[140px] text-left sm:text-right">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-500">Valor</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {formatBRL(recorrencia.valorCentavos)}
+        return (
+          <div
+            key={recorrencia.id}
+            className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-[#111111]"
+          >
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+                    {recorrencia.descricao}
+                  </h2>
+                  <Badge variant={status.variant} size="sm" dot title={status.title}>
+                    {status.label}
+                  </Badge>
+                  <Badge variant="outline" size="sm">
+                    {recorrencia.tipo === 'income' ? 'Receita' : 'Despesa'}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {recorrencia.conta?.nome ?? 'Conta'} - {recorrencia.categoria} - dia {recorrencia.diaVencimento}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
+                  <span>{FREQUENCIA_LABELS[recorrencia.frequencia]}</span>
+                  <span>Ultima execucao: {recorrencia.ultimaExecucao ? formatShortDate(recorrencia.ultimaExecucao) : 'nunca'}</span>
+                  <span>Proxima execucao: {recorrencia.proximaExecucao ? formatShortDate(recorrencia.proximaExecucao) : 'sem proxima'}</span>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onEdit(recorrencia)}>
-                  Editar
-                </Button>
-                <Button variant={recorrencia.ativa ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(recorrencia)}>
-                  {recorrencia.ativa ? 'Pausar' : 'Ativar'}
-                </Button>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="min-w-[140px] text-left sm:text-right">
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-500">Valor</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                    {formatBRL(recorrencia.valorCentavos)}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => onEdit(recorrencia)}>
+                    Editar
+                  </Button>
+                  <Button
+                    variant={recorrencia.ativa ? 'ghost' : 'primary'}
+                    size="sm"
+                    onClick={() => onToggle(recorrencia)}
+                    title={recorrencia.ativa ? 'Pausar sem apagar lancamentos ja gerados' : 'Reativar para proximos processamentos'}
+                  >
+                    {recorrencia.ativa ? 'Pausar' : 'Ativar'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -384,7 +430,7 @@ function RecorrenciaForm({
     setValues(current => ({ ...current, [field]: value }))
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setApiError(null)
     setSubmitting(true)
@@ -421,6 +467,12 @@ function RecorrenciaForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
+      {mode === 'edit' && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+          Alteracoes nao afetam lancamentos ja gerados.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input
           label="Descricao"
@@ -547,7 +599,7 @@ function SelectField({
   label: string
   value: string
   onChange: (value: string) => void
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -597,6 +649,41 @@ function dateInput(value: string) {
   return value.slice(0, 10)
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value))
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(value))
+}
+
+function getRecorrenciaVisualStatus(recorrencia: RecorrenciaDTO): RecorrenciaVisualStatus {
+  if (isFutureDate(recorrencia.dataInicio)) {
+    return {
+      label: 'futura',
+      variant: 'outline',
+      title: 'Comeca em data futura',
+    }
+  }
+
+  if (!recorrencia.ativa) {
+    return {
+      label: 'pausada',
+      variant: 'default',
+      title: 'Pausada; nao gera novos lancamentos',
+    }
+  }
+
+  return {
+    label: 'ativa',
+    variant: 'success',
+    title: 'Ativa para proximos processamentos',
+  }
+}
+
+function isFutureDate(value: string) {
+  const target = new Date(dateInput(value))
+  const today = new Date(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }))
+
+  return target.getTime() > today.getTime()
 }

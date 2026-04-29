@@ -13,6 +13,8 @@ export interface LancamentoAPIItem {
   data: string           // ISO datetime string from JSON
   competenciaAt: string
   status: string
+  source?: string | null
+  recorrenciaId?: string | null
   conta?: { id: string; nome: string; tipo: string } | null
   categoriaRef?: { id: string; nome: string; tipo: string } | null
 }

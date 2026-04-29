@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -8,6 +9,7 @@ import {
   TrendingDown,
   ArrowLeftRight,
   Pencil,
+  Repeat2,
   Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -100,6 +102,16 @@ export function LancamentoItem({ item, onEdit, onDelete, isLast = false }: Lanca
             <span className="text-xs px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-medium shrink-0">
               Pendente
             </span>
+          )}
+          {item.source === 'recorrente' && (
+            <Link
+              href="/dashboard/recorrencias"
+              title="Ver recorrencias"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
+            >
+              <Repeat2 size={12} aria-hidden />
+              Recorrente
+            </Link>
           )}
         </div>
         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
