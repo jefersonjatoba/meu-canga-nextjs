@@ -1,7 +1,8 @@
 'use client'
 
-import { CreditCard } from 'lucide-react'
+import { CreditCard, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import Link from 'next/link'
 
 interface CartoesEmptyStateProps {
   variant: 'sem-cartoes' | 'sem-faturas'
@@ -17,16 +18,24 @@ export function CartoesEmptyState({ variant, onNovaCompra }: CartoesEmptyStatePr
         <CreditCard size={22} aria-hidden />
       </div>
       <h2 className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-        {semCartoes ? 'Nenhum cartao cadastrado' : 'Nenhuma fatura encontrada'}
+        {semCartoes ? 'Voce ainda nao configurou um cartao de credito' : 'Nenhuma fatura encontrada'}
       </h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
         {semCartoes
-          ? 'Crie uma conta do tipo Cartao de Credito em Contas para registrar compras.'
+          ? 'Cadastre uma conta do tipo cartao, informe fechamento, vencimento e limite para comecar.'
           : 'As faturas aparecem aqui depois que uma compra no cartao e registrada.'}
       </p>
-      {!semCartoes && onNovaCompra && (
+      {semCartoes ? (
+        <Link
+          href="/dashboard/contas"
+          className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-accent-blue px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-600"
+        >
+            <Settings size={16} className="mr-1.5" aria-hidden />
+            Configurar cartao
+        </Link>
+      ) : onNovaCompra && (
         <Button className="mt-5" variant="outline" onClick={onNovaCompra}>
-          Registrar compra
+          Adicionar compra no cartao
         </Button>
       )}
     </div>

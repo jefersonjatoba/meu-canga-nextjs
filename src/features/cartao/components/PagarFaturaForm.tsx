@@ -34,6 +34,7 @@ export function PagarFaturaForm({
   onCancel,
 }: PagarFaturaFormProps) {
   const [apiError, setApiError] = useState<string | null>(null)
+  const [confirmed, setConfirmed] = useState(false)
   const hoje = new Date().toISOString().slice(0, 10)
 
   const {
@@ -71,11 +72,24 @@ export function PagarFaturaForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-[#151515]">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-500">Fatura</p>
-        <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
-          {fatura.competencia} - {formatBRL(fatura.totalCentavos)}
-        </p>
+      <div className="rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-3 dark:border-blue-900/40 dark:bg-blue-950/20">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">Fatura</p>
+            <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
+              {fatura.conta?.nome ?? 'Cartao'} - {fatura.competencia}
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              Vencimento: {formatDate(fatura.dataVencimento)}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">Total</p>
+            <p className="mt-1 text-lg font-bold text-gray-900 dark:text-gray-100">
+              {formatBRL(fatura.totalCentavos)}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -132,6 +146,18 @@ export function PagarFaturaForm({
         </div>
       )}
 
+      <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-[#111111] dark:text-gray-300">
+        <input
+          type="checkbox"
+          checked={confirmed}
+          onChange={(event) => setConfirmed(event.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-accent-blue focus:ring-accent-blue"
+        />
+        <span>
+          Confirmo que quero registrar este pagamento de fatura. Sei que isso nao cria uma nova despesa no dashboard.
+        </span>
+      </label>
+
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancelar
@@ -141,11 +167,15 @@ export function PagarFaturaForm({
           variant="primary"
           isLoading={isSubmitting}
           loadingText="Registrando..."
-          disabled={contasPagamento.length === 0}
+          disabled={contasPagamento.length === 0 || !confirmed}
         >
-          Registrar pagamento
+          Registrar pagamento da fatura
         </Button>
       </div>
     </form>
   )
+}
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(new Date(value))
 }

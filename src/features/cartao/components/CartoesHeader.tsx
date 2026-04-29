@@ -28,7 +28,7 @@ export function CartoesHeader({ totalFaturas, totalCartoes, onNovaCompra }: Cart
 
       <Button variant="primary" onClick={onNovaCompra} disabled={totalCartoes === 0}>
         <Plus size={16} className="mr-1.5" aria-hidden />
-        Nova compra
+        Adicionar compra no cartao
       </Button>
     </div>
   )

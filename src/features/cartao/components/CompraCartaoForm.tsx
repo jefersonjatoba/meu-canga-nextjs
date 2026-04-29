@@ -186,8 +186,8 @@ export function CompraCartaoForm({
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancelar
         </Button>
-        <Button type="submit" variant="primary" isLoading={isSubmitting} loadingText="Registrando...">
-          Registrar compra
+        <Button type="submit" variant="primary" isLoading={isSubmitting} loadingText="Adicionando...">
+          Adicionar compra no cartao
         </Button>
       </div>
     </form>

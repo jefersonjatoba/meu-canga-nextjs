@@ -61,70 +61,104 @@ export function FaturaDetalheModal({ fatura, open, onOpenChange }: FaturaDetalhe
         )}
 
         {!loading && !error && detalhe && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <Resumo label="Status" value={detalhe.status} />
-              <Resumo label="Vencimento" value={formatDate(detalhe.dataVencimento)} />
-              <Resumo label="Total" value={formatBRL(detalhe.totalCentavos)} strong />
-            </div>
-
-            <section>
-              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Parcelas</h3>
-              {detalhe.parcelas.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma parcela vinculada.</p>
-              ) : (
-                <div className="divide-y divide-gray-200 overflow-hidden rounded-xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-                  {detalhe.parcelas.map(parcela => (
-                    <div key={parcela.id} className="grid gap-3 bg-white p-4 dark:bg-[#111111] sm:grid-cols-[1fr_auto]">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {parcela.compraCartao.descricao}
-                          </p>
-                          <Badge variant="outline" size="sm">
-                            {parcela.numero}/{parcela.totalParcelas}
-                          </Badge>
-                          <Badge variant={parcela.status === 'lancada' ? 'primary' : 'default'} size="sm">
-                            {parcela.status}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          {parcela.compraCartao.categoria} - vence em {formatDate(parcela.dataVencimento)}
-                        </p>
-                      </div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        {formatBRL(parcela.valorCentavos)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section>
-              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Pagamentos</h3>
-              {detalhe.pagamentos.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum pagamento registrado.</p>
-              ) : (
-                <div className="space-y-2">
-                  {detalhe.pagamentos.map(pagamento => (
-                    <div key={pagamento.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-[#111111]">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {pagamento.contaPagamento?.nome ?? 'Conta de pagamento'}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(pagamento.dataPagamento)}</p>
-                      </div>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">{formatBRL(pagamento.valorCentavos)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
+          <FaturaDetalheContent detalhe={detalhe} />
         )}
       </DialogContent>
     </Dialog>
+  )
+}
+
+function FaturaDetalheContent({ detalhe }: { detalhe: FaturaCartaoDetalheDTO }) {
+  const totalPago = detalhe.pagamentos
+    .filter(pagamento => pagamento.status === 'confirmado')
+    .reduce((acc, pagamento) => acc + pagamento.valorCentavos, 0)
+  const restante = Math.max(0, detalhe.totalCentavos - totalPago)
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">
+              Total da fatura
+            </p>
+            <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {formatBRL(detalhe.totalCentavos)}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:min-w-[280px]">
+            <Resumo label="Pago" value={formatBRL(totalPago)} />
+            <Resumo label="Restante" value={formatBRL(restante)} strong />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Resumo label="Status" value={detalhe.status} />
+              <Resumo label="Vencimento" value={formatDate(detalhe.dataVencimento)} />
+              <Resumo label="Total" value={formatBRL(detalhe.totalCentavos)} strong />
+      </div>
+
+      <section>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Compras e parcelas</h3>
+        {detalhe.parcelas.length === 0 ? (
+          <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-[#111111] dark:text-gray-400">
+            Nenhuma parcela vinculada.
+          </p>
+        ) : (
+          <div className="grid gap-3">
+            {detalhe.parcelas.map(parcela => (
+              <div key={parcela.id} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-[#111111]">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                        {parcela.compraCartao.descricao}
+                      </p>
+                      <Badge variant="outline" size="sm">
+                        Parcela {parcela.numero}/{parcela.totalParcelas}
+                      </Badge>
+                      <Badge variant={parcela.status === 'lancada' ? 'primary' : 'default'} size="sm">
+                        {parcela.status}
+                      </Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      {parcela.compraCartao.categoria} - vencimento {formatDate(parcela.dataVencimento)}
+                    </p>
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {formatBRL(parcela.valorCentavos)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Pagamentos</h3>
+        {detalhe.pagamentos.length === 0 ? (
+          <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-[#111111] dark:text-gray-400">
+            Nenhum pagamento registrado.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {detalhe.pagamentos.map(pagamento => (
+              <div key={pagamento.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-[#111111]">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {pagamento.contaPagamento?.nome ?? 'Conta de pagamento'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(pagamento.dataPagamento)}</p>
+                </div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">{formatBRL(pagamento.valorCentavos)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   )
 }
 

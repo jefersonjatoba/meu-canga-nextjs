@@ -35,7 +35,7 @@ export function CompraCartaoModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>Nova compra no cartao</DialogTitle>
+          <DialogTitle>Adicionar compra no cartao</DialogTitle>
           <DialogDescription>
             A compra gera parcelas e lancamentos de despesa conforme a fatura.
           </DialogDescription>

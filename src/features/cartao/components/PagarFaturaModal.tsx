@@ -35,9 +35,9 @@ export function PagarFaturaModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="md">
         <DialogHeader>
-          <DialogTitle>Pagar fatura</DialogTitle>
+          <DialogTitle>Registrar pagamento da fatura</DialogTitle>
           <DialogDescription>
-            Registre o pagamento da fatura sem criar uma nova despesa.
+            Confira os dados antes de confirmar. Este registro nao cria uma nova despesa.
           </DialogDescription>
         </DialogHeader>
         {fatura && (
