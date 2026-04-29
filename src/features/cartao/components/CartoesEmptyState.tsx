@@ -6,10 +6,11 @@ import Link from 'next/link'
 
 interface CartoesEmptyStateProps {
   variant: 'sem-cartoes' | 'sem-faturas'
+  message?: string
   onNovaCompra?: () => void
 }
 
-export function CartoesEmptyState({ variant, onNovaCompra }: CartoesEmptyStateProps) {
+export function CartoesEmptyState({ variant, message, onNovaCompra }: CartoesEmptyStateProps) {
   const semCartoes = variant === 'sem-cartoes'
 
   return (
@@ -21,9 +22,9 @@ export function CartoesEmptyState({ variant, onNovaCompra }: CartoesEmptyStatePr
         {semCartoes ? 'Voce ainda nao configurou um cartao de credito' : 'Nenhuma fatura encontrada'}
       </h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
-        {semCartoes
+        {message ?? (semCartoes
           ? 'Cadastre uma conta do tipo cartao, informe fechamento, vencimento e limite para comecar.'
-          : 'As faturas aparecem aqui depois que uma compra no cartao e registrada.'}
+          : 'As faturas aparecem aqui depois que uma compra no cartao e registrada.')}
       </p>
       {semCartoes ? (
         <Link
