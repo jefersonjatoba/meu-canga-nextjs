@@ -34,6 +34,7 @@ model User {
   lancamentos      Lancamento[]
   investimentos    Investimento[]
   metas            Meta[]
+  metaAportes      MetaAporte[]
   recorrencias     Recorrencia[]
   contas           Conta[]
   categorias       Categoria[]
@@ -256,6 +257,7 @@ model Conta {
   faturasCartao    FaturaCartao[]    @relation("CartaoFaturas")
   comprasCartao    CompraCartao[]    @relation("CartaoCompras")
   pagamentosFatura PagamentoFatura[] @relation("ContaPagamentoFatura")
+  metaAportes      MetaAporte[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -389,21 +391,50 @@ model Investimento {
 // ─── MÓDULO: METAS ───────────────────────────────────────────────────────────
 
 model Meta {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  descricao          String
-  categoria          String // POUPANCA | INVESTIMENTO | LIMITE_DESPESA
-  valorAlvoCentavos  Int
-  valorAtualCentavos Int      @default(0)
-  dataInicio         DateTime
-  dataAlvo           DateTime
-  status             String   @default("em_progresso") // em_progresso | concluida | cancelada
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                   String       @id @default(cuid())
+  userId               String
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  descricao            String
+  categoria            String // legado: POUPANCA | INVESTIMENTO | LIMITE_DESPESA
+  tipo                 String       @default("poupanca") // poupanca | investimento | outro
+  valorAlvoCentavos    Int
+  valorAtualCentavos   Int          @default(0) // legado/cache; progresso real vem de MetaAporte
+  valorInicialCentavos Int          @default(0)
+  dataInicio           DateTime
+  dataAlvo             DateTime?
+  status               String       @default("ativa") // ativa | pausada | concluida | cancelada
+  cor                  String?
+  icone                String?
+  ordem                Int          @default(0)
+  aportes              MetaAporte[]
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   @@index([userId])
   @@index([status])
+  @@index([userId, status])
+}
+
+model MetaAporte {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metaId        String
+  meta          Meta     @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  contaId       String?
+  conta         Conta?   @relation(fields: [contaId], references: [id], onDelete: SetNull)
+  valorCentavos Int
+  dataAporte    DateTime
+  descricao     String?
+  status        String   @default("confirmado") // confirmado | cancelado
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([metaId])
+  @@index([contaId])
+  @@index([userId, status])
+  @@index([userId, dataAporte])
 }
 
 // ─── MÓDULO: RECORRÊNCIAS ────────────────────────────────────────────────────
