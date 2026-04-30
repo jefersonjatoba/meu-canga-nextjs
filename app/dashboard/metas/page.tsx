@@ -1,7 +1,7 @@
 'use client'
 
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, PiggyBank, Plus, Target } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, PiggyBank, Plus, Target } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,11 @@ type AporteFormState = {
   descricao: string
 }
 
+type CancelAporteTarget = {
+  meta: MetaDTO
+  aporteId: string
+}
+
 export default function MetasPage() {
   const { toast } = useToast()
   const [metas, setMetas] = useState<MetaDTO[]>([])
@@ -61,6 +66,7 @@ export default function MetasPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<MetaDTO | null>(null)
   const [aporteTarget, setAporteTarget] = useState<MetaDTO | null>(null)
+  const [cancelAporteTarget, setCancelAporteTarget] = useState<CancelAporteTarget | null>(null)
 
   const contasAporte = useMemo(
     () => contas.filter(conta => conta.ativa && conta.tipo !== 'credit'),
@@ -103,11 +109,11 @@ export default function MetasPage() {
     }
   }, [loadBase, toast])
 
-  const handleCancelAporte = useCallback(async (meta: MetaDTO, aporteId: string) => {
-    if (!window.confirm('Cancelar este aporte? O historico sera preservado.')) return
-
+  const handleConfirmCancelAporte = useCallback(async () => {
+    if (!cancelAporteTarget) return
     try {
-      await cancelarAporte(meta.id, aporteId)
+      await cancelarAporte(cancelAporteTarget.meta.id, cancelAporteTarget.aporteId)
+      setCancelAporteTarget(null)
       loadBase()
       toast({
         type: 'success',
@@ -121,7 +127,7 @@ export default function MetasPage() {
         description: e instanceof Error ? e.message : 'Nao foi possivel cancelar o aporte.',
       })
     }
-  }, [loadBase, toast])
+  }, [cancelAporteTarget, loadBase, toast])
 
   return (
     <div className="space-y-5">
@@ -129,7 +135,7 @@ export default function MetasPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Metas financeiras</h1>
           <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-            Acompanhe objetivos por aportes. Metas nao alteram saldo, nao criam lancamentos e nao impactam o dashboard financeiro.
+            Acompanhe reserva, viagem, estudo ou objetivo pessoal por aportes.
           </p>
         </div>
         <Button variant="primary" onClick={() => setCreateOpen(true)}>
@@ -146,8 +152,12 @@ export default function MetasPage() {
         onEdit={setEditTarget}
         onAporte={setAporteTarget}
         onToggle={handleToggle}
-        onCancelAporte={handleCancelAporte}
+        onCancelAporte={(meta, aporteId) => setCancelAporteTarget({ meta, aporteId })}
       />
+
+      <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-200">
+        Metas sao controles de planejamento. Elas nao alteram automaticamente seu saldo financeiro.
+      </div>
 
       <MetaModal
         open={createOpen}
@@ -186,6 +196,12 @@ export default function MetasPage() {
             description: 'O progresso da meta foi atualizado sem alterar o saldo.',
           })
         }}
+      />
+
+      <CancelAporteModal
+        target={cancelAporteTarget}
+        onOpenChange={(open) => { if (!open) setCancelAporteTarget(null) }}
+        onConfirm={handleConfirmCancelAporte}
       />
     </div>
   )
@@ -235,10 +251,10 @@ function MetasList({
           <Target size={22} aria-hidden />
         </div>
         <h2 className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-          Voce ainda nao criou metas.
+          Voce ainda nao criou nenhuma meta financeira.
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
-          Use metas para acompanhar reserva, objetivos e planejamento sem mexer no saldo.
+          Use metas para acompanhar reserva de emergencia, viagem, estudo ou objetivo pessoal.
         </p>
         <Button className="mt-5" variant="primary" onClick={onNova}>
           Criar meta
@@ -280,10 +296,16 @@ function MetaCard({
   const status = getMetaStatus(meta)
   const confirmados = meta.aportes.filter(aporte => aporte.status === 'confirmado')
   const cancelados = meta.aportes.filter(aporte => aporte.status === 'cancelado')
+  const metaSuperada = meta.progresso.progressoCentavos > meta.valorAlvoCentavos
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-[#111111]">
-      <div className="flex flex-col gap-4">
+    <article className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#111111]">
+      <div
+        className="h-1.5 w-full"
+        style={{ backgroundColor: meta.cor ?? '#2563eb' }}
+        aria-hidden
+      />
+      <div className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -302,7 +324,7 @@ function MetaCard({
               {meta.dataAlvo ? ` - alvo ${formatShortDate(meta.dataAlvo)}` : ''}
             </p>
           </div>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-accent-blue dark:bg-blue-950/30">
+          <div className={status.iconClassName}>
             {meta.status === 'concluida' ? <CheckCircle2 size={19} aria-hidden /> : <PiggyBank size={19} aria-hidden />}
           </div>
         </div>
@@ -314,9 +336,14 @@ function MetaCard({
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {formatBRL(meta.progresso.progressoCentavos)}
               </p>
+              {metaSuperada && (
+                <p className="mt-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                  Meta superada
+                </p>
+              )}
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-400 dark:text-gray-500">Meta</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Valor alvo</p>
               <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {formatBRL(meta.valorAlvoCentavos)}
               </p>
@@ -324,13 +351,13 @@ function MetaCard({
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
             <div
-              className="h-full rounded-full bg-accent-blue transition-all"
+              className={status.progressClassName}
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>{meta.progresso.percentual.toFixed(1)}%</span>
-            <span>Faltam {formatBRL(meta.progresso.valorRestanteCentavos)}</span>
+          <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span>{meta.progresso.percentual.toFixed(1)}% concluido</span>
+            <span>{metaSuperada ? 'Objetivo ultrapassado' : `Faltam ${formatBRL(meta.progresso.valorRestanteCentavos)}`}</span>
           </div>
         </div>
 
@@ -349,26 +376,38 @@ function MetaCard({
           </div>
         </div>
 
-        {meta.aportes.length > 0 && (
-          <div className="space-y-2">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-500">
               Historico de aportes
             </p>
+            {cancelados.length > 0 && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                {cancelados.length} cancelado{cancelados.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          {meta.aportes.length > 0 ? (
             <div className="max-h-32 space-y-2 overflow-y-auto pr-1">
               {meta.aportes.slice(0, 5).map(aporte => (
                 <div
                   key={aporte.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-800"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-[#111111]"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-gray-800 dark:text-gray-100">
-                      {formatBRL(aporte.valorCentavos)}
-                    </p>
-                    <p className="truncate text-xs text-gray-400 dark:text-gray-500">
-                      {formatShortDate(aporte.dataAporte)}
-                      {aporte.conta ? ` - ${aporte.conta.nome}` : ''}
-                      {aporte.status === 'cancelado' ? ' - cancelado' : ''}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium text-gray-800 dark:text-gray-100">
+                        {formatBRL(aporte.valorCentavos)}
+                      </p>
+                      <Badge variant={aporte.status === 'confirmado' ? 'success' : 'default'} size="sm">
+                        {aporte.status === 'confirmado' ? 'confirmado' : 'cancelado'}
+                      </Badge>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-gray-400 dark:text-gray-500">
+                      <span>{formatShortDate(aporte.dataAporte)}</span>
+                      {aporte.conta && <span>{aporte.conta.nome}</span>}
+                      {aporte.descricao && <span className="truncate">{aporte.descricao}</span>}
+                    </div>
                   </div>
                   {aporte.status === 'confirmado' && (
                     <Button variant="ghost" size="xs" onClick={() => onCancelAporte(aporte.id)}>
@@ -378,11 +417,15 @@ function MetaCard({
                 </div>
               ))}
             </div>
-            {confirmados.length + cancelados.length > 5 && (
-              <p className="text-xs text-gray-400 dark:text-gray-500">Mostrando os 5 aportes mais recentes.</p>
-            )}
-          </div>
-        )}
+          ) : (
+            <p className="rounded-lg border border-dashed border-gray-200 px-3 py-3 text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+              Nenhum aporte registrado ainda.
+            </p>
+          )}
+          {confirmados.length + cancelados.length > 5 && (
+            <p className="text-xs text-gray-400 dark:text-gray-500">Mostrando os 5 aportes mais recentes.</p>
+          )}
+        </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" size="sm" onClick={onEdit}>
@@ -582,7 +625,7 @@ function AporteModal({
         <DialogHeader>
           <DialogTitle>Registrar aporte</DialogTitle>
           <DialogDescription>
-            Aporte atualiza apenas o progresso da meta. Nao altera saldo e nao cria lancamento.
+            Este aporte atualiza o progresso da meta, mas nao movimenta saldo bancario.
           </DialogDescription>
         </DialogHeader>
         {meta && (
@@ -595,6 +638,64 @@ function AporteModal({
             }}
             onCancel={() => onOpenChange(false)}
           />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CancelAporteModal({
+  target,
+  onOpenChange,
+  onConfirm,
+}: {
+  target: CancelAporteTarget | null
+  onOpenChange: (open: boolean) => void
+  onConfirm: () => void
+}) {
+  const aporte = target?.meta.aportes.find(item => item.id === target.aporteId)
+
+  return (
+    <Dialog open={!!target} onOpenChange={onOpenChange}>
+      <DialogContent size="md">
+        <DialogHeader>
+          <DialogTitle>Cancelar aporte?</DialogTitle>
+          <DialogDescription>
+            Esta acao nao apaga dados. O historico sera preservado e o progresso da meta sera recalculado.
+          </DialogDescription>
+        </DialogHeader>
+
+        {target && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200">
+              <div className="flex gap-2">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
+                <p>
+                  O aporte sera marcado como cancelado. Ele deixa de contar no progresso, mas permanece visivel no historico.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-gray-50 px-4 py-3 dark:bg-gray-900/40">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {target.meta.descricao}
+              </p>
+              {aporte && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {formatBRL(aporte.valorCentavos)} em {formatShortDate(aporte.dataAporte)}
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Voltar
+              </Button>
+              <Button type="button" variant="danger" onClick={onConfirm}>
+                Cancelar aporte
+              </Button>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>
@@ -627,9 +728,14 @@ function AporteForm({
     setSubmitting(true)
 
     try {
+      const valorCentavos = toCents(values.valor)
+      if (valorCentavos <= 0) {
+        throw new Error('Valor do aporte deve ser maior que zero.')
+      }
+
       const payload: RegistrarMetaAporteInput = {
         contaId: values.contaId || null,
-        valorCentavos: toCents(values.valor),
+        valorCentavos,
         dataAporte: values.dataAporte,
         descricao: values.descricao.trim() || null,
       }
@@ -650,6 +756,10 @@ function AporteForm({
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Faltam {formatBRL(meta.progresso.valorRestanteCentavos)}
         </p>
+      </div>
+
+      <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/20 dark:text-blue-200">
+        Este aporte atualiza o progresso da meta, mas nao movimenta saldo bancario.
       </div>
 
       <MoneyInput
@@ -753,10 +863,36 @@ function initialMetaFormState(meta?: MetaDTO): MetaFormState {
 }
 
 function getMetaStatus(meta: MetaDTO) {
-  if (meta.status === 'concluida') return { label: 'concluida', variant: 'success' as const }
-  if (meta.status === 'pausada') return { label: 'pausada', variant: 'default' as const }
-  if (meta.status === 'cancelada') return { label: 'cancelada', variant: 'error' as const }
-  return { label: 'ativa', variant: 'primary' as const }
+  if (meta.status === 'concluida') {
+    return {
+      label: 'concluida',
+      variant: 'primary' as const,
+      iconClassName: 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-accent-blue dark:bg-blue-950/30',
+      progressClassName: 'h-full rounded-full bg-gradient-to-r from-blue-500 to-green-500 transition-all',
+    }
+  }
+  if (meta.status === 'pausada') {
+    return {
+      label: 'pausada',
+      variant: 'default' as const,
+      iconClassName: 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300',
+      progressClassName: 'h-full rounded-full bg-gray-400 transition-all',
+    }
+  }
+  if (meta.status === 'cancelada') {
+    return {
+      label: 'cancelada',
+      variant: 'error' as const,
+      iconClassName: 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500 dark:bg-red-950/30 dark:text-red-300',
+      progressClassName: 'h-full rounded-full bg-red-400 transition-all',
+    }
+  }
+  return {
+    label: 'ativa',
+    variant: 'success' as const,
+    iconClassName: 'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-300',
+    progressClassName: 'h-full rounded-full bg-green-500 transition-all',
+  }
 }
 
 function centsToDisplay(value: number) {
