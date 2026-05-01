@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   // Source maps disabled in production
   productionBrowserSourceMaps: false,
+  // Allow ngrok and local network access to webpack-hmr
+  allowedDevOrigins: [
+    'localhost:3000',
+    '127.0.0.1:3000',
+    '192.168.1.9:3000',
+    '*.ngrok-free.dev',
+    '*.ngrok.io',
+  ],
 }
 
 export default nextConfig
