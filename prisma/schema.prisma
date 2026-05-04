@@ -104,17 +104,22 @@ model RasAgenda {
   tipoVaga      String    @default("titular") // titular | reserva
   expiresAt     DateTime? // janela de 72h para realizado → pendente
   observacoes   String?
+  deletadoEm    DateTime? // soft delete: null = ativo, not null = deletado
+  motivoDelecao String?   // por que foi deletado?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   agendamentos RasAgendamento[]
   pagamentos   RasPagamento[]
 
-  @@unique([userId, data, horaInicio])
-  @@index([userId])
-  @@index([data])
-  @@index([status])
-  @@index([competencia])
+  // CRITICAL: Índices para 10k clientes / 1M registros
+  @@unique([userId, data, horaInicio], name: "unique_user_data_hora")
+  @@index([userId, deletadoEm], name: "idx_user_ativo") // WHERE deletadoEm IS NULL
+  @@index([data, deletadoEm], name: "idx_data_ativo")
+  @@index([status, deletadoEm], name: "idx_status_ativo")
+  @@index([competencia, deletadoEm], name: "idx_competencia_ativo")
+  @@index([deletadoEm], name: "idx_soft_deletes") // Para queries admin de deletados
+  @@index([createdAt], name: "idx_created_for_pagination")
 
   auditLogs RasAuditLog[]
 }

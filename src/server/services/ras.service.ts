@@ -302,7 +302,44 @@ export async function confirmarRas(
 }
 
 /**
+ * Soft-deletes a RAS (marks as deleted, preserves audit trail).
+ * This is the new standard for user-initiated deletes.
+ * Hard deletes are only for admins doing data cleanup.
+ */
+export async function deletarRas(
+  id: string,
+  userId: string,
+  motivo?: string,
+): Promise<void> {
+  const existing = await rasRepo.findRasByIdForUser(id, userId)
+  if (!existing) {
+    throw new RasDomainError(RasErrorCode.NOT_FOUND, `RAS ${id} não encontrado`)
+  }
+
+  // Soft delete (mark as deleted)
+  await rasRepo.softDeleteRas(id, userId, motivo)
+
+  // Log: Soft delete
+  await logRasEvent(
+    userId,
+    id,
+    'deletado',
+    `RAS deletado${motivo ? ` (Motivo: ${motivo})` : ''}. Era ${existing.status}`,
+    {
+      motivoDelecao: motivo,
+      dadosAntes: {
+        status: existing.status,
+        data: existing.data,
+        horaInicio: existing.horaInicio,
+      },
+      dadosDepois: { deletadoEm: new Date().toISOString() },
+    }
+  )
+}
+
+/**
  * Cancels any non-terminal RAS (any → cancelado).
+ * Different from delete: cancelado is a status, deleted is soft-deleted.
  */
 export async function cancelarRas(
   id: string,
@@ -317,7 +354,7 @@ export async function cancelarRas(
 
   const ras = await rasRepo.updateRasStatus(id, userId, 'cancelado')
 
-  // Log: Cancelado
+  // Log: Cancelado (status change, not a delete)
   await logRasEvent(
     userId,
     id,
@@ -326,7 +363,7 @@ export async function cancelarRas(
     {
       dadosAntes: {
         status: existing.status,
-        data: existing.data.toISOString().slice(0, 10),
+        data: existing.data,
         horaInicio: existing.horaInicio,
       },
       dadosDepois: { status: 'cancelado' },

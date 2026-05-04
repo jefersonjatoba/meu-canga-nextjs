@@ -186,10 +186,11 @@ export async function PATCH(
 }
 
 // ─── DELETE /api/ras/[id] ─────────────────────────────────────────────────────
-// Soft-cancel via service (enforces state machine — confirmado não pode ser cancelado).
+// Soft delete (GDPR compliance): marks RAS as deleted, preserves audit trail.
+// Optional body: { motivo: "string" } for deletion reason.
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -198,9 +199,13 @@ export async function DELETE(
 
     const { id } = await params
 
+    // Optional body with motivo
+    const body = await request.json().catch(() => ({}))
+    const motivo = (body as { motivo?: string }).motivo
+
     try {
-      const cancelled = await rasService.cancelarRas(id, user.id)
-      return okResponse(cancelled)
+      await rasService.deletarRas(id, user.id, motivo)
+      return okResponse({ message: 'RAS deletado com sucesso' })
     } catch (err) {
       if (err instanceof RasDomainError) return domainErrorResponse(err)
       throw err

@@ -12,6 +12,11 @@ import { getRasPrice } from '@/types/ras'
 // Re-export so callers can catch constraint violations without importing Prisma directly.
 export { Prisma }
 
+// ─── Soft Delete Filter ────────────────────────────────────────────────────────
+// CRITICAL: Always filter deletadoEm IS NULL in user-facing queries
+// This is essential for 10k clients / 1M records to keep queries fast with indexes
+const ACTIVE_FILTER = { deletadoEm: null } as const
+
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
 /** Parse "YYYY-MM-DD" to a UTC Date (midnight). */
@@ -137,7 +142,7 @@ export async function findRasByIdForUser(
   userId: string,
 ): Promise<RasAgenda | null> {
   const row = await prisma.rasAgenda.findFirst({
-    where: { id, userId },
+    where: { id, userId, ...ACTIVE_FILTER },
     ...withRelations,
   })
   return row ? mapRow(row) : null
@@ -150,7 +155,7 @@ export async function findRasByUserAndMonth(
   competencia: string,
 ): Promise<RasAgenda[]> {
   const rows = await prisma.rasAgenda.findMany({
-    where: { userId, competencia },
+    where: { userId, competencia, ...ACTIVE_FILTER },
     orderBy: [{ data: 'asc' }, { horaInicio: 'asc' }],
     ...withRelations,
   })
@@ -165,7 +170,7 @@ export async function findRasByUserAndDate(
 ): Promise<RasAgenda[]> {
   const day = parseUTCDate(data)
   const rows = await prisma.rasAgenda.findMany({
-    where: { userId, data: day, status: { not: 'cancelado' } },
+    where: { userId, data: day, status: { not: 'cancelado' }, ...ACTIVE_FILTER },
     orderBy: { horaInicio: 'asc' },
     ...withRelations,
   })
@@ -223,6 +228,7 @@ export async function countRasHoursByUserAndMonth(
       userId,
       competencia,
       status: { not: 'cancelado' },
+      ...ACTIVE_FILTER,
     },
     select: { duracao: true },
   })
@@ -245,6 +251,7 @@ export async function existsDuplicateRas(
       data: day,
       horaInicio,
       status: { not: 'cancelado' },
+      ...ACTIVE_FILTER,
     },
   })
   return count > 0
@@ -269,6 +276,7 @@ export async function findAdjacentRas(
       where: {
         userId,
         status: { not: 'cancelado' },
+        ...ACTIVE_FILTER,
         OR: [
           // Same day, ends before our start
           { data: day, horaFim: { lte: horaInicio } },
@@ -284,6 +292,7 @@ export async function findAdjacentRas(
       where: {
         userId,
         status: { not: 'cancelado' },
+        ...ACTIVE_FILTER,
         OR: [
           // Same day, starts after our end
           { data: day, horaInicio: { gte: horaFim } },
@@ -299,5 +308,61 @@ export async function findAdjacentRas(
   return {
     before: beforeRow ? mapRow(beforeRow) : null,
     after:  afterRow  ? mapRow(afterRow)  : null,
+  }
+}
+
+// ─── Soft Delete (GDPR/Compliance) ────────────────────────────────────────────
+// Instead of hard delete, mark as deleted. Allows recovery and audit trails.
+
+export async function softDeleteRas(
+  id: string,
+  userId: string,
+  motivo?: string,
+): Promise<void> {
+  const result = await prisma.rasAgenda.updateMany({
+    where: { id, userId, ...ACTIVE_FILTER },
+    data: {
+      deletadoEm: new Date(),
+      motivoDelecao: motivo ?? null,
+    },
+  })
+  if (result.count === 0) {
+    throw new Error(`RAS ${id} não encontrado, já deletado, ou acesso negado`)
+  }
+}
+
+/**
+ * Find recently deleted RAS for admin recovery/inspection.
+ * IMPORTANT: Only call this with admin/auditor context.
+ */
+export async function findDeletedRasByUser(
+  userId: string,
+  limit: number = 100,
+): Promise<RasAgenda[]> {
+  const rows = await prisma.rasAgenda.findMany({
+    where: {
+      userId,
+      deletadoEm: { not: null }, // Only deleted
+    },
+    orderBy: { deletadoEm: 'desc' },
+    take: limit,
+    ...withRelations,
+  })
+  return rows.map(mapRow)
+}
+
+/**
+ * Hard delete (used only by admins for data cleanup, after retention period).
+ * DANGER: This is permanent and breaks audit trails.
+ */
+export async function hardDeleteRas(
+  id: string,
+  userId: string,
+): Promise<void> {
+  const result = await prisma.rasAgenda.deleteMany({
+    where: { id, userId },
+  })
+  if (result.count === 0) {
+    throw new Error(`RAS ${id} não encontrado ou acesso negado`)
   }
 }
