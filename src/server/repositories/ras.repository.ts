@@ -4,9 +4,13 @@
 //   2. update/delete use updateMany/deleteMany so count=0 signals unauthorized access.
 //   3. No business logic, no formatting — pure data access only.
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { RasAgenda, StatusRas, DuracaoRas, CreateRasAgendaInput } from '@/types/ras'
 import { getRasPrice } from '@/types/ras'
+
+// Re-export so callers can catch constraint violations without importing Prisma directly.
+export { Prisma }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -88,6 +92,7 @@ function mapRow(row: any): RasAgenda {
 export async function createRasAgenda(
   userId: string,
   data: CreateRasAgendaInput,
+  statusOverride?: StatusRas,
 ): Promise<RasAgenda> {
   const valorCentavos = getRasPrice(data.graduacao, data.duracao)
   const row = await prisma.rasAgenda.create({
@@ -104,7 +109,7 @@ export async function createRasAgenda(
       valorCentavos,
       competencia:   data.competencia,
       observacoes:   data.observacoes ?? null,
-      status:        'agendado',
+      status:        statusOverride ?? 'agendado',
     },
     ...withRelations,
   })
