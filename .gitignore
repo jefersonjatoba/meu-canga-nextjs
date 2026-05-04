@@ -31,7 +31,10 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # vercel
 .vercel
@@ -39,12 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-!.env.example
 
 # Local Claude Code settings (may contain commands with secrets)
 .claude/
@@ -54,14 +51,10 @@ next-env.d.ts
 .idea/
 
 # OS
-.DS_Store
 Thumbs.db
 
 # Build
-.next/
-out/
 dist/
 
 # Logs
 *.log
-npm-debug.log*
