@@ -3,6 +3,51 @@
 
 const TZ = 'America/Sao_Paulo'
 
+// ─── FIX-1: SP Timezone helpers ───────────────────────────────────────────────
+// Uses Intl.DateTimeFormat to guarantee correctness at any UTC offset,
+// including the critical 00:00–06:00 SP window where UTC and SP dates diverge.
+
+/**
+ * Returns today's date in São Paulo timezone as "YYYY-MM-DD".
+ * Uses Intl.DateTimeFormat — never toLocaleString().split() which loses timezone.
+ * Correct across UTC-5, UTC-4, UTC-3, etc.
+ */
+export function getDataHojeSP(): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  // en-CA locale formats as YYYY-MM-DD natively
+  return fmt.format(new Date())
+}
+
+/**
+ * Returns a Date object representing the current moment.
+ * Included for symmetry — JavaScript Dates are always UTC internally;
+ * use Intl.DateTimeFormat with TZ to display or compare wall-clock time.
+ */
+export function getAgoreDateTime(): Date {
+  return new Date()
+}
+
+/**
+ * Returns true if `dateStr` (YYYY-MM-DD) is strictly after today in SP timezone.
+ */
+export function isFutureDate(dateStr: string): boolean {
+  return dateStr > getDataHojeSP()
+}
+
+/**
+ * Returns true if `dateStr` (YYYY-MM-DD) is strictly before today in SP timezone.
+ */
+export function isDateInPast(dateStr: string): boolean {
+  return dateStr < getDataHojeSP()
+}
+
+// ─── Original helpers (unchanged) ────────────────────────────────────────────
+
 /** Today's date in Brazil as "YYYY-MM-DD" */
 export function todayBR(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: TZ })
