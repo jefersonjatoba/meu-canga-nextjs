@@ -15,6 +15,16 @@ function parseUTCDate(dateStr: string): Date {
   return new Date(Date.UTC(y, m - 1, d))
 }
 
+/**
+ * Convert "HH:MM" time string to minutes since midnight.
+ * Handles edge case "24:00" (1440 minutes = end of day).
+ * Used for numeric comparison of times instead of string lexicographic.
+ */
+function timeToMinutes(timeStr: string): number {
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  return hours * 60 + (minutes || 0)
+}
+
 /** Build the start/end Date range for an entire "YYYY-MM" month. */
 function monthRange(competencia: string): { gte: Date; lte: Date } {
   const [year, month] = competencia.split('-').map(Number)
@@ -71,6 +81,7 @@ export async function findEscalasByUserAndDate(
  * Returns the first escala that overlaps the given time window on `data`.
  * "Overlap" means the existing shift starts before `horaFim` AND ends after `horaInicio`.
  * Uses date range to be timezone-safe: matches any Escala on that calendar date.
+ * Converts times to minutes (numeric) for correct comparison (avoids string lexicographic issues).
  * Returns null when no conflict exists.
  */
 export async function findEscalaConflict(
@@ -84,7 +95,13 @@ export async function findEscalaConflict(
   const nextDay = new Date(day)
   nextDay.setUTCDate(nextDay.getUTCDate() + 1)
 
-  const row = await prisma.escala.findFirst({
+  // Convert requested times to minutes for numeric comparison
+  const rasInicio = timeToMinutes(horaInicio)
+  const rasFim = timeToMinutes(horaFim)
+
+  // Fetch all escalas on this date, then filter in memory for correct time overlap
+  // (We can't reliably do numeric comparison on string times in Prisma filters)
+  const rows = await prisma.escala.findMany({
     where: {
       userId,
       dataEscala: {
@@ -92,14 +109,21 @@ export async function findEscalaConflict(
         lt: nextDay,
       },
       status: { not: 'cancelada' },
-      // Overlap condition: existing.horaInicio < horaFim AND existing.horaFim > horaInicio
-      AND: [
-        { horaInicio: { lt: horaFim } },
-        { horaFim:    { gt: horaInicio } },
-      ],
     },
   })
-  return row ? mapRow(row) : null
+
+  // Check for time overlap: existing.horaInicio < rasaFim AND existing.horaFim > rasInicio
+  for (const row of rows) {
+    const escalInicio = timeToMinutes(row.horaInicio)
+    const escalFim = timeToMinutes(row.horaFim)
+
+    // Overlap if: escala starts before ras ends AND escala ends after ras starts
+    if (escalInicio < rasFim && escalFim > rasInicio) {
+      return mapRow(row)
+    }
+  }
+
+  return null
 }
 
 /**
