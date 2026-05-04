@@ -82,7 +82,12 @@ export function RasLocationPicker({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         className={cn(
-          'w-full rounded-lg px-3 py-2 text-white bg-[#0f0f1a] border border-white/15 text-sm',
+          'w-full rounded-lg px-3 py-2.5 text-sm',
+          'bg-white dark:bg-[#1E1E1E]',
+          'text-gray-900 dark:text-gray-100',
+          'border border-gray-300 dark:border-gray-600',
+          'focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400',
+          'transition-colors',
           disabled && 'opacity-50 cursor-not-allowed',
           className
         )}

@@ -57,7 +57,7 @@ export default function RasPage() {
           status: statusFilter !== 'all' ? statusFilter : undefined,
           graduacao: graduacaoFilter !== 'all' ? graduacaoFilter : undefined,
           local: localFilter || undefined,
-          pageSize: 200,
+          pageSize: 100,
         }),
         fetchRasStats(competencia),
       ])

@@ -171,49 +171,49 @@ export function RasForm({
 
   return (
     <form onSubmit={handleSubmit} className={cn('space-y-4', className)}>
-      {/* Data */}
-      <div>
-        <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          <Calendar size={14} aria-hidden />
-          Data
-        </label>
-        <input
-          type="date"
-          value={values.data}
-          onChange={(e) => set('data', e.target.value)}
-          required
-          className="w-full rounded-lg px-3 py-2.5 text-sm
-            bg-white dark:bg-[#1E1E1E]
-            text-gray-900 dark:text-gray-100
-            border border-gray-300 dark:border-gray-600
-            focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-            transition-colors
-            [color-scheme:light] dark:[color-scheme:dark]"
-        />
-      </div>
-
-      {/* Hora Início */}
-      <div>
-        <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-          <Clock size={14} aria-hidden />
-          Hora de Início
-        </label>
-        <select
-          value={values.horaInicio}
-          onChange={(e) => set('horaInicio', e.target.value)}
-          className="w-full rounded-lg px-3 py-2.5 text-sm
-            bg-white dark:bg-[#1E1E1E]
-            text-gray-900 dark:text-gray-100
-            border border-gray-300 dark:border-gray-600
-            focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-            transition-colors"
-        >
-          {horaOptions.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+      {/* Data + Hora Início lado a lado */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <Calendar size={14} aria-hidden />
+            Data
+          </label>
+          <input
+            type="date"
+            value={values.data}
+            onChange={(e) => set('data', e.target.value)}
+            required
+            className="w-full rounded-lg px-3 py-2.5 text-sm
+              bg-white dark:bg-[#1E1E1E]
+              text-gray-900 dark:text-gray-100
+              border border-gray-300 dark:border-gray-600
+              focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+              transition-colors
+              [color-scheme:light] dark:[color-scheme:dark]"
+          />
+        </div>
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+            <Clock size={14} aria-hidden />
+            Hora de Início
+          </label>
+          <select
+            value={values.horaInicio}
+            onChange={(e) => set('horaInicio', e.target.value)}
+            className="w-full rounded-lg px-3 py-2.5 text-sm
+              bg-white dark:bg-[#1E1E1E]
+              text-gray-900 dark:text-gray-100
+              border border-gray-300 dark:border-gray-600
+              focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+              transition-colors"
+          >
+            {horaOptions.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Duração */}
@@ -270,7 +270,13 @@ export function RasForm({
               <ToggleButton
                 key={t}
                 active={values.tipo === t}
-                onClick={() => set('tipo', t)}
+                onClick={() => {
+                  set('tipo', t)
+                  // Compulsório só aceita Titular — resetar se estava em Reserva
+                  if (t === 'compulsorio' && values.tipoVaga === 'reserva') {
+                    set('tipoVaga', 'titular')
+                  }
+                }}
                 className="py-1.5 text-xs"
               >
                 {t === 'voluntario' ? 'Vol.' : 'Comp.'}
@@ -282,8 +288,8 @@ export function RasForm({
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
             Vaga
           </label>
-          <div className="grid grid-cols-2 gap-1">
-            {(['titular', 'reserva'] as TipoVagaRas[]).map((v) => (
+          <div className={cn('grid gap-1', values.tipo === 'voluntario' ? 'grid-cols-2' : 'grid-cols-1')}>
+            {(['titular', ...(values.tipo === 'voluntario' ? ['reserva'] : [])] as TipoVagaRas[]).map((v) => (
               <ToggleButton
                 key={v}
                 active={values.tipoVaga === v}

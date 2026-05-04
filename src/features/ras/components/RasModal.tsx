@@ -62,26 +62,30 @@ export function RasModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!isLoading) onOpenChange(open) }}>
-      <DialogContent size="lg" className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar RAS' : 'Agendar RAS'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? 'Altere os dados do RAS e salve.'
-              : 'Registre um novo Regime Adicional de Serviço.'}
-          </DialogDescription>
-        </DialogHeader>
-        <RasForm
-          initial={initial}
-          defaultCompetencia={competencia}
-          prefillDate={prefillDate}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          isLoading={isLoading}
-          error={error}
-        />
+      <DialogContent size="lg" className="max-h-[80vh] overflow-hidden flex flex-col p-0">
+        <div className="px-6 pt-6 pb-4 shrink-0">
+          <DialogHeader className="mb-0">
+            <DialogTitle>
+              {isEditing ? 'Editar RAS' : 'Agendar RAS'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditing
+                ? 'Altere os dados do RAS e salve.'
+                : 'Registre um novo Regime Adicional de Serviço.'}
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <RasForm
+            initial={initial}
+            defaultCompetencia={competencia}
+            prefillDate={prefillDate}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            isLoading={isLoading}
+            error={error}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )
