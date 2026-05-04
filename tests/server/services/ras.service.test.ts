@@ -475,6 +475,18 @@ describe('RAS Service — deletarRas', () => {
     expect(rasRepo.softDeleteRas).not.toHaveBeenCalled()
   })
 
+  it('should handle softDeleteRas errors and convert to RasDomainError', async () => {
+    const existing = createMockRas()
+    vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
+    vi.mocked(rasRepo.softDeleteRas).mockRejectedValue(
+      new Error('RAS_NOT_FOUND:ras-456')
+    )
+
+    await expect(rasService.deletarRas(rasId, userId)).rejects.toThrow(
+      RasDomainError
+    )
+  })
+
   it('should log soft-delete event', async () => {
     const existing = createMockRas({ status: 'agendado' })
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)

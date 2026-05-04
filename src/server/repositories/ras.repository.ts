@@ -327,7 +327,7 @@ export async function softDeleteRas(
     },
   })
   if (result.count === 0) {
-    throw new Error(`RAS ${id} não encontrado, já deletado, ou acesso negado`)
+    throw new Error(`RAS_NOT_FOUND:${id}`)
   }
 }
 

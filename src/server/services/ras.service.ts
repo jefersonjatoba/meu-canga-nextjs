@@ -317,7 +317,14 @@ export async function deletarRas(
   }
 
   // Soft delete (mark as deleted)
-  await rasRepo.softDeleteRas(id, userId, motivo)
+  try {
+    await rasRepo.softDeleteRas(id, userId, motivo)
+  } catch (err) {
+    if (err instanceof Error && err.message.startsWith('RAS_NOT_FOUND:')) {
+      throw new RasDomainError(RasErrorCode.NOT_FOUND, `RAS ${id} não encontrado ou já foi deletado`)
+    }
+    throw err
+  }
 
   // Log: Soft delete
   await logRasEvent(
