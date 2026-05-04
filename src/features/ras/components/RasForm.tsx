@@ -170,20 +170,24 @@ export function RasForm({
   const displayError = validationError || error
 
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-4', className)}>
+    <form onSubmit={handleSubmit} className={cn('space-y-3', className)}>
       {/* Data + Hora Início lado a lado */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label
+            htmlFor="ras-data"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 cursor-pointer"
+          >
             <Calendar size={14} aria-hidden />
             Data
           </label>
           <input
+            id="ras-data"
             type="date"
             value={values.data}
             onChange={(e) => set('data', e.target.value)}
             required
-            className="w-full rounded-lg px-3 py-2.5 text-sm
+            className="w-full rounded-lg px-3 py-2 text-sm
               bg-white dark:bg-[#1E1E1E]
               text-gray-900 dark:text-gray-100
               border border-gray-300 dark:border-gray-600
@@ -193,14 +197,18 @@ export function RasForm({
           />
         </div>
         <div>
-          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label
+            htmlFor="ras-hora"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 cursor-pointer"
+          >
             <Clock size={14} aria-hidden />
             Hora de Início
           </label>
           <select
+            id="ras-hora"
             value={values.horaInicio}
             onChange={(e) => set('horaInicio', e.target.value)}
-            className="w-full rounded-lg px-3 py-2.5 text-sm
+            className="w-full rounded-lg px-3 py-2 text-sm
               bg-white dark:bg-[#1E1E1E]
               text-gray-900 dark:text-gray-100
               border border-gray-300 dark:border-gray-600
@@ -218,10 +226,10 @@ export function RasForm({
 
       {/* Duração */}
       <div>
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
           Duração
         </label>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
           {RAS_DURACAO_TYPES.map((d) => (
             <ToggleButton
               key={d}
@@ -235,7 +243,7 @@ export function RasForm({
             </ToggleButton>
           ))}
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           <Clock size={11} className="inline mr-1" aria-hidden />
           Término previsto: <span className="font-medium">{horaFim}</span>
         </p>
@@ -279,7 +287,7 @@ export function RasForm({
                 }}
                 className="py-1.5 text-xs"
               >
-                {t === 'voluntario' ? 'Vol.' : 'Comp.'}
+                {t === 'voluntario' ? 'Voluntário' : 'Compulsório'}
               </ToggleButton>
             ))}
           </div>
@@ -318,7 +326,7 @@ export function RasForm({
 
       {/* Observações */}
       <div>
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 block">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
           Observações{' '}
           <span className="text-gray-400 dark:text-gray-500 font-normal">(opcional)</span>
         </label>
@@ -327,7 +335,7 @@ export function RasForm({
           onChange={(e) => set('observacoes', e.target.value)}
           rows={2}
           maxLength={500}
-          className="w-full rounded-lg px-3 py-2.5 text-sm resize-none
+          className="w-full rounded-lg px-3 py-2 text-sm resize-none
             bg-white dark:bg-[#1E1E1E]
             text-gray-900 dark:text-gray-100
             border border-gray-300 dark:border-gray-600
@@ -353,12 +361,12 @@ export function RasForm({
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 pt-1">
+      <div className="flex gap-2 pt-2">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-medium
+            className="flex-1 py-2 rounded-xl text-sm font-medium
               text-gray-600 dark:text-gray-400
               border border-gray-200 dark:border-gray-700
               hover:bg-gray-50 dark:hover:bg-gray-800
@@ -370,7 +378,7 @@ export function RasForm({
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold
+          className="flex-1 py-2 rounded-xl text-sm font-semibold
             bg-blue-600 hover:bg-blue-700 active:bg-blue-800
             text-white transition-colors
             disabled:opacity-60 disabled:cursor-not-allowed"

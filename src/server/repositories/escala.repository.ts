@@ -70,6 +70,7 @@ export async function findEscalasByUserAndDate(
 /**
  * Returns the first escala that overlaps the given time window on `data`.
  * "Overlap" means the existing shift starts before `horaFim` AND ends after `horaInicio`.
+ * Uses date range to be timezone-safe: matches any Escala on that calendar date.
  * Returns null when no conflict exists.
  */
 export async function findEscalaConflict(
@@ -79,10 +80,17 @@ export async function findEscalaConflict(
   horaFim: string,
 ): Promise<Escala | null> {
   const day = parseUTCDate(data)
+  // Match entire 24h period of the date (safety against timezone offsets)
+  const nextDay = new Date(day)
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+
   const row = await prisma.escala.findFirst({
     where: {
       userId,
-      dataEscala: day,
+      dataEscala: {
+        gte: day,
+        lt: nextDay,
+      },
       status: { not: 'cancelada' },
       // Overlap condition: existing.horaInicio < horaFim AND existing.horaFim > horaInicio
       AND: [

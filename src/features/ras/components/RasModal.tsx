@@ -62,8 +62,8 @@ export function RasModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!isLoading) onOpenChange(open) }}>
-      <DialogContent size="lg" className="max-h-[80vh] overflow-hidden flex flex-col p-0">
-        <div className="px-6 pt-6 pb-4 shrink-0">
+      <DialogContent size="lg" className="max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <div className="px-5 pt-5 pb-3 shrink-0">
           <DialogHeader className="mb-0">
             <DialogTitle>
               {isEditing ? 'Editar RAS' : 'Agendar RAS'}
@@ -75,7 +75,7 @@ export function RasModal({
             </DialogDescription>
           </DialogHeader>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="flex-1 overflow-y-auto px-5 pb-5">
           <RasForm
             initial={initial}
             defaultCompetencia={competencia}
