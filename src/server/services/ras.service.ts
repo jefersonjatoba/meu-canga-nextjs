@@ -59,15 +59,15 @@ export async function validarConflitosEscala(
 }
 
 /**
- * Returns true when the 8-hour minimum rest between consecutive RAS events
- * would be violated by adding a new event at `horaInicio`/`horaFim` on `data`.
+ * Validates the 8-hour minimum rest rule between consecutive RAS events.
+ * Returns null when valid, or the conflicting RasAgenda when violated.
  */
 export async function validarDescansoMinimo(
   userId: string,
   data: string,
   horaInicio: string,
   horaFim: string,
-): Promise<boolean> {
+): Promise<RasAgenda | null> {
   const { before, after } = await rasRepo.findAdjacentRas(userId, data, horaInicio, horaFim)
 
   // Build a stub RasAgenda for the proposed event to reuse the shared helper
@@ -91,15 +91,15 @@ export async function validarDescansoMinimo(
 
   if (before) {
     const { valid } = calculateRestRequirementsBetween(before, proposed)
-    if (!valid) return true  // rest violated
+    if (!valid) return before  // rest violated — return the conflicting record
   }
 
   if (after) {
     const { valid } = calculateRestRequirementsBetween(proposed, after)
-    if (!valid) return true  // rest violated
+    if (!valid) return after  // rest violated — return the conflicting record
   }
 
-  return false
+  return null
 }
 
 /**
@@ -117,11 +117,26 @@ export async function validarHorariosMensais(
 // ─── Create ───────────────────────────────────────────────────────────────────
 
 /**
- * Validates business rules and creates a new RAS agendado.
+ * Calculates the auto-status for a new RAS based on its date relative to today (SP timezone).
+ * - Past date  → 'realizado' (user is registering something that already happened)
+ * - Today/future → 'agendado'
+ */
+function calcAutoStatus(dataStr: string): StatusRas {
+  const nowBR = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+  )
+  const todayStr = `${nowBR.getFullYear()}-${String(nowBR.getMonth() + 1).padStart(2, '0')}-${String(nowBR.getDate()).padStart(2, '0')}`
+  return dataStr < todayStr ? 'realizado' : 'agendado'
+}
+
+/**
+ * Validates business rules and creates a new RAS.
  * Returns the created record and any non-blocking warning codes.
  *
- * Escalas conflict is a WARNING, not a hard blocker (military scheduling edge case).
- * Monthly hours exceeded and duplicate RAS ARE hard blockers.
+ * - Escala conflict is a hard blocker (overlap means the user is physically present).
+ * - Monthly hours exceeded and duplicate RAS are hard blockers.
+ * - Minimum rest violation is a hard blocker.
+ * - Auto-status: past date → 'realizado', future/today → 'agendado' (FIX-2).
  */
 export async function criarRasAgendado(
   userId: string,
@@ -129,7 +144,7 @@ export async function criarRasAgendado(
 ): Promise<{ ras: RasAgenda; warnings: RasErrorCode[] }> {
   const warnings: RasErrorCode[] = []
 
-  // 1. Duplicate check (hard blocker)
+  // 1. Duplicate check (hard blocker) — explicit check before hitting unique constraint
   const isDuplicate = await rasRepo.existsDuplicateRas(userId, input.data, input.horaInicio)
   if (isDuplicate) {
     throw new RasDomainError(
@@ -150,23 +165,30 @@ export async function criarRasAgendado(
     )
   }
 
-  // 3. Minimum rest check (hard blocker)
-  const restViolated = await validarDescansoMinimo(userId, input.data, input.horaInicio, input.horaFim)
-  if (restViolated) {
+  // 3. Minimum rest check (hard blocker) — FIX-6: returns conflicting record for rich error message
+  const conflitanteDescanso = await validarDescansoMinimo(userId, input.data, input.horaInicio, input.horaFim)
+  if (conflitanteDescanso) {
     throw new RasDomainError(
       RasErrorCode.MIN_REST_VIOLATED,
-      `Intervalo mínimo de 8h entre RAS consecutivos não seria respeitado`,
-      { data: input.data, horaInicio: input.horaInicio },
+      `Intervalo mínimo de 8h entre RAS não respeitado. Conflita com RAS em ${conflitanteDescanso.horaInicio}–${conflitanteDescanso.horaFim}.`,
+      { data: input.data, horaInicio: input.horaInicio, conflito: { horaInicio: conflitanteDescanso.horaInicio, horaFim: conflitanteDescanso.horaFim } },
     )
   }
 
-  // 4. Escala conflict check (warning — not a hard blocker)
-  const hasEscalaConflict = await validarConflitosEscala(userId, input.data, input.horaInicio, input.horaFim)
-  if (hasEscalaConflict) {
-    warnings.push(RasErrorCode.ESCALA_CONFLICT)
+  // 4. Escala conflict check (hard blocker — FIX-3: usar escalaRepo)
+  const escalaConflito = await escalaRepo.findEscalaConflict(userId, input.data, input.horaInicio, input.horaFim)
+  if (escalaConflito) {
+    throw new RasDomainError(
+      RasErrorCode.ESCALA_CONFLICT,
+      `Conflito com plantão na Escala: ${escalaConflito.tipoPlantao} (${escalaConflito.horaInicio}–${escalaConflito.horaFim})`,
+      { data: input.data, tipoPlantao: escalaConflito.tipoPlantao, horaInicio: escalaConflito.horaInicio, horaFim: escalaConflito.horaFim },
+    )
   }
 
-  const ras = await rasRepo.createRasAgenda(userId, input)
+  // 5. Auto-status: past date → 'realizado'; today/future → 'agendado' (FIX-2)
+  const autoStatus = calcAutoStatus(input.data)
+
+  const ras = await rasRepo.createRasAgenda(userId, input, autoStatus)
   return { ras, warnings }
 }
 
