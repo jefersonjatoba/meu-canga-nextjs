@@ -173,16 +173,12 @@ export function RasForm({
     <form onSubmit={handleSubmit} className={cn('space-y-3', className)}>
       {/* Data + Hora Início lado a lado */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label
-            htmlFor="ras-data"
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 cursor-pointer"
-          >
+        <label className="flex flex-col cursor-pointer">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             <Calendar size={14} aria-hidden />
             Data
-          </label>
+          </span>
           <input
-            id="ras-data"
             type="date"
             value={values.data}
             onChange={(e) => set('data', e.target.value)}
@@ -195,17 +191,13 @@ export function RasForm({
               transition-colors
               [color-scheme:light] dark:[color-scheme:dark]"
           />
-        </div>
-        <div>
-          <label
-            htmlFor="ras-hora"
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 cursor-pointer"
-          >
+        </label>
+        <label className="flex flex-col cursor-pointer">
+          <span className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             <Clock size={14} aria-hidden />
             Hora de Início
-          </label>
+          </span>
           <select
-            id="ras-hora"
             value={values.horaInicio}
             onChange={(e) => set('horaInicio', e.target.value)}
             className="w-full rounded-lg px-3 py-2 text-sm
@@ -221,7 +213,7 @@ export function RasForm({
               </option>
             ))}
           </select>
-        </div>
+        </label>
       </div>
 
       {/* Duração */}
