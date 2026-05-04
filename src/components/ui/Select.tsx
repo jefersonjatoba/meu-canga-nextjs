@@ -17,6 +17,7 @@ export interface SelectProps {
   onValueChange?: (value: string) => void
   placeholder?: string
   label?: string
+  labelClassName?: string
   error?: string
   helper?: string
   disabled?: boolean
@@ -31,6 +32,7 @@ export function Select({
   onValueChange,
   placeholder = 'Selecionar...',
   label,
+  labelClassName,
   error,
   helper,
   disabled,
@@ -47,8 +49,10 @@ export function Select({
         <label
           htmlFor={inputId}
           className={cn(
-            'text-sm font-medium',
-            hasError ? 'text-error' : 'text-gray-700 dark:text-gray-300',
+            labelClassName ?? cn(
+              'text-sm font-medium',
+              hasError ? 'text-error' : 'text-gray-700 dark:text-gray-300',
+            ),
             disabled && 'opacity-50 cursor-not-allowed'
           )}
         >
@@ -87,7 +91,7 @@ export function Select({
         <RadixSelect.Portal>
           <RadixSelect.Content
             className={cn(
-              'relative z-50 min-w-[8rem] overflow-hidden rounded-xl border shadow-lg',
+              'relative z-[600] min-w-[8rem] overflow-hidden rounded-xl border shadow-lg',
               'bg-white dark:bg-[#1E1E1E]',
               'border-gray-200 dark:border-gray-700',
               'animate-in fade-in-0 zoom-in-95',

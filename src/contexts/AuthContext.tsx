@@ -82,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(err.message)
       throw err
     }
+    // Refresh session to sync to cookies (middleware will sync on next request)
+    await supabase.auth.getSession()
   }
 
   const signUp = async (email: string, password: string) => {

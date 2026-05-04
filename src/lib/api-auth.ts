@@ -1,9 +1,10 @@
 // Shared helper to extract the authenticated user from API requests.
-// Verifica Supabase token (cookie sb-token) com fallback para NextAuth.
+// Lê a session do Supabase via @supabase/ssr (cookies sb-{ref}-auth-token...)
+// com fallback para NextAuth.
 
 import { auth } from '@/auth'
 import { cookies } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
 import { prisma } from '@/lib/prisma'
 
 export type ApiUser = {
@@ -16,42 +17,53 @@ export type ApiUser = {
 /**
  * Returns the authenticated user or null.
  * Priority:
- *  1. Supabase token (cookie sb-token) — active auth system
+ *  1. Supabase session via @supabase/ssr (lê cookies automaticamente)
  *  2. NextAuth session (fallback / dev stub)
  */
 export async function getApiUser(): Promise<ApiUser | null> {
-  // ── 1. Supabase token via cookie ───────────────────────────────────────────
+  // ── 1. Supabase session via @supabase/ssr ──────────────────────────────────
   try {
     const cookieStore = await cookies()
-    const sbToken = cookieStore.get('sb-token')?.value
 
-    if (sbToken) {
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      )
+    // createServerClient sabe quais cookies do Supabase ler
+    // (sb-{project-ref}-auth-token, etc.) — não precisa procurar manualmente.
+    // Em Server Components não podemos escrever cookies; o middleware/proxy
+    // cuida do refresh. Por isso setAll é um no-op aqui.
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll() {
+            // No-op: Server Components não podem setar cookies.
+            // O proxy.ts já faz o refresh da session.
+          },
+        },
+      }
+    )
 
-      const { data: { user: sbUser }, error } = await supabaseAdmin.auth.getUser(sbToken)
+    const { data: { user: sbUser }, error } = await supabase.auth.getUser()
 
-      if (!error && sbUser) {
-        // Buscar usuário Prisma por email
-        let prismaUser = sbUser.email
-          ? await prisma.user.findUnique({ where: { email: sbUser.email } })
-          : null
+    if (!error && sbUser) {
+      // Buscar usuário Prisma por email
+      let prismaUser = sbUser.email
+        ? await prisma.user.findUnique({ where: { email: sbUser.email } })
+        : null
 
-        // Fallback: pegar o primeiro usuário (app single-user / dev)
-        if (!prismaUser) {
-          prismaUser = await prisma.user.findFirst()
-        }
+      // Fallback: pegar o primeiro usuário (app single-user / dev)
+      if (!prismaUser) {
+        prismaUser = await prisma.user.findFirst()
+      }
 
-        if (prismaUser) {
-          return {
-            id: prismaUser.id,
-            email: prismaUser.email,
-            name: prismaUser.name,
-            role: prismaUser.role,
-          }
+      if (prismaUser) {
+        return {
+          id: prismaUser.id,
+          email: prismaUser.email,
+          name: prismaUser.name,
+          role: prismaUser.role,
         }
       }
     }

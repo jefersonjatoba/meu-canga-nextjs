@@ -50,11 +50,11 @@ export async function POST(req: NextRequest) {
     const startDate = new Date(Date.UTC(ano, mes - 1, 1))
     const endDate = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999))
     const existing = await prisma.escala.findMany({
-      where: { userId, data: { gte: startDate, lte: endDate } },
-      select: { data: true, horaInicio: true },
+      where: { userId, dataEscala: { gte: startDate, lte: endDate } },
+      select: { dataEscala: true, horaInicio: true },
     })
     const existingKeys = new Set(
-      existing.map((e) => `${e.data.toISOString().slice(0, 10)}|${e.horaInicio}`),
+      existing.map((e) => `${e.dataEscala.toISOString().slice(0, 10)}|${e.horaInicio}`),
     )
 
     const toCreate = dias
@@ -65,14 +65,13 @@ export async function POST(req: NextRequest) {
         if (existingKeys.has(key)) return null
         return {
           userId,
-          data: dataDate,
+          dataEscala: dataDate,
           horaInicio,
           horaFim,
-          tipo: 'plantao',
-          local: local || null,
-          observacao: null,
+          tipoTurno: 'plantao',
+          localServico: local || null,
+          observacoes: null,
           alarmeAtivo: alarmeAtivo !== undefined ? alarmeAtivo : true,
-          alarmeEnviado: false,
         }
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)

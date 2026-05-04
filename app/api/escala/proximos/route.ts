@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const userId = getUserId(request)
     if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-    // UTC midnight da data "hoje" no fuso de São Paulo (casa com POST que salva via Date.UTC)
+    // UTC midnight da data "hoje" no fuso de São Paulo
     const nowUTC = new Date()
     const nowSP = new Date(nowUTC.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
     const hoje = new Date(Date.UTC(nowSP.getFullYear(), nowSP.getMonth(), nowSP.getDate()))
@@ -19,15 +19,24 @@ export async function GET(request: NextRequest) {
     const escalas = await prisma.escala.findMany({
       where: {
         userId,
-        data: { gte: hoje },
+        dataEscala: { gte: hoje },
+        status: { not: 'cancelada' },
       },
-      orderBy: { data: 'asc' },
+      orderBy: { dataEscala: 'asc' },
       take: 10,
     })
 
     const serialized = escalas.map((e) => ({
-      ...e,
-      data: e.data.toISOString().slice(0, 10),
+      id: e.id,
+      userId: e.userId,
+      data: e.dataEscala.toISOString().slice(0, 10),
+      horaInicio: e.horaInicio,
+      horaFim: e.horaFim,
+      tipo: e.tipoTurno,
+      local: e.localServico ?? null,
+      observacao: e.observacoes ?? null,
+      alarmeAtivo: e.alarmeAtivo,
+      alarmeEnviado: false,
       createdAt: e.createdAt.toISOString(),
       updatedAt: e.updatedAt.toISOString(),
     }))

@@ -52,19 +52,30 @@ export default function RegisterPage() {
     setErrorMessage('')
 
     try {
-      // TODO: Implementar criação de usuário
-      // const response = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(data),
-      // })
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          cpf: data.cpf.replace(/\D/g, ''), // Remove formatting
+          phone: data.phone || null,
+        }),
+      })
 
-      // Por enquanto, apenas redireciona para login
-      setTimeout(() => {
-        router.push('/auth/login')
-      }, 1000)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar conta')
+      }
+
+      // Redirect to login after successful registration
+      router.push('/auth/login')
     } catch (error) {
-      setErrorMessage('Erro ao criar conta. Tente novamente.')
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Erro ao criar conta. Tente novamente.'
+      )
     } finally {
       setIsLoading(false)
     }

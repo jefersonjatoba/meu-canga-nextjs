@@ -73,14 +73,13 @@ export async function POST(req: NextRequest) {
         const isoData = currentDate.toISOString().slice(0, 10)
         toCreate.push({
           userId,
-          data: new Date(currentDate),
+          dataEscala: new Date(currentDate),
           horaInicio,
           horaFim,
-          tipo: 'plantao',
-          local: local || null,
-          observacao: null,
+          tipoTurno: 'plantao',
+          localServico: local || null,
+          observacoes: null,
           alarmeAtivo: alarmeAtivo !== undefined ? alarmeAtivo : true,
-          alarmeEnviado: false,
         })
       }
 
@@ -93,19 +92,19 @@ export async function POST(req: NextRequest) {
     const existingDates = await prisma.escala.findMany({
       where: {
         userId,
-        data: {
+        dataEscala: {
           gte: dataInicioDate,
           lte: dataFim,
         },
       },
-      select: { data: true },
+      select: { dataEscala: true },
     })
     const existingSet = new Set(
-      existingDates.map((e) => e.data.toISOString().slice(0, 10))
+      existingDates.map((e) => e.dataEscala.toISOString().slice(0, 10))
     )
 
     const filtered = toCreate.filter(
-      (e) => !existingSet.has(e.data.toISOString().slice(0, 10))
+      (e) => !existingSet.has(e.dataEscala.toISOString().slice(0, 10))
     )
 
     if (filtered.length > 0) {

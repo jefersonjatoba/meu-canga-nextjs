@@ -91,10 +91,28 @@ function calcHoraFim(tipo: TipoEscala, horaInicio: string): string {
   return `${String((h + 12) % 24).padStart(2, '0')}:00`
 }
 
-/** Returns headers with x-user-id for all API calls */
+/** Returns headers with x-user-id for all API calls.
+ *
+ * Tenta obter o userId em três níveis (mais rápido → mais lento):
+ *  1. getSession() — lê dos cookies/storage local (síncrono, sem rede)
+ *  2. getUser()   — valida o token contra o Supabase (faz request)
+ *
+ * Como o app migrou de createClient (localStorage) para createBrowserClient
+ * (cookies), sessões antigas podem não estar nos cookies ainda; getUser()
+ * força o supabase-js a hidratar a session a partir de qualquer storage
+ * disponível e revalidar o token.
+ */
 async function getHeaders(extra?: HeadersInit): Promise<HeadersInit> {
-  const { data: { session } } = await supabase.auth.getSession()
-  const userId = session?.user?.id
+  let userId: string | undefined
+
+  const { data: sessionData } = await supabase.auth.getSession()
+  userId = sessionData?.session?.user?.id
+
+  if (!userId) {
+    const { data: userData } = await supabase.auth.getUser()
+    userId = userData?.user?.id
+  }
+
   if (!userId) throw new Error('Usuário não autenticado')
   return { 'x-user-id': userId, ...extra }
 }
@@ -825,37 +843,34 @@ function ShiftModal({
                 required
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <FL>Tipo de serviço *</FL>
-              <Select
-                options={TIPO_TURNO_OPTIONS}
-                value={form.tipo}
-                onValueChange={(v) => setForm((f) => ({ ...f, tipo: v as TipoTurno }))}
-                required
-              />
-            </div>
+            <Select
+              label="Tipo de serviço *"
+              labelClassName={FL_CLASS}
+              options={TIPO_TURNO_OPTIONS}
+              value={form.tipo}
+              onValueChange={(v) => setForm((f) => ({ ...f, tipo: v as TipoTurno }))}
+              required
+            />
           </div>
 
           {/* Horários */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <FL>Hora início *</FL>
-              <Select
-                options={HORA_OPTIONS}
-                value={form.horaInicio}
-                onValueChange={(v) => setForm((f) => ({ ...f, horaInicio: v }))}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <FL>Hora fim *</FL>
-              <Select
-                options={HORA_OPTIONS}
-                value={form.horaFim}
-                onValueChange={(v) => setForm((f) => ({ ...f, horaFim: v }))}
-                required
-              />
-            </div>
+            <Select
+              label="Hora início *"
+              labelClassName={FL_CLASS}
+              options={HORA_OPTIONS}
+              value={form.horaInicio}
+              onValueChange={(v) => setForm((f) => ({ ...f, horaInicio: v }))}
+              required
+            />
+            <Select
+              label="Hora fim *"
+              labelClassName={FL_CLASS}
+              options={HORA_OPTIONS}
+              value={form.horaFim}
+              onValueChange={(v) => setForm((f) => ({ ...f, horaFim: v }))}
+              required
+            />
           </div>
 
           {/* Local */}
@@ -935,9 +950,11 @@ function ShiftModal({
 
 // ─── Field label — small, uppercase, like v1's .p-label ─────────────────────
 
+const FL_CLASS = 'text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide leading-none'
+
 function FL({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide leading-none">
+    <p className={FL_CLASS}>
       {children}
     </p>
   )
@@ -1048,6 +1065,7 @@ function ConfigModal({
     setApplyingCycle(true)
     setError('')
     try {
+      await saveConfig(form)
       await aplicarCiclo({
         dataInicio: form.inicioCiclo,
         tipo: form.tipo as TipoEscala,
@@ -1094,15 +1112,14 @@ function ConfigModal({
 
           {/* Padrão + Início do Ciclo — 2 cols on sm+ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <FL>Tipo de Escala *</FL>
-              <Select
-                options={TIPO_ESCALA_OPTIONS}
-                value={form.tipo}
-                onValueChange={(v) => setForm((f) => ({ ...f, tipo: v as TipoEscala }))}
-                required
-              />
-            </div>
+            <Select
+              label="Tipo de Escala *"
+              labelClassName={FL_CLASS}
+              options={TIPO_ESCALA_OPTIONS}
+              value={form.tipo}
+              onValueChange={(v) => setForm((f) => ({ ...f, tipo: v as TipoEscala }))}
+              required
+            />
             <div className="flex flex-col gap-1">
               <FL>Início do ciclo *</FL>
               <DateField
@@ -1116,15 +1133,14 @@ function ConfigModal({
 
           {/* Hora início + Hora fim — 2 cols */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <FL>Hora início *</FL>
-              <Select
-                options={HORA_OPTIONS}
-                value={form.horaInicio}
-                onValueChange={(v) => setForm((f) => ({ ...f, horaInicio: v, horaFim: calcHoraFim(f.tipo, v) }))}
-                required
-              />
-            </div>
+            <Select
+              label="Hora início *"
+              labelClassName={FL_CLASS}
+              options={HORA_OPTIONS}
+              value={form.horaInicio}
+              onValueChange={(v) => setForm((f) => ({ ...f, horaInicio: v, horaFim: calcHoraFim(f.tipo, v) }))}
+              required
+            />
             <div className="flex flex-col gap-1">
               <FL>Hora fim <span className="normal-case font-normal">(automático)</span></FL>
               <div className="flex items-center h-[42px] rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3.5">

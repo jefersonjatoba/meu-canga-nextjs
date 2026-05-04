@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
     '*.ngrok-free.dev',
     '*.ngrok.io',
   ],
+  // Turbopack (default in Next.js 16) — empty config silences the "webpack config
+  // present but no turbopack config" warning without changing behaviour.
+  turbopack: {},
 }
 
 export default nextConfig
