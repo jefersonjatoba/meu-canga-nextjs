@@ -7,6 +7,7 @@
 
 import * as rasRepo   from '@/server/repositories/ras.repository'
 import * as escalaRepo from '@/server/repositories/escala.repository'
+import * as auditRepo from '@/server/repositories/ras-audit.repository'
 import { RasErrorCode, RasDomainError } from '@/lib/ras-errors'
 import { calculateRestRequirementsBetween } from '@/lib/ras-calculations'
 import {
@@ -189,6 +190,29 @@ export async function criarRasAgendado(
   const autoStatus = calcAutoStatus(input.data)
 
   const ras = await rasRepo.createRasAgenda(userId, input, autoStatus)
+
+  // Log: RAS criado com sucesso
+  await logRasEvent(
+    userId,
+    ras.id,
+    'criado',
+    `RAS agendado para ${input.data} às ${input.horaInicio}-${input.horaFim} (${input.duracao}h) - Status: ${autoStatus}`,
+    {
+      dadosDepois: {
+        data: input.data,
+        horaInicio: input.horaInicio,
+        horaFim: input.horaFim,
+        duracao: input.duracao,
+        local: input.local,
+        graduacao: input.graduacao,
+        tipo: input.tipo,
+        tipoVaga: input.tipoVaga,
+        valor: ras.valorCentavos,
+        status: autoStatus,
+      },
+    }
+  )
+
   return { ras, warnings }
 }
 
@@ -210,6 +234,19 @@ export async function marcarRealizado(
 
   const expiresAt = new Date(Date.now() + RAS_REALIZE_WINDOW_HOURS * 3_600_000)
   const ras = await rasRepo.updateRasStatus(id, userId, 'realizado', { expiresAt })
+
+  // Log: Marcado como realizado
+  await logRasEvent(
+    userId,
+    id,
+    'marcar_realizado',
+    `RAS marcado como realizado. Janela de confirmação: ${RAS_REALIZE_WINDOW_HOURS}h`,
+    {
+      dadosAntes: { status: existing.status },
+      dadosDepois: { status: 'realizado', expiresAt: expiresAt.toISOString() },
+    }
+  )
+
   return { ras, expiresAt }
 }
 
@@ -245,7 +282,23 @@ export async function confirmarRas(
 
   assertTransition(existing.status, 'confirmado')
 
-  return rasRepo.updateRasStatus(id, userId, 'confirmado', { observacoes: observacoes ?? null })
+  const ras = await rasRepo.updateRasStatus(id, userId, 'confirmado', {
+    observacoes: observacoes ?? null,
+  })
+
+  // Log: Confirmado
+  await logRasEvent(
+    userId,
+    id,
+    'confirmar',
+    `RAS confirmado${observacoes ? ` com observação: ${observacoes}` : ''}`,
+    {
+      dadosAntes: { status: existing.status },
+      dadosDepois: { status: 'confirmado', observacoes },
+    }
+  )
+
+  return ras
 }
 
 /**
@@ -262,7 +315,25 @@ export async function cancelarRas(
 
   assertTransition(existing.status, 'cancelado')
 
-  return rasRepo.updateRasStatus(id, userId, 'cancelado')
+  const ras = await rasRepo.updateRasStatus(id, userId, 'cancelado')
+
+  // Log: Cancelado
+  await logRasEvent(
+    userId,
+    id,
+    'cancelado',
+    `RAS cancelado. Status anterior: ${existing.status}`,
+    {
+      dadosAntes: {
+        status: existing.status,
+        data: existing.data.toISOString().slice(0, 10),
+        horaInicio: existing.horaInicio,
+      },
+      dadosDepois: { status: 'cancelado' },
+    }
+  )
+
+  return ras
 }
 
 // ─── Monthly stats ────────────────────────────────────────────────────────────
@@ -341,3 +412,45 @@ export async function getStatsDoMes(
     historico3Meses,
   }
 }
+
+// ─── Audit Logging ───────────────────────────────────────────────────────────
+
+/**
+ * Registra um evento de auditoria para ações em RAS.
+ * Deve ser chamado APÓS a ação ser bem-sucedida no banco de dados.
+ */
+export async function logRasEvent(
+  userId: string,
+  rasId: string,
+  acao: string,
+  descricao: string,
+  extras?: {
+    motivoDelecao?: string
+    dadosAntes?: Record<string, unknown>
+    dadosDepois?: Record<string, unknown>
+    ipAddress?: string
+    userAgent?: string
+  }
+): Promise<void> {
+  try {
+    await auditRepo.createAuditLog({
+      userId,
+      rasAgendaId: rasId,
+      acao,
+      descricao,
+      motivoDelecao: extras?.motivoDelecao,
+      dadosAntes: extras?.dadosAntes,
+      dadosDepois: extras?.dadosDepois,
+      ipAddress: extras?.ipAddress,
+      userAgent: extras?.userAgent,
+    })
+  } catch (err) {
+    // Logging falhou, mas não deve interromper a operação principal
+    console.error(`[AUDIT] Falha ao registrar evento: ${acao}`, err)
+  }
+}
+
+/**
+ * Exporta repositório de audit para acesso direto.
+ */
+export { findAuditLogsByUser, findAuditLogsByRasId } from '@/server/repositories/ras-audit.repository'

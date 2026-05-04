@@ -89,3 +89,37 @@ export async function marcarRealizado(id: string): Promise<RasAgenda> {
 export async function confirmarRas(id: string, observacoes?: string): Promise<RasAgenda> {
   return updateRas(id, { status: 'confirmado', ...(observacoes ? { observacoes } : {}) })
 }
+
+// ─── Audit Logs ───────────────────────────────────────────────────────────────
+
+export interface AuditLog {
+  id: string
+  userId: string
+  rasAgendaId: string
+  acao: string
+  descricao: string
+  motivoDelecao?: string | null
+  dadosAntes?: Record<string, unknown> | null
+  dadosDepois?: Record<string, unknown> | null
+  ipAddress?: string | null
+  userAgent?: string | null
+  createdAt: string
+}
+
+export interface AuditLogsResult {
+  logs: AuditLog[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+export async function fetchAuditLogs(
+  page: number = 1,
+  pageSize: number = 50
+): Promise<AuditLogsResult> {
+  const res = await fetch(
+    `/api/ras/audit-logs?page=${page}&pageSize=${pageSize}`
+  )
+  return handle<AuditLogsResult>(res)
+}

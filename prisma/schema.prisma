@@ -31,6 +31,7 @@ model User {
   rasAgendamentos       RasAgendamento[]
   rasPagamentos         RasPagamento[]
   rasCenarios           RasCenarioSalvo[]
+  rasAuditLogs          RasAuditLog[]
   lancamentos           Lancamento[]
   investimentos         Investimento[]
   investimentoAtivos    InvestimentoAtivo[]
@@ -114,6 +115,30 @@ model RasAgenda {
   @@index([data])
   @@index([status])
   @@index([competencia])
+
+  auditLogs RasAuditLog[]
+}
+
+model RasAuditLog {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rasAgendaId   String
+  rasAgenda     RasAgenda @relation(fields: [rasAgendaId], references: [id], onDelete: Cascade)
+  acao          String    // criado | atualizado | deletado | marcar_realizado | confirmar | cancelado
+  descricao     String    // Descrição amigável da ação
+  motivoDelecao String?   // Se deletado, qual foi o motivo?
+  dadosAntes    Json?     // Snapshot dos dados antes da mudança
+  dadosDepois   Json?     // Snapshot dos dados depois da mudança
+  ipAddress     String?   // IP do usuário que fez a ação
+  userAgent     String?   // Browser/App info
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([rasAgendaId])
+  @@index([acao])
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model RasAgendamento {
