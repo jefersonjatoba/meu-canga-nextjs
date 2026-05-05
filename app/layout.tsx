@@ -43,6 +43,14 @@ export default function RootLayout({
         adds/removes the `dark` class on <html> client-side, causing a
         harmless mismatch that React would otherwise warn about.
       */}
+      <head>
+        {/* Inline script runs before first paint to apply saved theme and avoid FOUC */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('meu-canga-theme');var r=t==='system'||!t?window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light':t;if(r==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}document.documentElement.setAttribute('data-theme',r)}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className="bg-white text-gray-900 dark:bg-precision-black dark:text-gray-100 antialiased">
         <Providers>{children}</Providers>
       </body>

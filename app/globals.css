@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* ─── Dark mode: class-based (via .dark on <html>) ──────────────────────────── */
+/*
+  Tailwind v4 defaults to @media (prefers-color-scheme: dark).
+  Override to selector-based so our useTheme hook controls it via
+  class="dark" on <html>.
+*/
+@variant dark (&:where(.dark, .dark *));
+
 /* ─── Tailwind v4 theme — CSS custom properties ─────────────────────────────── */
 @theme {
   /* Core palette */

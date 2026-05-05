@@ -21,18 +21,30 @@ function applyTheme(resolved: 'light' | 'dark') {
   root.setAttribute('data-theme', resolved)
 }
 
+/**
+ * Read the stored theme synchronously (safe only client-side).
+ * Returns the stored value or 'dark' as fallback.
+ */
+function readStoredTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  return (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? 'dark'
+}
+
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>('dark')
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark')
+  // Lazy initializer reads localStorage on first render (client only).
+  // This eliminates a render cycle where theme/resolvedTheme were always
+  // 'dark' before the hydration useEffect ran, causing the toggle to appear
+  // to do nothing on the very first click after a fresh page load.
+  const [theme, setThemeState] = useState<Theme>(readStoredTheme)
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => {
+    const stored = readStoredTheme()
+    return stored === 'system' ? getSystemTheme() : stored
+  })
 
-  // Hydrate from localStorage on mount
+  // Apply correct class on first mount (covers SSR→client hand-off).
   useEffect(() => {
-    const stored = (localStorage.getItem(STORAGE_KEY) as Theme | null) ?? 'dark'
-    setThemeState(stored)
-
-    const resolved = stored === 'system' ? getSystemTheme() : stored
-    setResolvedTheme(resolved)
-    applyTheme(resolved)
+    applyTheme(resolvedTheme)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Watch system preference when theme === 'system'
@@ -60,6 +72,8 @@ export function useTheme() {
   }, [])
 
   const toggle = useCallback(() => {
+    // Read resolvedTheme directly from state closure — always up-to-date
+    // because toggle is re-created whenever resolvedTheme changes.
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
   }, [resolvedTheme, setTheme])
 
