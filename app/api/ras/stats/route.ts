@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         competencia,
         status: { notIn: ['cancelado'] },
+        deletadoEm: null,
       },
       select: {
         duracao: true,
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
         userId: user.id,
         status: 'confirmado',
         competencia: { in: prev3 },
+        deletadoEm: null,
       },
       _sum: { duracao: true, valorCentavos: true },
     })

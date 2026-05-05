@@ -174,6 +174,7 @@ export default function RasPage() {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onMarcarRealizado={handleMarcarRealizado}
+            isReadOnly={statusFilter === 'cancelado'}
           />
           {stats && <RasCharts stats={stats} />}
         </>

@@ -322,6 +322,7 @@ export async function softDeleteRas(
   const result = await prisma.rasAgenda.updateMany({
     where: { id, userId, ...ACTIVE_FILTER },
     data: {
+      status: 'cancelado', // Mark status as cancelled for filtering/history
       deletadoEm: new Date(),
       motivoDelecao: motivo ?? null,
     },

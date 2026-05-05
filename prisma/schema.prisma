@@ -113,7 +113,7 @@ model RasAgenda {
   pagamentos   RasPagamento[]
 
   // CRITICAL: Índices para 10k clientes / 1M registros
-  @@unique([userId, data, horaInicio], name: "unique_user_data_hora")
+  // Note: @@unique removed — see migrations for partial unique index (WHERE deletadoEm IS NULL)
   @@index([userId, deletadoEm], name: "idx_user_ativo") // WHERE deletadoEm IS NULL
   @@index([data, deletadoEm], name: "idx_data_ativo")
   @@index([status, deletadoEm], name: "idx_status_ativo")
@@ -122,6 +122,9 @@ model RasAgenda {
   @@index([createdAt], name: "idx_created_for_pagination")
 
   auditLogs RasAuditLog[]
+
+  // Partial unique index: only active (non-soft-deleted) records can be unique
+  // The index is defined in migrations due to Prisma limitations with partial indexes
 }
 
 model RasAuditLog {

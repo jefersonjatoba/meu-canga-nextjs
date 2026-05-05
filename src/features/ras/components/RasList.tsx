@@ -15,6 +15,17 @@ function dateToBR(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
+function formatDateTime(iso: string): string {
+  if (!iso) return '—'
+  const date = new Date(iso)
+  const d = String(date.getDate()).padStart(2, '0')
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const y = date.getFullYear()
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${d}/${m}/${y} ${h}:${min}`
+}
+
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: StatusRas }) {
@@ -58,6 +69,7 @@ interface RasListProps {
   onEdit: (ras: RasAgenda) => void
   onDelete: (id: string) => void
   onMarcarRealizado: (id: string) => void
+  isReadOnly?: boolean
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -68,6 +80,7 @@ export function RasList({
   onEdit,
   onDelete,
   onMarcarRealizado,
+  isReadOnly = false,
 }: RasListProps) {
   if (isLoading) {
     return (
@@ -106,8 +119,15 @@ export function RasList({
               <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Grad.</th>
               <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Local</th>
               <th className="text-right text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3 whitespace-nowrap">Valor</th>
-              <th className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Status</th>
-              <th className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Ações</th>
+              {isReadOnly && (
+                <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3 whitespace-nowrap">Cancelado em</th>
+              )}
+              {!isReadOnly && (
+                <>
+                  <th className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Status</th>
+                  <th className="text-center text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Ações</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -144,11 +164,18 @@ export function RasList({
                     <td className="px-4 py-3 text-right text-xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap tabular-nums">
                       {fmtBRL(ras.valorCentavos)}
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <StatusBadge status={ras.status as StatusRas} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1">
+                    {isReadOnly && (
+                      <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {ras.deletadoEm ? formatDateTime(ras.deletadoEm) : '—'}
+                      </td>
+                    )}
+                    {!isReadOnly && (
+                      <>
+                        <td className="px-4 py-3 text-center">
+                          <StatusBadge status={ras.status as StatusRas} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-1">
                         {canRealizar && (
                           <ActionIconButton
                             onClick={() => onMarcarRealizado(ras.id)}
@@ -177,7 +204,9 @@ export function RasList({
                           </ActionIconButton>
                         )}
                       </div>
-                    </td>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 )
               })}
@@ -204,47 +233,54 @@ export function RasList({
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {ras.horaInicio} · {ras.duracao}h
                     </span>
-                    <StatusBadge status={ras.status as StatusRas} />
+                    {!isReadOnly && <StatusBadge status={ras.status as StatusRas} />}
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {ras.local.includes(' - ') ? ras.local.split(' - ')[0] : ras.local}
                     {' · '}
                     {ras.graduacao}
                   </p>
+                  {isReadOnly && ras.deletadoEm && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Cancelado em: {formatDateTime(ras.deletadoEm)}
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
                     {fmtBRL(ras.valorCentavos)}
                   </span>
-                  <div className="flex gap-1">
-                    {canRealizar && (
-                      <ActionIconButton
-                        onClick={() => onMarcarRealizado(ras.id)}
-                        title="Marcar realizado"
-                        colorClass="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                      >
-                        <CheckCircle size={14} aria-hidden />
-                      </ActionIconButton>
-                    )}
-                    {canEdit && (
-                      <ActionIconButton
-                        onClick={() => onEdit(ras)}
-                        title="Editar"
-                        colorClass="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      >
-                        <Pencil size={14} aria-hidden />
-                      </ActionIconButton>
-                    )}
-                    {canDelete && (
-                      <ActionIconButton
-                        onClick={() => onDelete(ras.id)}
-                        title="Cancelar"
-                        colorClass="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <Trash2 size={14} aria-hidden />
-                      </ActionIconButton>
-                    )}
-                  </div>
+                  {!isReadOnly && (
+                    <div className="flex gap-1">
+                      {canRealizar && (
+                        <ActionIconButton
+                          onClick={() => onMarcarRealizado(ras.id)}
+                          title="Marcar realizado"
+                          colorClass="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                        >
+                          <CheckCircle size={14} aria-hidden />
+                        </ActionIconButton>
+                      )}
+                      {canEdit && (
+                        <ActionIconButton
+                          onClick={() => onEdit(ras)}
+                          title="Editar"
+                          colorClass="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        >
+                          <Pencil size={14} aria-hidden />
+                        </ActionIconButton>
+                      )}
+                      {canDelete && (
+                        <ActionIconButton
+                          onClick={() => onDelete(ras.id)}
+                          title="Cancelar"
+                          colorClass="text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 size={14} aria-hidden />
+                        </ActionIconButton>
+                      )}
+                    </div>
+                  )}
                 </div>
               </li>
             )

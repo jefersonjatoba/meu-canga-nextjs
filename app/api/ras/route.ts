@@ -66,10 +66,22 @@ export async function GET(request: NextRequest) {
     const { competencia, status, graduacao, local, page, pageSize } = parsed.data
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: Record<string, any> = { userId: user.id, deletadoEm: null }
+    const where: Record<string, any> = { userId: user.id }
+
+    // Filtro de soft-delete: para cancelados, mostrar registros deletados (tanto com status='cancelado' quanto com deletadoEm IS NOT NULL)
+    if (status && status !== 'all' && status === 'cancelado') {
+      // Mostrar registros com status='cancelado' OU deletadoEm IS NOT NULL (para compatibilidade com RAS cancelados antes da mudança)
+      where.OR = [
+        { status: 'cancelado' },
+        { deletadoEm: { not: null } },
+      ]
+    } else {
+      // Para outros status, mostrar apenas registros ativos (deletadoEm IS NULL)
+      where.deletadoEm = null
+    }
 
     if (competencia) where.competencia = competencia
-    if (status && status !== 'all') where.status = status
+    if (status && status !== 'all' && status !== 'cancelado') where.status = status
     if (graduacao && graduacao !== 'all') where.graduacao = graduacao
     if (local) where.local = { contains: local, mode: 'insensitive' }
 
