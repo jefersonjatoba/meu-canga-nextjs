@@ -6,6 +6,7 @@ import { FinancialHeroCard } from '@/features/dashboard/components/FinancialHero
 import { DashboardAlerts } from '@/features/dashboard/components/DashboardAlerts'
 import { CashflowSection } from '@/features/dashboard/components/CashflowSection'
 import { RasSummaryCard } from '@/features/dashboard/components/RasSummaryCard'
+import { UpcomingScheduleCard } from '@/features/dashboard/components/UpcomingScheduleCard'
 import { CreditCardOverview } from '@/features/dashboard/components/CreditCardOverview'
 import { RecentTransactions } from '@/features/dashboard/components/RecentTransactions'
 import { DashboardEmptyState } from '@/features/dashboard/components/DashboardEmptyState'
@@ -68,11 +69,16 @@ export default async function DashboardPage({ searchParams }: Props) {
           />
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-5">
+          <UpcomingScheduleCard escala={summary.proximaEscala || null} />
+
           <RasSummaryCard
             horasMes={summary.totalRasHoras || 0}
             valorMesCentavos={summary.totalRasCentavos}
             proximosRas={summary.proximosRas || []}
+            rasAReceberCentavos={summary.rasAReceberCentavos}
+            rasHorasPendentes={summary.rasHorasPendentes}
+            rasHorasConfirmadas={summary.rasHorasConfirmadas}
           />
         </div>
       </div>

@@ -34,12 +34,13 @@ export async function getDashboardSummaryForUser(
   const mes =
     params.mes && COMPETENCIA_REGEX.test(params.mes) ? params.mes : currentMonthBR()
 
-  const [summary, recentResult, cartao, rasData] = await Promise.all([
+  const [summary, recentResult, cartao, rasData, proximaEscala, rasAReceber] = await Promise.all([
     getLancamentosSummaryForUser(userId, mes),
     listLancamentosForUser(userId, { mes, pageSize: RECENT_PAGE_SIZE }),
     getCreditCardDashboardSummary(userId),
-    // Query RAS: horas do mês + próximos RAS agendados
     getRasDataForDashboard(userId, mes),
+    getProximaEscalaForUser(userId),
+    getRasAReceberForUser(userId, mes),
   ])
 
   const lancamentosRecentes: RecentTransactionItem[] = recentResult.items.map(l => ({
@@ -62,7 +63,6 @@ export async function getDashboardSummaryForUser(
     totalRasCentavos: summary.totalRas,
     totalAportesCentavos: summary.totalAportes,
     totalResgatesCentavos: summary.totalResgates,
-    // Phase 3: monthly contribution only — full historical patrimônio in Phase 4
     patrimonioInvestidoCentavos: summary.totalAportes - summary.totalResgates,
     taxaPoupancaPercentual: summary.savingsRate,
     lancamentosRecentes,
@@ -70,6 +70,10 @@ export async function getDashboardSummaryForUser(
     cartao,
     totalRasHoras: rasData.horasMes,
     proximosRas: rasData.proximosRas,
+    rasAReceberCentavos: rasAReceber.valor,
+    rasHorasPendentes: rasAReceber.horas,
+    rasHorasConfirmadas: rasAReceber.horasConfirmadas,
+    proximaEscala,
   }
 }
 
@@ -123,4 +127,78 @@ async function getRasDataForDashboard(
   })
 
   return { horasMes, proximosRas }
+}
+
+// Helper para buscar próxima escala agendada
+async function getProximaEscalaForUser(userId: string): Promise<{
+  data: string
+  horaInicio: string
+  horaFim: string
+  tipoTurno: string
+  localServico: string | null
+  diasAte: number
+} | null> {
+  const proximaEscala = await prisma.escala.findFirst({
+    where: {
+      userId,
+      status: 'agendada',
+      dataEscala: { gte: new Date() },
+    },
+    orderBy: { dataEscala: 'asc' },
+    select: {
+      dataEscala: true,
+      horaInicio: true,
+      horaFim: true,
+      tipoTurno: true,
+      localServico: true,
+    },
+  })
+
+  if (!proximaEscala) return null
+
+  const dataEscalaDate = new Date(proximaEscala.dataEscala)
+  const dataISO = dataEscalaDate.toISOString().split('T')[0]
+
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const diasAte = Math.ceil((dataEscalaDate.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+
+  return {
+    data: dataISO,
+    horaInicio: proximaEscala.horaInicio,
+    horaFim: proximaEscala.horaFim,
+    tipoTurno: proximaEscala.tipoTurno,
+    localServico: proximaEscala.localServico,
+    diasAte,
+  }
+}
+
+// Helper para calcular RAS a receber (pendente + realizado não confirmado)
+async function getRasAReceberForUser(userId: string, competencia: string): Promise<{
+  valor: number
+  horas: number
+  horasConfirmadas: number
+}> {
+  const rasResult = await prisma.rasAgenda.findMany({
+    where: {
+      userId,
+      competencia,
+      deletadoEm: null,
+      status: { notIn: ['cancelado', 'agendado'] },
+    },
+    select: {
+      status: true,
+      duracao: true,
+      valorCentavos: true,
+    },
+  })
+
+  const rasAReceber = rasResult.filter(r => r.status === 'pendente' || r.status === 'realizado')
+  const rasConfirmado = rasResult.filter(r => r.status === 'confirmado')
+
+  const valor = rasAReceber.reduce((sum, r) => sum + r.valorCentavos, 0)
+  const horas = rasAReceber.reduce((sum, r) => sum + r.duracao, 0)
+  const horasConfirmadas = rasConfirmado.reduce((sum, r) => sum + r.duracao, 0)
+
+  return { valor, horas, horasConfirmadas }
 }
