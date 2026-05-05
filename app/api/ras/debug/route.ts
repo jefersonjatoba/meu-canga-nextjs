@@ -11,8 +11,9 @@ export async function GET(request: NextRequest) {
     const data = qs.data || '2026-05-05'
     const hora = qs.hora || '06:00'
 
-    const dayStart = new Date(Date.UTC(...data.split('-').map(Number).slice(0, 3)))
-    const dayEnd = new Date(Date.UTC(...data.split('-').map(Number).slice(0, 3)))
+    const [y, m, d] = data.split('-').map(Number)
+    const dayStart = new Date(Date.UTC(y, m - 1, d))
+    const dayEnd = new Date(Date.UTC(y, m - 1, d))
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1)
 
     // Check for duplicates (same query as existsDuplicateRas)
