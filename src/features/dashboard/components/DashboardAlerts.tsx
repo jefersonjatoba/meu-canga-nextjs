@@ -38,7 +38,7 @@ function getAlerts(summary: DashboardSummaryDTO): Alert[] {
           id: 'fatura-proxima',
           type: 'fatura',
           severity,
-          title: `Fatura ${summary.cartao.contaNome} vence ${diaLabel}`,
+          title: `Fatura ${faturaMaisUrgente.contaNome} vence ${diaLabel}`,
           description: `${formatBRL(faturaMaisUrgente.totalCentavos)} para pagar`,
           action: { label: 'Ver fatura', href: '/dashboard/cartoes' },
           icon: <Calendar size={16} />,

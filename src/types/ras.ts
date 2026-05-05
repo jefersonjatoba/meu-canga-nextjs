@@ -149,6 +149,7 @@ export interface RasAgenda {
   expiresAt?: string | null  // ISO datetime — 72h window for realizado→pendente
   createdAt: string
   updatedAt: string
+  deletadoEm?: string | null // ISO datetime — soft delete timestamp
   agendamentos?: RasAgendamento[]
   pagamentos?: RasPagamento[]
 }

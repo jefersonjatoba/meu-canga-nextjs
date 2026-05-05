@@ -68,7 +68,7 @@ export function CashflowSection({
                 borderRadius: '8px',
                 color: 'var(--color-dark-text)',
               }}
-              formatter={(value: number) => formatBRL(value * 100)}
+              formatter={(value: any) => formatBRL((value ?? 0) * 100)}
               labelStyle={{ color: 'var(--color-dark-text)' }}
             />
             <Bar dataKey="valor" radius={[8, 8, 0, 0]}>

@@ -111,13 +111,16 @@ async function getRasDataForDashboard(
 
   const horasMes = horasResult._sum.duracao ?? 0
 
-  const proximosRas: RasItem[] = proximosResult.map(r => ({
-    data: r.data instanceof Date ? r.data.toISOString().split('T')[0] : r.data.toString().split('T')[0],
-    horaInicio: r.horaInicio,
-    local: r.local,
-    duracao: r.duracao,
-    status: r.status,
-  }))
+  const proximosRas: RasItem[] = proximosResult.map(r => {
+    const dataISO = (r.data as Date).toISOString().split('T')[0]
+    return {
+      data: dataISO,
+      horaInicio: r.horaInicio,
+      local: r.local,
+      duracao: r.duracao,
+      status: r.status,
+    }
+  })
 
   return { horasMes, proximosRas }
 }
