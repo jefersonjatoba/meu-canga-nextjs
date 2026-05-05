@@ -5,6 +5,7 @@
 //   3. Never log sensitive data (senhas, tokens, dados de cartão).
 //   4. Audit events should be created AFTER successful DB changes.
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { RasAuditLog } from '@prisma/client'
 
@@ -34,8 +35,8 @@ export async function createAuditLog(
       acao: input.acao,
       descricao: input.descricao,
       motivoDelecao: input.motivoDelecao ?? null,
-      dadosAntes: input.dadosAntes ?? null,
-      dadosDepois: input.dadosDepois ?? null,
+      dadosAntes: input.dadosAntes !== undefined ? (input.dadosAntes as Prisma.InputJsonValue) : undefined,
+      dadosDepois: input.dadosDepois !== undefined ? (input.dadosDepois as Prisma.InputJsonValue) : undefined,
       ipAddress: input.ipAddress ?? null,
       userAgent: input.userAgent ?? null,
     },
