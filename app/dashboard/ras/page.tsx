@@ -13,7 +13,7 @@ import {
 import {
   fetchRas,
   fetchRasStats,
-  deleteRas,
+  cancelarRas,
   marcarRealizado,
 } from '@/features/ras/api'
 import type { RasAgenda, RasMonthStats } from '@/types/ras'
@@ -88,7 +88,7 @@ export default function RasPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Cancelar este RAS?')) return
     try {
-      await deleteRas(id)
+      await cancelarRas(id)
       await loadData()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erro ao cancelar RAS')

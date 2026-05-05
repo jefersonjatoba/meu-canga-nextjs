@@ -90,6 +90,10 @@ export async function confirmarRas(id: string, observacoes?: string): Promise<Ra
   return updateRas(id, { status: 'confirmado', ...(observacoes ? { observacoes } : {}) })
 }
 
+export async function cancelarRas(id: string): Promise<RasAgenda> {
+  return updateRas(id, { status: 'cancelado' })
+}
+
 // ─── Audit Logs ───────────────────────────────────────────────────────────────
 
 export interface AuditLog {
