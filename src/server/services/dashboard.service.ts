@@ -195,36 +195,36 @@ async function getProximaEscalaForUser(userId: string): Promise<{
   }
 }
 
-// Helper para calcular RAS a receber (RAS do mês anterior ainda pendente/realizado)
-// O policial trabalha RAS em um mês e recebe no mês seguinte, ex: RAS de abril aparece em maio
+// Helper para calcular RAS a receber (RAS confirmados ~30 dias atrás que entram na conta agora)
+// O policial trabalha RAS, confirma e ~30 dias depois recebe o pagamento
+// Ex: RAS confirmado em 05/04 → recebido ~05/05
 async function getRasAReceberForUser(userId: string, competencia: string): Promise<{
   valor: number
   horas: number
   horasConfirmadas: number
 }> {
-  // RAS é feito no mês anterior mas aparece a receber no mês atual
-  const mesAnterior = getPreviousMonth(competencia)
+  // RAS confirmados de ~30 dias atrás (que serão pagos neste mês)
+  const dataLimite = new Date()
+  dataLimite.setDate(dataLimite.getDate() - 30)
+  const dataLimiteStr = dataLimite.toISOString().split('T')[0]
 
   const rasResult = await prisma.rasAgenda.findMany({
     where: {
       userId,
-      competencia: mesAnterior,
       deletadoEm: null,
-      status: { notIn: ['cancelado', 'agendado'] },
+      status: 'confirmado', // Apenas RAS confirmados (que serão pagos em breve)
+      data: {
+        lte: new Date(`${dataLimiteStr}T23:59:59Z`),
+      },
     },
     select: {
-      status: true,
       duracao: true,
       valorCentavos: true,
     },
   })
 
-  const rasAReceber = rasResult.filter(r => r.status === 'pendente' || r.status === 'realizado')
-  const rasConfirmado = rasResult.filter(r => r.status === 'confirmado')
+  const valor = rasResult.reduce((sum, r) => sum + r.valorCentavos, 0)
+  const horas = rasResult.reduce((sum, r) => sum + r.duracao, 0)
 
-  const valor = rasAReceber.reduce((sum, r) => sum + r.valorCentavos, 0)
-  const horas = rasAReceber.reduce((sum, r) => sum + r.duracao, 0)
-  const horasConfirmadas = rasConfirmado.reduce((sum, r) => sum + r.duracao, 0)
-
-  return { valor, horas, horasConfirmadas }
+  return { valor, horas, horasConfirmadas: horas }
 }
