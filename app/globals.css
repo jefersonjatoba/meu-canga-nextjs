@@ -51,6 +51,7 @@
   @apply bg-[#0A0A0A];
 }
 
+/* ─── Grayscale backgrounds ───────────────────────────────────────────────────── */
 .dark .bg-white {
   @apply bg-[#1E1E1E];
 }
@@ -63,6 +64,15 @@
   @apply bg-gray-800;
 }
 
+.dark .bg-gray-200 {
+  @apply bg-gray-700;
+}
+
+.dark .bg-gray-300 {
+  @apply bg-gray-600;
+}
+
+/* ─── Grayscale text ──────────────────────────────────────────────────────────── */
 .dark .text-gray-900 {
   @apply text-gray-100;
 }
@@ -75,12 +85,141 @@
   @apply text-gray-300;
 }
 
+.dark .text-gray-600 {
+  @apply text-gray-400;
+}
+
+/* ─── Grayscale borders ───────────────────────────────────────────────────────── */
+.dark .border-gray-100 {
+  @apply border-gray-800;
+}
+
 .dark .border-gray-200 {
   @apply border-gray-700;
 }
 
-.dark .border-gray-100 {
-  @apply border-gray-800;
+.dark .border-gray-300 {
+  @apply border-gray-600;
+}
+
+/* ─── Color backgrounds (light tints) ─────────────────────────────────────────── */
+.dark .bg-blue-50 {
+  @apply bg-blue-950/30;
+}
+
+.dark .bg-blue-100 {
+  @apply bg-blue-900/40;
+}
+
+.dark .bg-green-50 {
+  @apply bg-green-950/30;
+}
+
+.dark .bg-green-100 {
+  @apply bg-green-900/40;
+}
+
+.dark .bg-red-50 {
+  @apply bg-red-950/30;
+}
+
+.dark .bg-red-100 {
+  @apply bg-red-900/40;
+}
+
+.dark .bg-amber-50 {
+  @apply bg-amber-950/30;
+}
+
+.dark .bg-amber-100 {
+  @apply bg-amber-900/40;
+}
+
+.dark .bg-emerald-50 {
+  @apply bg-emerald-950/30;
+}
+
+.dark .bg-emerald-100 {
+  @apply bg-emerald-900/40;
+}
+
+.dark .bg-purple-50 {
+  @apply bg-purple-950/30;
+}
+
+.dark .bg-purple-100 {
+  @apply bg-purple-900/40;
+}
+
+/* ─── Color text ──────────────────────────────────────────────────────────────── */
+.dark .text-blue-700 {
+  @apply text-blue-400;
+}
+
+.dark .text-blue-600 {
+  @apply text-blue-400;
+}
+
+.dark .text-green-700 {
+  @apply text-green-400;
+}
+
+.dark .text-red-700 {
+  @apply text-red-400;
+}
+
+.dark .text-amber-700 {
+  @apply text-amber-400;
+}
+
+.dark .text-emerald-700 {
+  @apply text-emerald-400;
+}
+
+.dark .text-purple-700 {
+  @apply text-purple-400;
+}
+
+/* ─── Color borders ───────────────────────────────────────────────────────────── */
+.dark .border-blue-200 {
+  @apply border-blue-800/40;
+}
+
+.dark .border-green-200 {
+  @apply border-green-800/40;
+}
+
+.dark .border-red-200 {
+  @apply border-red-800/40;
+}
+
+.dark .border-amber-200 {
+  @apply border-amber-800/40;
+}
+
+.dark .border-emerald-200 {
+  @apply border-emerald-800/40;
+}
+
+/* ─── Input fields ────────────────────────────────────────────────────────────── */
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="email"],
+.dark input[type="text"],
+.dark input[type="number"],
+.dark textarea,
+.dark select {
+  @apply bg-gray-900 text-white border-gray-600;
+}
+
+.dark input[type="date"]:focus,
+.dark input[type="time"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="text"]:focus,
+.dark input[type="number"]:focus,
+.dark textarea:focus,
+.dark select:focus {
+  @apply border-blue-600;
 }
 
 /* ─── Tailwind v4 theme — CSS custom properties ─────────────────────────────── */

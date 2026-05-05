@@ -35,15 +35,12 @@ export function RasPriceDisplay({
     <div
       className={cn(
         'rounded-xl p-3 flex items-center justify-between',
+        'bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/40',
         className
       )}
-      style={{
-        background: 'rgba(37,99,235,0.1)',
-        border: '1px solid rgba(37,99,235,0.25)',
-      }}
     >
-      <span className="text-sm text-gray-300">{label ?? 'Valor do RAS'}</span>
-      <span className={cn('font-bold text-blue-400', textSizes[size])}>
+      <span className="text-sm text-gray-700 dark:text-gray-300">{label ?? 'Valor do RAS'}</span>
+      <span className={cn('font-bold text-blue-600 dark:text-blue-400', textSizes[size])}>
         {formattedValue}
       </span>
     </div>
@@ -67,13 +64,12 @@ export function RasPriceTable({
 
   return (
     <div
-      className={cn('rounded-xl overflow-hidden', className)}
-      style={{ border: '1px solid rgba(255,255,255,0.07)' }}
+      className={cn('rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700/60', className)}
     >
       <table className="w-full text-sm">
         <thead>
-          <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-            <th className="text-left text-gray-400 font-medium px-4 py-3 text-xs">
+          <tr className="bg-gray-50 dark:bg-gray-800/50">
+            <th className="text-left text-gray-700 dark:text-gray-300 font-medium px-4 py-3 text-xs">
               Graduacao / Duração
             </th>
             {RAS_DURACAO_TYPES.map((d) => (
@@ -81,7 +77,7 @@ export function RasPriceTable({
                 key={d}
                 className={cn(
                   'text-right font-medium px-4 py-3 text-xs',
-                  highlightDuracao === d ? 'text-blue-400' : 'text-gray-400'
+                  highlightDuracao === d ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
                 )}
               >
                 {d}h
@@ -93,19 +89,18 @@ export function RasPriceTable({
           {graduacoes.map((grad, idx) => (
             <tr
               key={grad}
-              style={{
-                background:
-                  highlightGraduacao === grad
-                    ? 'rgba(37,99,235,0.08)'
-                    : idx % 2 === 0
-                    ? 'rgba(255,255,255,0.02)'
-                    : 'transparent',
-              }}
+              className={cn(
+                highlightGraduacao === grad
+                  ? 'bg-blue-50 dark:bg-blue-900/20'
+                  : idx % 2 === 0
+                  ? 'bg-gray-50 dark:bg-gray-800/30'
+                  : 'bg-white dark:bg-gray-900/50'
+              )}
             >
               <td
                 className={cn(
                   'px-4 py-3 font-medium text-xs whitespace-nowrap',
-                  highlightGraduacao === grad ? 'text-blue-300' : 'text-gray-300'
+                  highlightGraduacao === grad ? 'text-blue-600 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
                 )}
               >
                 {grad}
@@ -118,13 +113,10 @@ export function RasPriceTable({
                     key={d}
                     className={cn(
                       'px-4 py-3 text-right text-xs font-semibold',
-                      isHighlighted ? 'text-emerald-400' : 'text-gray-400'
-                    )}
-                    style={
                       isHighlighted
-                        ? { background: 'rgba(16,185,129,0.15)' }
-                        : {}
-                    }
+                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                        : 'text-gray-600 dark:text-gray-400'
+                    )}
                   >
                     {fmtBRL(getRasPrice(grad, d))}
                   </td>

@@ -59,17 +59,16 @@ export function RasCalendar({
   return (
     <div
       className={cn(
-        'rounded-xl p-4',
+        'rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60',
         className
       )}
-      style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
     >
       {/* Week headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {WEEK_DAYS.map((w) => (
           <div
             key={w}
-            className="text-center text-[10px] text-gray-500 font-medium py-1"
+            className="text-center text-[10px] text-gray-500 dark:text-gray-400 font-medium py-1"
           >
             {w}
           </div>
@@ -110,24 +109,20 @@ export function RasCalendar({
               }}
               className={cn(
                 'relative rounded-lg p-1 flex flex-col items-center transition-colors',
-                isClickable && 'cursor-pointer hover:bg-white/5'
+                'border',
+                isToday ? 'border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-950/30'
+                       : dayRas.length ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40'
+                       : 'border-transparent',
+                isClickable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'
               )}
               style={{
                 minHeight: dayRas.length ? 52 : 36,
-                background: isToday
-                  ? 'rgba(37,99,235,0.2)'
-                  : dayRas.length
-                  ? 'rgba(255,255,255,0.03)'
-                  : 'transparent',
-                border: isToday
-                  ? '1px solid rgba(37,99,235,0.5)'
-                  : '1px solid transparent',
               }}
             >
               <span
                 className={cn(
                   'text-[11px] font-medium leading-tight',
-                  isToday ? 'text-blue-400' : 'text-gray-300'
+                  isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'
                 )}
               >
                 {day}
@@ -140,13 +135,12 @@ export function RasCalendar({
                   return (
                     <span
                       key={i}
-                      className="text-[8px] font-bold px-0.5 rounded w-full text-center truncate leading-tight"
-                      style={{
-                        background: isVol
-                          ? 'rgba(96,165,250,0.2)'
-                          : 'rgba(245,158,11,0.2)',
-                        color: isVol ? '#93c5fd' : '#fcd34d',
-                      }}
+                      className={cn(
+                        'text-[8px] font-bold px-0.5 rounded w-full text-center truncate leading-tight',
+                        isVol
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                      )}
                       title={`${isVol ? 'Voluntário' : 'Compulsório'} ${r.duracao}h — ${r.status}`}
                     >
                       {isVol ? 'V' : 'C'} {r.duracao}h
@@ -161,25 +155,22 @@ export function RasCalendar({
 
       {/* Legend */}
       <div
-        className="flex flex-wrap gap-4 mt-3 pt-3"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
+        className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700/60"
       >
         <div className="flex items-center gap-1.5">
           <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ background: '#60a5fa' }}
+            className="w-2.5 h-2.5 rounded-full bg-blue-500"
           />
-          <span className="text-[10px] text-gray-400">V = Voluntário</span>
+          <span className="text-[10px] text-gray-600 dark:text-gray-400">V = Voluntário</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ background: '#f59e0b' }}
+            className="w-2.5 h-2.5 rounded-full bg-amber-500"
           />
-          <span className="text-[10px] text-gray-400">C = Compulsório</span>
+          <span className="text-[10px] text-gray-600 dark:text-gray-400">C = Compulsório</span>
         </div>
         {onDayClick && (
-          <span className="text-[10px] text-gray-500 ml-auto">
+          <span className="text-[10px] text-gray-500 dark:text-gray-500 ml-auto">
             Clique em um dia para agendar
           </span>
         )}

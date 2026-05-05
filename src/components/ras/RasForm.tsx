@@ -142,7 +142,7 @@ export function RasForm({
     <form onSubmit={handleSubmit} className={cn('space-y-4', className)}>
       {/* Data */}
       <div>
-        <label className="flex items-center gap-1.5 text-sm text-gray-400 mb-1">
+        <label className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 mb-1">
           <Calendar size={14} />
           Data
         </label>
@@ -151,26 +151,20 @@ export function RasForm({
           value={values.data}
           onChange={(e) => set('data', e.target.value)}
           required
-          className="w-full rounded-lg px-3 py-2 text-white text-sm"
-          style={{
-            background: '#0f0f1a',
-            border: '1px solid rgba(255,255,255,0.15)',
-            colorScheme: 'dark',
-          }}
+          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
         />
       </div>
 
       {/* Hora Início */}
       <div>
-        <label className="flex items-center gap-1.5 text-sm text-gray-400 mb-1">
+        <label className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 mb-1">
           <Clock size={14} />
           Hora de Início
         </label>
         <select
           value={values.horaInicio}
           onChange={(e) => set('horaInicio', e.target.value)}
-          className="w-full rounded-lg px-3 py-2 text-white text-sm"
-          style={{ background: '#0f0f1a', border: '1px solid rgba(255,255,255,0.15)' }}
+          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
         >
           {horaOptions.map(({ value, label }) => (
             <option key={value} value={value}>
@@ -182,26 +176,19 @@ export function RasForm({
 
       {/* Duração */}
       <div>
-        <label className="text-sm text-gray-400 mb-2 block">Duração</label>
+        <label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Duração</label>
         <div className="grid grid-cols-4 gap-2">
           {RAS_DURACAO_TYPES.map((d) => (
             <button
               key={d}
               type="button"
               onClick={() => set('duracao', d)}
-              className="rounded-lg py-2 text-sm font-semibold transition-all"
-              style={
+              className={cn(
+                'rounded-lg py-2 text-sm font-semibold transition-all',
                 values.duracao === d
-                  ? {
-                      background: 'linear-gradient(135deg,#2563EB,#7C3AED)',
-                      color: '#fff',
-                    }
-                  : {
-                      background: '#0f0f1a',
-                      color: '#9ca3af',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                    }
-              }
+                  ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+              )}
             >
               <div>{d}h</div>
               <div style={{ fontSize: 10, opacity: 0.8 }}>
@@ -210,7 +197,7 @@ export function RasForm({
             </button>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
           <Clock size={11} className="inline mr-1" />
           Término: {horaFim}
         </p>
@@ -218,26 +205,19 @@ export function RasForm({
 
       {/* Graduação */}
       <div>
-        <label className="text-sm text-gray-400 mb-2 block">Graduação</label>
+        <label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block">Graduação</label>
         <div className="grid grid-cols-2 gap-2">
           {(['SD/CB', 'SGT/SUBTEN'] as GraduacaoRas[]).map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => set('graduacao', g)}
-              className="rounded-lg py-2 text-sm font-medium"
-              style={
+              className={cn(
+                'rounded-lg py-2 text-sm font-medium transition-all',
                 values.graduacao === g
-                  ? {
-                      background: 'linear-gradient(135deg,#2563EB,#7C3AED)',
-                      color: '#fff',
-                    }
-                  : {
-                      background: '#0f0f1a',
-                      color: '#9ca3af',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                    }
-              }
+                  ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+              )}
             >
               {RAS_GRADUACAO_LABELS[g]}
             </button>
@@ -248,26 +228,19 @@ export function RasForm({
       {/* Tipo + Vaga */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">Tipo</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400 mb-1 block">Tipo</label>
           <div className="grid grid-cols-2 gap-1">
             {(['voluntario', 'compulsorio'] as TipoRas[]).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => set('tipo', t)}
-                className="rounded-lg py-1.5 text-xs font-medium"
-                style={
+                className={cn(
+                  'rounded-lg py-1.5 text-xs font-medium transition-all',
                   values.tipo === t
-                    ? {
-                        background: 'linear-gradient(135deg,#2563EB,#7C3AED)',
-                        color: '#fff',
-                      }
-                    : {
-                        background: '#0f0f1a',
-                        color: '#9ca3af',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }
-                }
+                    ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                )}
               >
                 {t === 'voluntario' ? '✅ Vol' : '⚡ Comp'}
               </button>
@@ -275,26 +248,19 @@ export function RasForm({
           </div>
         </div>
         <div>
-          <label className="text-sm text-gray-400 mb-1 block">Vaga</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400 mb-1 block">Vaga</label>
           <div className="grid grid-cols-2 gap-1">
             {(['titular', 'reserva'] as TipoVagaRas[]).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => set('tipoVaga', v)}
-                className="rounded-lg py-1.5 text-xs font-medium"
-                style={
+                className={cn(
+                  'rounded-lg py-1.5 text-xs font-medium transition-all',
                   values.tipoVaga === v
-                    ? {
-                        background: 'linear-gradient(135deg,#2563EB,#7C3AED)',
-                        color: '#fff',
-                      }
-                    : {
-                        background: '#0f0f1a',
-                        color: '#9ca3af',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                      }
-                }
+                    ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                )}
               >
                 {v === 'titular' ? '★ Tit' : '🎭 Res'}
               </button>
@@ -318,19 +284,15 @@ export function RasForm({
 
       {/* Observações */}
       <div>
-        <label className="text-sm text-gray-400 mb-1 block">
-          Observações <span className="text-gray-600">(opcional)</span>
+        <label className="text-sm text-gray-600 dark:text-gray-400 mb-1 block">
+          Observações <span className="text-gray-500 dark:text-gray-500">(opcional)</span>
         </label>
         <textarea
           value={values.observacoes}
           onChange={(e) => set('observacoes', e.target.value)}
           rows={2}
           maxLength={500}
-          className="w-full rounded-lg px-3 py-2 text-white resize-none text-sm"
-          style={{
-            background: '#0f0f1a',
-            border: '1px solid rgba(255,255,255,0.15)',
-          }}
+          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white resize-none text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
         />
       </div>
 
@@ -343,7 +305,7 @@ export function RasForm({
 
       {/* Error */}
       {displayError && (
-        <div className="flex items-start gap-2 text-red-400 text-sm">
+        <div className="flex items-start gap-2 text-red-600 dark:text-red-400 text-sm">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>{displayError}</span>
         </div>
@@ -355,8 +317,7 @@ export function RasForm({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-gray-400 font-medium text-sm"
-            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            className="flex-1 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 font-medium text-sm border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             Cancelar
           </button>
@@ -364,8 +325,7 @@ export function RasForm({
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 py-2.5 rounded-xl text-white font-semibold text-sm disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg,#2563EB,#7C3AED)' }}
+          className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white font-semibold text-sm disabled:opacity-60 hover:shadow-lg transition-all"
         >
           {isLoading
             ? 'Salvando...'

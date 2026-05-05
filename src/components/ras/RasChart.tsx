@@ -23,12 +23,14 @@ import { fmtBRL } from '@/types/ras'
 
 const tooltipStyle = {
   contentStyle: {
-    background: '#1a1a2e',
+    background: '#1E1E1E',
     border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 8,
     fontSize: 12,
+    color: '#F3F4F6',
   },
-  labelStyle: { color: '#fff' },
+  labelStyle: { color: '#F3F4F6' },
+  wrapperStyle: { outline: 'none' },
 }
 
 // ─── Monthly Hours Bar Chart ──────────────────────────────────────────────────
@@ -55,34 +57,32 @@ export function RasHorasChart({
   if (isLoading) {
     return (
       <div
-        className={cn('rounded-xl p-4', className)}
-        style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+        className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
       >
-        <div className="h-4 w-32 bg-white/10 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-white/05 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
+        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4', className)}
-      style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
     >
-      <h3 className="text-sm font-semibold text-gray-300 mb-4">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
         ⏰ {title}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(229, 231, 235, 0.2)" />
           <XAxis
             dataKey="mes"
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `${v}h`}
@@ -116,34 +116,32 @@ export function RasValorChart({
   if (isLoading) {
     return (
       <div
-        className={cn('rounded-xl p-4', className)}
-        style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+        className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
       >
-        <div className="h-4 w-32 bg-white/10 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-white/05 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
+        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4', className)}
-      style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
     >
-      <h3 className="text-sm font-semibold text-gray-300 mb-4">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
         💰 {title}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(229, 231, 235, 0.2)" />
           <XAxis
             dataKey="mes"
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `R$${v}`}
@@ -188,34 +186,32 @@ export function RasProjecaoChart({
   if (isLoading) {
     return (
       <div
-        className={cn('rounded-xl p-4', className)}
-        style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+        className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
       >
-        <div className="h-4 w-40 bg-white/10 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-white/05 rounded animate-pulse" />
+        <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
+        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4', className)}
-      style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
     >
-      <h3 className="text-sm font-semibold text-gray-300 mb-4">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
         📈 {title}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(229, 231, 235, 0.2)" />
           <XAxis
             dataKey="mes"
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#6b7280', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `R$${v}`}
@@ -228,7 +224,7 @@ export function RasProjecaoChart({
             ]}
           />
           <Legend
-            wrapperStyle={{ color: '#9ca3af', fontSize: 11 }}
+            wrapperStyle={{ color: '#6b7280', fontSize: 11 }}
             formatter={(value) =>
               value === 'realizado' ? '✅ Realizado' : '📊 Projetado'
             }
@@ -285,24 +281,21 @@ export function RasTipoPieChart({
   if (data.length === 0) {
     return (
       <div
-        className={cn('rounded-xl p-4 flex items-center justify-center', className)}
+        className={cn('rounded-xl p-4 flex items-center justify-center bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
         style={{
-          background: '#12122a',
-          border: '1px solid rgba(255,255,255,0.07)',
           minHeight: 160,
         }}
       >
-        <p className="text-xs text-gray-500">Sem dados para este período</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Sem dados para este período</p>
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4', className)}
-      style={{ background: '#12122a', border: '1px solid rgba(255,255,255,0.07)' }}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
     >
-      <h3 className="text-sm font-semibold text-gray-300 mb-3">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
         📍 {title}
       </h3>
       <ResponsiveContainer width="100%" height={160}>
@@ -329,7 +322,7 @@ export function RasTipoPieChart({
             formatter={(v, name) => [v, name]}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: '#9ca3af' }}
+            wrapperStyle={{ fontSize: 11, color: '#6b7280' }}
           />
         </PieChart>
       </ResponsiveContainer>
