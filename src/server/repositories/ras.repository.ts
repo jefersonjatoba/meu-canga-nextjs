@@ -250,8 +250,8 @@ export async function existsDuplicateRas(
       userId,
       data: day,
       horaInicio,
-      status: { not: 'cancelado' },
-      ...ACTIVE_FILTER,
+      status: { notIn: ['cancelado'] },
+      deletadoEm: null,
     },
   })
   return count > 0
