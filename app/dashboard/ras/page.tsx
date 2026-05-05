@@ -89,8 +89,12 @@ export default function RasPage() {
     if (!confirm('Cancelar este RAS?')) return
     try {
       await cancelarRas(id)
+      // Force immediate refetch without cache
+      setLoading(true)
+      await new Promise(r => setTimeout(r, 300)) // Brief delay for DB consistency
       await loadData()
     } catch (err) {
+      setLoading(false)
       alert(err instanceof Error ? err.message : 'Erro ao cancelar RAS')
     }
   }
@@ -98,8 +102,12 @@ export default function RasPage() {
   const handleMarcarRealizado = async (id: string) => {
     try {
       await marcarRealizado(id)
+      // Force immediate refetch without cache
+      setLoading(true)
+      await new Promise(r => setTimeout(r, 300)) // Brief delay for DB consistency
       await loadData()
     } catch (err) {
+      setLoading(false)
       alert(err instanceof Error ? err.message : 'Erro ao marcar como realizado')
     }
   }
