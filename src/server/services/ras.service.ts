@@ -345,8 +345,8 @@ export async function deletarRas(
 }
 
 /**
- * Cancels any non-terminal RAS (any → cancelado).
- * Different from delete: cancelado is a status, deleted is soft-deleted.
+ * Cancels any non-terminal RAS by soft-deleting it.
+ * This prevents cancelled RAS from blocking new schedules.
  */
 export async function cancelarRas(
   id: string,
@@ -359,25 +359,26 @@ export async function cancelarRas(
 
   assertTransition(existing.status, 'cancelado')
 
-  const ras = await rasRepo.updateRasStatus(id, userId, 'cancelado')
+  // Soft delete instead of status change: prevents blocking new schedules
+  await rasRepo.softDeleteRas(id, userId, 'Cancelado pelo usuário')
 
-  // Log: Cancelado (status change, not a delete)
+  // Log: Cancelado (soft delete)
   await logRasEvent(
     userId,
     id,
     'cancelado',
-    `RAS cancelado. Status anterior: ${existing.status}`,
+    `RAS cancelado e removido. Status anterior: ${existing.status}`,
     {
       dadosAntes: {
         status: existing.status,
         data: existing.data,
         horaInicio: existing.horaInicio,
       },
-      dadosDepois: { status: 'cancelado' },
+      dadosDepois: { deletadoEm: new Date().toISOString() },
     }
   )
 
-  return ras
+  return existing
 }
 
 // ─── Monthly stats ────────────────────────────────────────────────────────────
