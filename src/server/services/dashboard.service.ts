@@ -4,7 +4,7 @@
 //   2. No formatting (BRL, dates) — return centavos and raw values.
 //   3. No Prisma access directly — go through lancamento.service.
 
-import { currentMonthBR } from '@/lib/dates'
+import { currentMonthBR, getDataHojeSP, toISODateBR } from '@/lib/dates'
 import {
   getLancamentosSummaryForUser,
   listLancamentosForUser,
@@ -13,6 +13,15 @@ import { getCreditCardDashboardSummary } from '@/server/services/cartao.service'
 import { prisma } from '@/lib/prisma'
 import type { DashboardSummaryDTO, RecentTransactionItem, RasItem } from '@/features/dashboard/types'
 import type { TipoLancamento } from '@/features/lancamentos/types'
+
+// Helper: subtract one month from YYYY-MM format
+function getPreviousMonth(competencia: string): string {
+  const [year, month] = competencia.split('-').map(Number)
+  if (month === 1) {
+    return `${year - 1}-12`
+  }
+  return `${year}-${String(month - 1).padStart(2, '0')}`
+}
 
 const COMPETENCIA_REGEX = /^\d{4}-\d{2}$/
 const RECENT_PAGE_SIZE = 5
@@ -138,11 +147,15 @@ async function getProximaEscalaForUser(userId: string): Promise<{
   localServico: string | null
   diasAte: number
 } | null> {
+  const hoje = getDataHojeSP()
+  const hojeDate = new Date(`${hoje}T00:00:00Z`)
+
   const proximaEscala = await prisma.escala.findFirst({
     where: {
       userId,
       status: 'agendada',
-      dataEscala: { gte: new Date() },
+      // Compare as ISO date strings (YYYY-MM-DD) in São Paulo timezone
+      dataEscala: { gte: new Date(hoje) },
     },
     orderBy: { dataEscala: 'asc' },
     select: {
@@ -156,12 +169,12 @@ async function getProximaEscalaForUser(userId: string): Promise<{
 
   if (!proximaEscala) return null
 
-  const dataEscalaDate = new Date(proximaEscala.dataEscala)
-  const dataISO = dataEscalaDate.toISOString().split('T')[0]
+  // Convert DateTime from Prisma to ISO date string using São Paulo timezone
+  const dataISO = toISODateBR(proximaEscala.dataEscala)
+  const dataDate = new Date(`${dataISO}T00:00:00Z`)
 
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const diasAte = Math.ceil((dataEscalaDate.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+  // Calculate dias até using São Paulo date comparison (string comparison works for YYYY-MM-DD)
+  const diasAte = Math.ceil((dataDate.getTime() - hojeDate.getTime()) / (1000 * 60 * 60 * 24))
 
   return {
     data: dataISO,
@@ -173,16 +186,20 @@ async function getProximaEscalaForUser(userId: string): Promise<{
   }
 }
 
-// Helper para calcular RAS a receber (pendente + realizado não confirmado)
+// Helper para calcular RAS a receber (RAS do mês anterior ainda pendente/realizado)
+// O policial trabalha RAS em um mês e recebe no mês seguinte, ex: RAS de abril aparece em maio
 async function getRasAReceberForUser(userId: string, competencia: string): Promise<{
   valor: number
   horas: number
   horasConfirmadas: number
 }> {
+  // RAS é feito no mês anterior mas aparece a receber no mês atual
+  const mesAnterior = getPreviousMonth(competencia)
+
   const rasResult = await prisma.rasAgenda.findMany({
     where: {
       userId,
-      competencia,
+      competencia: mesAnterior,
       deletadoEm: null,
       status: { notIn: ['cancelado', 'agendado'] },
     },

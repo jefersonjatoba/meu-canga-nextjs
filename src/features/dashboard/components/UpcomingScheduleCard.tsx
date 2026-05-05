@@ -2,7 +2,7 @@
 
 import { Calendar, Clock, MapPin, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatDateBR } from '@/lib/dates'
+import { formatarData } from '@/lib/escala'
 import type { EscalaItem } from '@/features/dashboard/types'
 
 const TURNO_LABELS: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -118,7 +118,7 @@ export function UpcomingScheduleCard({ escala }: UpcomingScheduleCardProps) {
           <Calendar size={16} className="text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden />
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {formatDateBR(escala.data)}
+              {formatarData(escala.data)}
             </p>
             {urgency !== 'future' && (
               <p className="text-xs text-gray-600 dark:text-gray-400">
