@@ -24,11 +24,11 @@ export function ThemeToggle({ className, size = 'md' }: ThemeToggleProps) {
       aria-pressed={isDark}
       className={cn(
         'inline-flex items-center justify-center rounded-lg',
-        'border border-gray-200 dark:border-gray-700',
-        'bg-white dark:bg-[#1E1E1E]',
-        'text-gray-500 dark:text-gray-400',
-        'hover:bg-gray-100 dark:hover:bg-gray-700',
-        'hover:text-gray-700 dark:hover:text-gray-200',
+        'border border-gray-200 dark:border-white/[0.10]',
+        'bg-white dark:bg-[#1C1C1C]',
+        'text-gray-500 dark:text-gray-300',
+        'hover:bg-gray-100 dark:hover:bg-white/[0.07]',
+        'hover:text-gray-700 dark:hover:text-white',
         'transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue',
         btnSize,

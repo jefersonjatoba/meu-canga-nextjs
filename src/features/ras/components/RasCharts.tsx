@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useTheme } from '@/hooks/useTheme'
 import {
   BarChart,
   Bar,
@@ -28,11 +29,23 @@ const STATUS_COLORS: Record<StatusRas, string> = {
   cancelado: '#ef4444',   // Red
 }
 
-const tooltipStyle = {
-  background: '#1E1E1E',
-  border: '1px solid rgba(255,255,255,0.1)',
+// Note: tooltipStyle is applied per chart using useChartTheme in RasChart.tsx
+// These charts use a simpler static approach for now — light-mode safe dark tooltip
+// is acceptable here as these charts only render inside the dashboard (always themed)
+const tooltipStyleDark = {
+  background: '#1C1C1C',
+  border: '1px solid rgba(255,255,255,0.10)',
   borderRadius: 8,
   fontSize: 12,
+  color: '#F3F4F6',
+}
+
+const tooltipStyleLight = {
+  background: '#FFFFFF',
+  border: '1px solid #E5E7EB',
+  borderRadius: 8,
+  fontSize: 12,
+  color: '#111827',
 }
 
 // ─── KPI Card Component ───────────────────────────────────────────────────────
@@ -81,6 +94,11 @@ interface RasChartsProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function RasCharts({ stats }: RasChartsProps) {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+  const tooltipStyle = isDark ? tooltipStyleDark : tooltipStyleLight
+  const tickColor = isDark ? '#9CA3AF' : '#6B7280'
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
   const [selectedStatus, setSelectedStatus] = useState<StatusRas | null>(null)
 
   // Preparar dados
@@ -121,21 +139,21 @@ export function RasCharts({ stats }: RasChartsProps) {
           value={`${stats.totalHoras}h`}
           subtitle={`${percentual}% do limite`}
           icon={TrendingUp}
-          gradient="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900"
+          gradient="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-500/[0.08] dark:to-blue-500/[0.04]"
         />
         <KPICard
           title="Total Faturado"
           value={fmtBRL(stats.totalCentavos)}
           subtitle="Valor realizado"
           icon={TrendingUp}
-          gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900"
+          gradient="bg-gradient-to-br from-green-50 to-green-100 dark:from-emerald-500/[0.08] dark:to-emerald-500/[0.04]"
         />
         <KPICard
           title="Taxa Realização"
           value={`${Math.round((stats.horasPorStatus.realizado / stats.totalHoras) * 100) || 0}%`}
           subtitle={`${stats.horasPorStatus.realizado}h realizadas`}
           icon={TrendingUp}
-          gradient="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900"
+          gradient="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-500/[0.08] dark:to-purple-500/[0.04]"
         />
         <KPICard
           title="Espaço Restante"
@@ -144,14 +162,14 @@ export function RasCharts({ stats }: RasChartsProps) {
           icon={isAlert ? AlertCircle : TrendingUp}
           gradient={
             isAlert
-              ? 'bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900'
-              : 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900'
+              ? 'bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-500/[0.08] dark:to-amber-500/[0.04]'
+              : 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-500/[0.08] dark:to-emerald-500/[0.04]'
           }
         />
       </div>
 
       {/* ─── Progress Bar ─────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] p-4 shadow-sm">
+      <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] p-4 shadow-sm">
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
@@ -162,7 +180,7 @@ export function RasCharts({ stats }: RasChartsProps) {
             </span>
           </div>
 
-          <div className="relative h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="relative h-3 bg-gray-200 dark:bg-white/[0.07] rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 isAlert
@@ -175,12 +193,12 @@ export function RasCharts({ stats }: RasChartsProps) {
 
           <div className="flex gap-2 text-xs">
             {horasRestantes > 0 && (
-              <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+              <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 dark:bg-emerald-500/[0.10] dark:text-emerald-400">
                 ✓ {horasRestantes}h restante
               </span>
             )}
             {isAlert && (
-              <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+              <span className="px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/[0.10] dark:text-amber-400">
                 ⚠ Próximo ao limite de 120h
               </span>
             )}
@@ -191,7 +209,7 @@ export function RasCharts({ stats }: RasChartsProps) {
       {/* ─── Charts Grid ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Distribuição de Horas - Donut com Legenda */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm p-5">
+        <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm p-5">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
             Distribuição por Status
           </h3>
@@ -233,7 +251,7 @@ export function RasCharts({ stats }: RasChartsProps) {
                     return (
                       <div
                         key={entry.status}
-                        className="p-2 rounded cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="p-2 rounded cursor-pointer transition-all hover:bg-gray-100 dark:hover:bg-white/[0.05]"
                         onClick={() =>
                           setSelectedStatus(
                             selectedStatus === (entry.status as StatusRas)
@@ -270,7 +288,7 @@ export function RasCharts({ stats }: RasChartsProps) {
         </div>
 
         {/* Faturamento por Status - Barra */}
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm p-5">
+        <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm p-5">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-4">
             Faturamento por Status
           </h3>
@@ -285,12 +303,12 @@ export function RasCharts({ stats }: RasChartsProps) {
                   />
                   <XAxis
                     dataKey="status"
-                    tick={{ fill: '#9ca3af', fontSize: 11 }}
+                    tick={{ fill: tickColor, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: '#9ca3af', fontSize: 11 }}
+                    tick={{ fill: tickColor, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `R$${v / 1000}k`}

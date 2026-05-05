@@ -19,26 +19,26 @@ const alertConfig: Record<
 > = {
   info: {
     icon: Info,
-    styles: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
-    iconStyles: 'text-blue-500',
+    styles: 'bg-blue-50 border-blue-200 dark:bg-blue-500/[0.08] dark:border-blue-500/20',
+    iconStyles: 'text-blue-500 dark:text-blue-400',
     titleStyles: 'text-blue-800 dark:text-blue-300',
   },
   success: {
     icon: CheckCircle2,
-    styles: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
-    iconStyles: 'text-green-500',
-    titleStyles: 'text-green-800 dark:text-green-300',
+    styles: 'bg-green-50 border-green-200 dark:bg-emerald-500/[0.08] dark:border-emerald-500/20',
+    iconStyles: 'text-green-500 dark:text-emerald-400',
+    titleStyles: 'text-green-800 dark:text-emerald-300',
   },
   warning: {
     icon: AlertCircle,
-    styles: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
-    iconStyles: 'text-amber-500',
+    styles: 'bg-amber-50 border-amber-200 dark:bg-amber-500/[0.08] dark:border-amber-500/20',
+    iconStyles: 'text-amber-500 dark:text-amber-400',
     titleStyles: 'text-amber-800 dark:text-amber-300',
   },
   error: {
     icon: XCircle,
-    styles: 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800',
-    iconStyles: 'text-red-500',
+    styles: 'bg-red-50 border-red-200 dark:bg-red-500/[0.08] dark:border-red-500/20',
+    iconStyles: 'text-red-500 dark:text-red-400',
     titleStyles: 'text-red-800 dark:text-red-300',
   },
 }

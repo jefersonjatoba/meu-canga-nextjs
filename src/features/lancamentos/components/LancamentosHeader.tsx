@@ -53,7 +53,7 @@ export function LancamentosHeader({ periodoLabel, summary, onNovo }: Lancamentos
 
       {/* Summary strip */}
       {summary && (
-        <div className="flex flex-wrap gap-6 px-5 py-4 rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm">
+        <div className="flex flex-wrap gap-6 px-5 py-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm">
           <SummaryChip
             label="Receitas"
             value={formatBRL(summary.totalIncome)}

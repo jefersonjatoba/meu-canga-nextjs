@@ -64,7 +64,7 @@ export function DeleteLancamentoDialog({
         </DialogHeader>
 
         {item && (
-          <div className="rounded-lg border border-gray-100 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-800/40 px-4 py-3 space-y-1 text-sm">
+          <div className="rounded-lg border border-gray-100 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.05] px-4 py-3 space-y-1 text-sm">
             <p className="font-medium text-gray-800 dark:text-gray-100 truncate">{item.descricao}</p>
             <div className="flex gap-3 text-gray-500 dark:text-gray-400">
               <span>{formatBRL(item.valorCentavos)}</span>

@@ -28,7 +28,7 @@ export function FaturaItem({ fatura, onDetalhe, onPagar }: FaturaItemProps) {
 
   return (
     <div className={cn(
-      'rounded-xl border bg-white p-4 shadow-sm transition-colors dark:bg-[#111111]',
+      'rounded-xl border bg-white p-4 shadow-sm transition-colors dark:bg-[#1A1A1A]',
       due.cardClass,
     )}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -152,7 +152,7 @@ function getDueState(fatura: FaturaCartaoDTO): {
     statusLabel: fatura.status,
     variant: statusVariant[fatura.status] ?? 'outline',
     textClass: 'text-gray-500 dark:text-gray-400',
-    cardClass: 'border-gray-200 hover:border-blue-200 dark:border-gray-800 dark:hover:border-blue-900/60',
+    cardClass: 'border-gray-200 hover:border-blue-200 dark:border-white/[0.06] dark:hover:border-blue-900/60',
     icon: CalendarDays,
   }
 }

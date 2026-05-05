@@ -10,7 +10,7 @@ interface InvestimentosEmptyStateProps {
 
 export function InvestimentosEmptyState({ onNovoAtivo }: InvestimentosEmptyStateProps) {
   return (
-    <div className="rounded-xl border border-dashed border-gray-300 bg-white px-5 py-10 text-center dark:border-gray-700 dark:bg-[#111111]">
+    <div className="rounded-xl border border-dashed border-gray-300 bg-white px-5 py-10 text-center dark:border-white/[0.08] dark:bg-[#1A1A1A]">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300">
         <LineChart size={22} aria-hidden />
       </div>

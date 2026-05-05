@@ -24,13 +24,13 @@ const variantStyles: Record<ButtonVariant, string> = {
   primary:
     'bg-accent-blue text-white hover:bg-blue-600 active:bg-blue-700 shadow-sm hover:shadow-md focus-visible:ring-accent-blue',
   secondary:
-    'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 dark:bg-dark-gray dark:text-light-gray dark:hover:bg-gray-700 focus-visible:ring-gray-400',
+    'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 dark:bg-dark-gray dark:text-light-gray dark:hover:bg-white/[0.07] focus-visible:ring-gray-400',
   danger:
     'bg-error text-white hover:bg-red-600 active:bg-red-700 shadow-sm hover:shadow-md focus-visible:ring-error',
   ghost:
-    'text-gray-700 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800 focus-visible:ring-gray-400',
+    'text-gray-700 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-300 dark:hover:bg-white/[0.05] focus-visible:ring-gray-400',
   outline:
-    'border border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 focus-visible:ring-gray-400',
+    'border border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100 dark:border-white/[0.10] dark:text-gray-300 dark:hover:bg-white/[0.05] focus-visible:ring-gray-400',
   text:
     'text-accent-blue hover:text-blue-700 hover:underline underline-offset-2 focus-visible:ring-accent-blue',
 }

@@ -59,7 +59,7 @@ export function RasCalendar({
   return (
     <div
       className={cn(
-        'rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60',
+        'rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]',
         className
       )}
     >
@@ -110,10 +110,10 @@ export function RasCalendar({
               className={cn(
                 'relative rounded-lg p-1 flex flex-col items-center transition-colors',
                 'border',
-                isToday ? 'border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-950/30'
-                       : dayRas.length ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40'
+                isToday ? 'border-blue-500 dark:border-blue-500/60 bg-blue-50 dark:bg-blue-500/[0.08]'
+                       : dayRas.length ? 'border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04]'
                        : 'border-transparent',
-                isClickable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'
+                isClickable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/[0.05]'
               )}
               style={{
                 minHeight: dayRas.length ? 52 : 36,
@@ -138,8 +138,8 @@ export function RasCalendar({
                       className={cn(
                         'text-[8px] font-bold px-0.5 rounded w-full text-center truncate leading-tight',
                         isVol
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/[0.15] dark:text-blue-300'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-500/[0.15] dark:text-amber-300'
                       )}
                       title={`${isVol ? 'Voluntário' : 'Compulsório'} ${r.duracao}h — ${r.status}`}
                     >
@@ -155,7 +155,7 @@ export function RasCalendar({
 
       {/* Legend */}
       <div
-        className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700/60"
+        className="flex flex-wrap gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-white/[0.08]"
       >
         <div className="flex items-center gap-1.5">
           <span

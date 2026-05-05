@@ -95,13 +95,13 @@ export function AtivoDetalheModal({
                   Operacoes
                 </h3>
                 {ativo.operacoes.length === 0 ? (
-                  <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-[#151515] dark:text-gray-400">
+                  <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-white/[0.06] dark:bg-[#151515] dark:text-gray-400">
                     Nenhuma operacao registrada.
                   </p>
                 ) : (
                   <div className="space-y-2">
                     {ativo.operacoes.map(operacao => (
-                      <div key={operacao.id} className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-[#111111]">
+                      <div key={operacao.id} className="rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-white/[0.06] dark:bg-[#1A1A1A]">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -167,7 +167,7 @@ export function AtivoDetalheModal({
 
           {cancelTarget && (
             <div className="space-y-4">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#151515]">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-white/[0.06] dark:bg-[#151515]">
                 <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {cancelTarget.tipo} - {formatBRL(cancelTarget.valorTotalCentavos)}
                 </p>
@@ -188,7 +188,7 @@ export function AtivoDetalheModal({
                   type="checkbox"
                   checked={confirmed}
                   onChange={(event) => setConfirmed(event.target.checked)}
-                  className="mt-1 rounded border-gray-300 dark:border-gray-600"
+                  className="mt-1 rounded border-gray-300 dark:border-white/[0.10]"
                 />
                 <span>Confirmo que desejo cancelar esta operacao</span>
               </label>
@@ -241,7 +241,7 @@ function Metric({
   valueClassName?: string
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-[#151515]">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/[0.06] dark:bg-[#151515]">
       <p className="text-xs font-medium uppercase text-gray-500 dark:text-gray-500">{label}</p>
       <p className={`mt-1 break-words text-sm font-bold ${valueClassName}`}>{value}</p>
     </div>

@@ -6,9 +6,9 @@ interface LancamentosEmptyStateProps {
 
 export function LancamentosEmptyState({ onNovo }: LancamentosEmptyStateProps) {
   return (
-    <div className="rounded-xl border border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1E1E1E] px-8 py-14 flex flex-col items-center text-center gap-5">
-      <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
-        <ReceiptText size={26} className="text-gray-300 dark:text-gray-600" aria-hidden />
+    <div className="rounded-xl border border-dashed border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] px-8 py-14 flex flex-col items-center text-center gap-5">
+      <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-white/[0.05] border border-gray-100 dark:border-white/[0.08] flex items-center justify-center">
+        <ReceiptText size={26} className="text-gray-300 dark:text-gray-400" aria-hidden />
       </div>
       <div className="space-y-1.5 max-w-xs">
         <p className="font-semibold text-gray-800 dark:text-gray-200">

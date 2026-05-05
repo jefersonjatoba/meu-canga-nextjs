@@ -72,7 +72,7 @@ export function ProgressBar({
         aria-valuemax={max}
         aria-label={label}
         className={cn(
-          'w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden',
+          'w-full rounded-full bg-gray-200 dark:bg-white/[0.07] overflow-hidden',
           sizeStyles[size]
         )}
       >

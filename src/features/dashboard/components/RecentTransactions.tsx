@@ -25,16 +25,16 @@ const tipoIcon: Record<TipoLancamento, IconComponent> = {
 }
 
 const tipoIconStyle: Record<TipoLancamento, string> = {
-  income:             'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-  expense:            'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400',
-  ras:                'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-  investment_aporte:  'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
-  investment_resgate: 'bg-purple-50 dark:bg-purple-900/20 text-purple-400 dark:text-purple-300',
-  transfer:           'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+  income:             'bg-green-100 dark:bg-emerald-500/10 text-green-600 dark:text-emerald-400',
+  expense:            'bg-red-100 dark:bg-red-500/10 text-red-500 dark:text-red-400',
+  ras:                'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  investment_aporte:  'bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  investment_resgate: 'bg-purple-50 dark:bg-purple-500/[0.07] text-purple-400 dark:text-purple-300',
+  transfer:           'bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400',
 }
 
 const tipoValueStyle: Record<TipoLancamento, string> = {
-  income:             'text-green-600 dark:text-green-400',
+  income:             'text-green-600 dark:text-emerald-400',
   expense:            'text-red-500 dark:text-red-400',
   ras:                'text-blue-600 dark:text-blue-400',
   investment_aporte:  'text-purple-600 dark:text-purple-400',
@@ -57,8 +57,8 @@ interface RecentTransactionsProps {
 
 export function RecentTransactions({ items }: RecentTransactionsProps) {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/40 flex items-center justify-between gap-2">
+    <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.05] flex items-center justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Lançamentos Recentes
@@ -81,7 +81,7 @@ export function RecentTransactions({ items }: RecentTransactionsProps) {
               className={cn(
                 'flex items-center gap-3 px-5 py-4',
                 idx < items.length - 1 &&
-                  'border-b border-gray-100 dark:border-gray-700/40',
+                  'border-b border-gray-100 dark:border-white/[0.05]',
               )}
             >
               {/* Type icon */}
@@ -103,7 +103,7 @@ export function RecentTransactions({ items }: RecentTransactionsProps) {
                   <span className="text-xs text-gray-400 dark:text-gray-500">
                     {formatDateBR(item.data)}
                   </span>
-                  <span className="text-xs text-gray-200 dark:text-gray-700" aria-hidden>
+                  <span className="text-xs text-gray-300 dark:text-gray-400" aria-hidden>
                     ·
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -111,7 +111,7 @@ export function RecentTransactions({ items }: RecentTransactionsProps) {
                   </span>
                   {item.categoria && (
                     <>
-                      <span className="text-xs text-gray-200 dark:text-gray-700" aria-hidden>
+                      <span className="text-xs text-gray-300 dark:text-gray-400" aria-hidden>
                         ·
                       </span>
                       <span className="text-xs text-gray-400 dark:text-gray-500">

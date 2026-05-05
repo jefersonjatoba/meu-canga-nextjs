@@ -71,7 +71,7 @@ export function RasList({
 }: RasListProps) {
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm">
+      <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm">
         <div className="px-5 py-10 flex flex-col items-center gap-3 text-gray-400">
           <Loader2 size={24} className="animate-spin" aria-hidden />
           <p className="text-sm">Carregando RAS…</p>
@@ -85,9 +85,9 @@ export function RasList({
   const active = rasAgendas.filter((r) => r.status !== 'cancelado')
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/40 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">RAS do mês</h2>
         <span className="text-xs text-gray-400 dark:text-gray-500">
           {active.length} {active.length === 1 ? 'registro' : 'registros'}
@@ -98,7 +98,7 @@ export function RasList({
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: 720 }}>
           <thead>
-            <tr className="bg-gray-50 dark:bg-gray-800/40">
+            <tr className="bg-gray-50 dark:bg-white/[0.05]">
               <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3 whitespace-nowrap">Data</th>
               <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Hora</th>
               <th className="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Dur.</th>
@@ -121,7 +121,7 @@ export function RasList({
                 return (
                   <tr
                     key={ras.id}
-                    className={idx % 2 === 0 ? 'bg-white dark:bg-transparent' : 'bg-gray-50/50 dark:bg-gray-800/20'}
+                    className={idx % 2 === 0 ? 'bg-white dark:bg-transparent' : 'bg-gray-50/50 dark:bg-white/[0.05]'}
                   >
                     <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">
                       {dateToBR(ras.data)}
@@ -186,7 +186,7 @@ export function RasList({
       </div>
 
       {/* Mobile card list */}
-      <ul className="md:hidden divide-y divide-gray-100 dark:divide-gray-700/40">
+      <ul className="md:hidden divide-y divide-gray-100 dark:divide-white/[0.05]">
         {active
           .sort((a, b) => a.data.localeCompare(b.data))
           .map((ras) => {

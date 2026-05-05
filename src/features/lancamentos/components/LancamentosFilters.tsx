@@ -42,11 +42,11 @@ export function LancamentosFilters({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       {/* Month navigator */}
-      <div className="flex items-center gap-1 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60 rounded-lg p-1">
+      <div className="flex items-center gap-1 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08] rounded-lg p-1">
         <button
           onClick={() => onMesChange(addMonths(mes, -1))}
           aria-label="Mês anterior"
-          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
         >
           <ChevronLeft size={16} aria-hidden />
         </button>
@@ -56,14 +56,14 @@ export function LancamentosFilters({
         <button
           onClick={() => onMesChange(addMonths(mes, 1))}
           aria-label="Próximo mês"
-          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
         >
           <ChevronRight size={16} aria-hidden />
         </button>
       </div>
 
       {/* Tipo filter */}
-      <div className="flex rounded-lg border border-gray-200 dark:border-gray-700/60 overflow-hidden bg-white dark:bg-[#1E1E1E]">
+      <div className="flex rounded-lg border border-gray-200 dark:border-white/[0.08] overflow-hidden bg-white dark:bg-[#1C1C1C]">
         {TIPO_OPTIONS.map(opt => (
           <button
             key={opt.value}
@@ -71,10 +71,10 @@ export function LancamentosFilters({
             className={cn(
               'px-3.5 py-2 text-sm font-medium transition-colors',
               opt.value !== TIPO_OPTIONS[TIPO_OPTIONS.length - 1].value &&
-                'border-r border-gray-200 dark:border-gray-700/60',
+                'border-r border-gray-200 dark:border-white/[0.08]',
               tipo === opt.value
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.05]',
             )}
           >
             {opt.label}

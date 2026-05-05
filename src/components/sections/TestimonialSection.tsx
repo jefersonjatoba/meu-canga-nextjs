@@ -36,7 +36,7 @@ const testimonials = [
 export function TestimonialSection() {
   return (
     <section
-      className="py-24 bg-gray-50 dark:bg-[#0A0A0A]"
+      className="py-24 bg-gray-50 dark:bg-[#0F0F0F]"
       aria-labelledby="testimonials-heading"
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -61,11 +61,11 @@ export function TestimonialSection() {
           {testimonials.map((t) => (
             <figure
               key={t.name}
-              className="relative rounded-2xl p-6 bg-white dark:bg-[#161616] border border-gray-100 dark:border-gray-800 shadow-sm"
+              className="relative rounded-2xl p-6 bg-white dark:bg-[#161616] border border-gray-100 dark:border-white/[0.06] shadow-sm"
             >
               <Quote
                 size={32}
-                className="absolute top-5 right-5 text-gray-200 dark:text-gray-800"
+                className="absolute top-5 right-5 text-gray-200 dark:text-gray-200"
                 aria-hidden
               />
 

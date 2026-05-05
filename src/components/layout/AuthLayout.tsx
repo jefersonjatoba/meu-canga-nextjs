@@ -45,7 +45,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       </main>
 
       <footer className="py-6 text-center">
-        <p className="text-xs text-gray-400 dark:text-gray-600">
+        <p className="text-xs text-gray-400 dark:text-gray-400">
           &copy; {new Date().getFullYear()} MeuCanga. Todos os direitos reservados.
         </p>
       </footer>

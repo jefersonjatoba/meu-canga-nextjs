@@ -26,7 +26,7 @@ export function LancamentosList({
 }: LancamentosListProps) {
   if (loading) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm">
+      <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm">
         <div className="px-5 py-10 flex flex-col items-center gap-3 text-gray-400">
           <Loader2 size={24} className="animate-spin" aria-hidden />
           <p className="text-sm">Carregando lançamentos…</p>
@@ -48,8 +48,8 @@ export function LancamentosList({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700/40 flex items-center justify-between">
+    <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-white/[0.08] flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Lançamentos</h2>
         <span className="text-xs text-gray-400 dark:text-gray-500">
           {total} {total === 1 ? 'lançamento' : 'lançamentos'}

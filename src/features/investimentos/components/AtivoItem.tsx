@@ -37,7 +37,7 @@ export function AtivoItem({
     : 'text-red-600 dark:text-red-400'
 
   return (
-    <article className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300 dark:border-gray-800 dark:bg-[#111111] dark:hover:border-gray-700">
+    <article className="rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-gray-300 dark:border-white/[0.06] dark:bg-[#1A1A1A] dark:hover:border-gray-700">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -68,7 +68,7 @@ export function AtivoItem({
         <Metric label="Quantidade" value={ativo.posicao.quantidadeAtual} />
         <Metric label="Custo" value={formatBRL(ativo.posicao.custoTotalCentavos)} />
         <Metric label="Preco medio" value={formatBRL(ativo.posicao.precoMedioCentavos)} />
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-[#151515]">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-[#151515]">
           <label className="text-xs font-medium uppercase text-gray-500 dark:text-gray-500" htmlFor={`preco-${ativo.id}`}>
             Preco atual
           </label>
@@ -104,7 +104,7 @@ function Metric({
   valueClassName?: string
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-[#151515]">
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-[#151515]">
       <p className="text-xs font-medium uppercase text-gray-500 dark:text-gray-500">{label}</p>
       <p className={`mt-1 break-words text-sm font-semibold ${valueClassName}`}>{value}</p>
     </div>

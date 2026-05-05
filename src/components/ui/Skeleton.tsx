@@ -13,7 +13,7 @@ export function Skeleton({ className, circle = false, ...props }: SkeletonProps)
     <div
       aria-hidden
       className={cn(
-        'animate-pulse bg-gray-200 dark:bg-gray-700',
+        'animate-pulse bg-gray-200 dark:bg-white/[0.07]',
         circle ? 'rounded-full' : 'rounded-lg',
         className
       )}
@@ -26,7 +26,7 @@ export function Skeleton({ className, circle = false, ...props }: SkeletonProps)
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1E1E1E] p-6 space-y-4">
+    <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] p-6 space-y-4">
       <div className="space-y-2">
         <Skeleton className="h-4 w-1/3" />
         <Skeleton className="h-8 w-1/2" />
@@ -38,7 +38,7 @@ export function SkeletonCard() {
 
 export function SkeletonKPI() {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1E1E1E] p-6">
+    <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] p-6">
       <div className="flex items-center justify-between mb-4">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-8" circle />

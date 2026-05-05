@@ -200,7 +200,7 @@ export function LancamentoForm({
               className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
                 tipo === t.value
                   ? 'border-blue-600 bg-blue-600 text-white'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-white/[0.10] dark:text-gray-400 dark:hover:bg-white/[0.05]'
               }`}
             >
               {t.label}
@@ -261,7 +261,7 @@ export function LancamentoForm({
                 setValue('categoria', '', { shouldValidate: true })
               }
             }}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 dark:border-gray-600 dark:bg-[#1E1E1E] dark:text-gray-100"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 dark:border-white/[0.10] dark:bg-[#1C1C1C] dark:text-gray-100"
           >
             <option value="">{loadingCategorias ? 'Carregando...' : 'Selecione...'}</option>
             {categoriasFiltradas.map(c => (
@@ -293,7 +293,7 @@ export function LancamentoForm({
           </label>
           <select
             {...register('contaId')}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-[#1E1E1E] dark:text-gray-100"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/[0.10] dark:bg-[#1C1C1C] dark:text-gray-100"
           >
             <option value="">Selecione...</option>
             {contas.map(c => (
@@ -308,7 +308,7 @@ export function LancamentoForm({
         <input
           type="checkbox"
           id="status-pendente"
-          className="rounded border-gray-300 dark:border-gray-600"
+          className="rounded border-gray-300 dark:border-white/[0.10]"
           {...register('status')}
           onChange={(e) => setValue('status', e.target.checked ? 'pendente' : 'confirmada')}
           checked={watch('status') === 'pendente'}

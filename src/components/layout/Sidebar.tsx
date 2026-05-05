@@ -63,14 +63,14 @@ export function Sidebar({ onSignOut, collapsed = false, onCollapsedChange }: Sid
       className={cn(
         'fixed left-0 top-0 h-screen z-[200]',
         'flex flex-col',
-        'bg-white dark:bg-[#111111]',
-        'border-r border-gray-200 dark:border-gray-800',
+        'bg-white dark:bg-[#141414]',
+        'border-r border-gray-200 dark:border-white/[0.06]',
         'transition-all duration-300 ease-in-out',
         collapsed ? 'w-[68px]' : 'w-64'
       )}
     >
       {/* Logo */}
-      <div className={cn('flex items-center px-4 h-16 border-b border-gray-200 dark:border-gray-800', collapsed && 'justify-center')}>
+      <div className={cn('flex items-center px-4 h-16 border-b border-gray-200 dark:border-white/[0.06]', collapsed && 'justify-center')}>
         {collapsed ? (
           <div className="w-8 h-8 rounded-lg bg-accent-blue flex items-center justify-center">
             <span className="text-white text-xs font-bold">MC</span>
@@ -106,7 +106,7 @@ export function Sidebar({ onSignOut, collapsed = false, onCollapsedChange }: Sid
                     'transition-all duration-150',
                     active
                       ? 'bg-accent-blue text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] hover:text-gray-900 dark:hover:text-white',
                     collapsed && 'justify-center'
                   )}
                 >
@@ -120,7 +120,7 @@ export function Sidebar({ onSignOut, collapsed = false, onCollapsedChange }: Sid
       </nav>
 
       {/* Bottom section */}
-      <div className="px-2 py-4 border-t border-gray-200 dark:border-gray-800 space-y-0.5">
+      <div className="px-2 py-4 border-t border-gray-200 dark:border-white/[0.06] space-y-0.5">
         {bottomItems.map((item) => {
           const Icon = item.icon
           return (
@@ -131,7 +131,7 @@ export function Sidebar({ onSignOut, collapsed = false, onCollapsedChange }: Sid
               className={cn(
                 'flex items-center rounded-lg px-2.5 py-2.5 gap-3',
                 'text-sm font-medium',
-                'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+                'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06]',
                 'transition-colors duration-150',
                 collapsed && 'justify-center'
               )}
@@ -169,7 +169,7 @@ export function Sidebar({ onSignOut, collapsed = false, onCollapsedChange }: Sid
             className={cn(
               'w-full flex items-center rounded-lg px-2.5 py-2.5 gap-3',
               'text-sm font-medium',
-              'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800',
+              'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/[0.06]',
               'transition-colors duration-150',
               collapsed && 'justify-center'
             )}

@@ -150,7 +150,7 @@ export const darkMode = {
     primary: '#0F0F0F',   // precision-black
     secondary: '#1A1A1A', // dark-gray
     tertiary: '#2D2D2D',  // elevated surface
-    card: '#1E1E1E',      // card background
+    card: '#1C1C1C',      // card background
   },
   border: {
     subtle: '#2D2D2D',

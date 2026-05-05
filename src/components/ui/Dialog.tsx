@@ -60,8 +60,8 @@ export const DialogContent = React.forwardRef<
       className={cn(
         'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[400]',
         'w-full rounded-2xl',
-        'bg-white dark:bg-[#1E1E1E]',
-        'border border-gray-200 dark:border-gray-700',
+        'bg-white dark:bg-[#1C1C1C]',
+        'border border-gray-200 dark:border-white/[0.10]',
         'shadow-xl',
         'p-6',
         'focus:outline-none',
@@ -144,7 +144,7 @@ export function DialogFooter({
     <div
       className={cn(
         'flex items-center justify-end gap-3 mt-6 pt-4',
-        'border-t border-gray-200 dark:border-gray-700',
+        'border-t border-gray-200 dark:border-white/[0.08]',
         className
       )}
       {...props}

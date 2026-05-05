@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+    <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-white/[0.08]">
       <table
         className={cn('w-full caption-bottom text-sm', className)}
         {...props}
@@ -23,7 +23,7 @@ export function TableHeader({
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={cn('bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700', className)}
+      className={cn('bg-gray-50 dark:bg-white/[0.04] border-b border-gray-200 dark:border-white/[0.08]', className)}
       {...props}
     />
   )
@@ -36,7 +36,7 @@ export function TableBody({
   return (
     <tbody
       className={cn(
-        'divide-y divide-gray-100 dark:divide-gray-700/50 bg-white dark:bg-[#1E1E1E]',
+        'divide-y divide-gray-100 dark:divide-white/[0.05] bg-white dark:bg-[#1C1C1C]',
         className
       )}
       {...props}
@@ -51,8 +51,8 @@ export function TableFooter({
   return (
     <tfoot
       className={cn(
-        'border-t border-gray-200 dark:border-gray-700',
-        'bg-gray-50 dark:bg-gray-800/50',
+        'border-t border-gray-200 dark:border-white/[0.08]',
+        'bg-gray-50 dark:bg-white/[0.04]',
         'font-medium',
         className
       )}
@@ -69,8 +69,8 @@ export function TableRow({
     <tr
       className={cn(
         'transition-colors duration-100',
-        'hover:bg-gray-50 dark:hover:bg-gray-800/40',
-        'data-[selected=true]:bg-blue-50 dark:data-[selected=true]:bg-blue-900/20',
+        'hover:bg-gray-50 dark:hover:bg-white/[0.04]',
+        'data-[selected=true]:bg-blue-50 dark:data-[selected=true]:bg-blue-500/10',
         className
       )}
       {...props}
@@ -103,7 +103,7 @@ export function TableHead({
       className={cn(
         'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide',
         'text-gray-500 dark:text-gray-400',
-        sortable && 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200 transition-colors',
+        sortable && 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-100 transition-colors',
         className
       )}
       aria-sort={
@@ -120,7 +120,7 @@ export function TableHead({
       <span className="flex items-center gap-1.5">
         {children}
         {sortable && (
-          <span className="text-gray-300 dark:text-gray-600" aria-hidden>
+          <span className="text-gray-300 dark:text-gray-400" aria-hidden>
             {sortDirection === 'asc' ? (
               <ChevronUp size={13} />
             ) : sortDirection === 'desc' ? (
@@ -183,7 +183,7 @@ export function TablePagination({
   const to = Math.min(page * pageSize, total)
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1E1E1E]">
+    <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 border-t border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C]">
       <p className="text-sm text-gray-500 dark:text-gray-400">
         {from}–{to} de <span className="font-medium">{total}</span>
       </p>
@@ -193,7 +193,7 @@ export function TablePagination({
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1E1E1E] px-2 py-1"
+            className="text-sm rounded-md border border-gray-300 dark:border-white/[0.10] bg-white dark:bg-[#1C1C1C] px-2 py-1"
             aria-label="Itens por página"
           >
             {pageSizeOptions.map((s) => (
@@ -206,7 +206,7 @@ export function TablePagination({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page === 1}
-            className="px-2 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="px-2 py-1 text-sm rounded-md border border-gray-300 dark:border-white/[0.10] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors"
             aria-label="Página anterior"
           >
             ‹
@@ -219,7 +219,7 @@ export function TablePagination({
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="px-2 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="px-2 py-1 text-sm rounded-md border border-gray-300 dark:border-white/[0.10] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors"
             aria-label="Próxima página"
           >
             ›

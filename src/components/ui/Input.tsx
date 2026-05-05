@@ -87,16 +87,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               'text-sm leading-none',
               'transition-all duration-200',
               // Dark
-              'dark:bg-[#1E1E1E] dark:text-gray-100 dark:placeholder-gray-500',
+              'dark:bg-[#1C1C1C] dark:text-gray-100 dark:placeholder-gray-500',
               // Default border
-              'border-gray-300 dark:border-gray-600',
+              'border-gray-300 dark:border-white/[0.12]',
               // Focus
               'focus:outline-none focus:ring-2 focus:ring-offset-0',
               !hasError && 'focus:ring-accent-blue focus:border-accent-blue',
               // Error
               hasError && 'border-error focus:ring-error',
               // Disabled
-              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-gray-800',
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 dark:disabled:bg-white/[0.03]',
               // Padding — account for icons
               leftIcon ? 'pl-10' : 'pl-3.5',
               rightIcon ? 'pr-10' : 'pr-3.5',

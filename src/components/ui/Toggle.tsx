@@ -53,7 +53,7 @@ export function Toggle({
           className={cn(
             'block rounded-full transition-colors duration-200',
             trackSize,
-            checked ? 'bg-accent-blue' : 'bg-gray-300 dark:bg-gray-600',
+            checked ? 'bg-accent-blue' : 'bg-gray-300 dark:bg-white/[0.12]',
             !disabled && 'group-hover:opacity-90'
           )}
         />

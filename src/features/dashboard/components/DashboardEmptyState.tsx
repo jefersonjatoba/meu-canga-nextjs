@@ -3,11 +3,11 @@ import { BarChart3, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 
 export function DashboardEmptyState() {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1E1E1E] px-8 py-14 flex flex-col items-center text-center gap-6">
+    <div className="rounded-2xl border border-dashed border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] px-8 py-14 flex flex-col items-center text-center gap-6">
       {/* Illustration area */}
       <div className="relative">
-        <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
-          <BarChart3 size={28} className="text-gray-300 dark:text-gray-600" aria-hidden />
+        <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.07] flex items-center justify-center">
+          <BarChart3 size={28} className="text-gray-300 dark:text-gray-500" aria-hidden />
         </div>
         <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-green-400/40 dark:bg-green-500/30 border border-green-300/60 dark:border-green-500/40" />
         <div className="absolute -bottom-1 -left-1.5 w-3 h-3 rounded-full bg-blue-400/40 dark:bg-blue-500/30 border border-blue-300/60 dark:border-blue-500/40" />
@@ -35,7 +35,7 @@ export function DashboardEmptyState() {
         </Link>
         <Link
           href="/dashboard/lancamentos"
-          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-white/[0.10] hover:bg-gray-50 dark:hover:bg-white/[0.05] text-gray-700 dark:text-gray-200 text-sm font-medium transition-colors"
         >
           <ArrowUpRight size={15} aria-hidden />
           Registrar despesa

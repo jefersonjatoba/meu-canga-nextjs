@@ -52,7 +52,7 @@ function HorasBar({ stats }: { stats: RasMonthStats }) {
           {stats.totalHoras}h / 120h
         </span>
       </div>
-      <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-gray-700/60 overflow-hidden">
+      <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.07] overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
             alerta
@@ -109,7 +109,7 @@ export function RasHeader({ competencia, stats, onNovoClick }: RasHeaderProps) {
 
       {/* Summary strip */}
       {stats && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm">
           <SummaryChip
             label="Total de Horas"
             value={`${stats.totalHoras}h`}
@@ -142,7 +142,7 @@ export function RasHeader({ competencia, stats, onNovoClick }: RasHeaderProps) {
           />
 
           {/* Divider */}
-          <div className="hidden sm:block w-px h-8 bg-gray-100 dark:bg-gray-700/60" aria-hidden />
+          <div className="hidden sm:block w-px h-8 bg-gray-100 dark:bg-white/[0.07]" aria-hidden />
 
           {/* Hours bar */}
           <HorasBar stats={stats} />

@@ -26,7 +26,7 @@ export function ContaItem({ conta, onEdit, onDesativar }: ContaItemProps) {
   const cor = conta.cor ?? '#3b82f6'
 
   return (
-    <div className="flex items-center gap-4 px-5 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1A1A1A] hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
+    <div className="flex items-center gap-4 px-5 py-4 rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
       {/* Ícone colorido */}
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-lg"

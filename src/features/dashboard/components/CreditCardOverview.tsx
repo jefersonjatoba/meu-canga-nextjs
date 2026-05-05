@@ -12,7 +12,7 @@ interface CreditCardOverviewProps {
 export function CreditCardOverview({ summary }: CreditCardOverviewProps) {
   if (summary.totalCartoes === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-700/60 dark:bg-[#1E1E1E]">
+      <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-white/[0.08] dark:bg-[#1C1C1C]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Cartoes</h2>
@@ -22,7 +22,7 @@ export function CreditCardOverview({ summary }: CreditCardOverviewProps) {
           </div>
           <Link
             href="/dashboard/cartoes"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/[0.10] dark:text-gray-300 dark:hover:bg-white/[0.05]"
           >
             Configurar cartao
           </Link>
@@ -56,8 +56,8 @@ export function CreditCardOverview({ summary }: CreditCardOverviewProps) {
         />
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700/60 dark:bg-[#1E1E1E]">
-        <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-700/40 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/[0.08] dark:bg-[#1C1C1C]">
+        <div className="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 dark:border-white/[0.05] sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
               Faturas proximas
@@ -68,7 +68,7 @@ export function CreditCardOverview({ summary }: CreditCardOverviewProps) {
           </div>
           <Link
             href="/dashboard/cartoes"
-            className="inline-flex h-8 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/[0.10] dark:text-gray-300 dark:hover:bg-white/[0.05]"
           >
             Gerenciar faturas
           </Link>
@@ -79,7 +79,7 @@ export function CreditCardOverview({ summary }: CreditCardOverviewProps) {
             Nenhuma fatura aberta no momento.
           </p>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-700/40">
+          <ul className="divide-y divide-gray-100 dark:divide-white/[0.05]">
             {summary.faturasProximas.slice(0, 5).map(fatura => (
               <li key={fatura.id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">

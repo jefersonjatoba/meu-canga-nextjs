@@ -51,7 +51,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-white text-gray-900 dark:bg-precision-black dark:text-gray-100 antialiased">
+      <body className="antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

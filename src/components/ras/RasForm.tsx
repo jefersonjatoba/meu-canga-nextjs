@@ -151,7 +151,7 @@ export function RasForm({
           value={values.data}
           onChange={(e) => set('data', e.target.value)}
           required
-          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm bg-white dark:bg-[#141414] border border-gray-300 dark:border-white/[0.10]"
         />
       </div>
 
@@ -164,7 +164,7 @@ export function RasForm({
         <select
           value={values.horaInicio}
           onChange={(e) => set('horaInicio', e.target.value)}
-          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm bg-white dark:bg-[#141414] border border-gray-300 dark:border-white/[0.10]"
         >
           {horaOptions.map(({ value, label }) => (
             <option key={value} value={value}>
@@ -187,7 +187,7 @@ export function RasForm({
                 'rounded-lg py-2 text-sm font-semibold transition-all',
                 values.duracao === d
                   ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                  : 'bg-gray-100 dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/[0.10]'
               )}
             >
               <div>{d}h</div>
@@ -216,7 +216,7 @@ export function RasForm({
                 'rounded-lg py-2 text-sm font-medium transition-all',
                 values.graduacao === g
                   ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                  : 'bg-gray-100 dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/[0.10]'
               )}
             >
               {RAS_GRADUACAO_LABELS[g]}
@@ -239,7 +239,7 @@ export function RasForm({
                   'rounded-lg py-1.5 text-xs font-medium transition-all',
                   values.tipo === t
                     ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                    : 'bg-gray-100 dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/[0.10]'
                 )}
               >
                 {t === 'voluntario' ? '✅ Vol' : '⚡ Comp'}
@@ -259,7 +259,7 @@ export function RasForm({
                   'rounded-lg py-1.5 text-xs font-medium transition-all',
                   values.tipoVaga === v
                     ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                    : 'bg-gray-100 dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-white/[0.10]'
                 )}
               >
                 {v === 'titular' ? '★ Tit' : '🎭 Res'}
@@ -292,7 +292,7 @@ export function RasForm({
           onChange={(e) => set('observacoes', e.target.value)}
           rows={2}
           maxLength={500}
-          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white resize-none text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600"
+          className="w-full rounded-lg px-3 py-2 text-gray-900 dark:text-white resize-none text-sm bg-white dark:bg-[#141414] border border-gray-300 dark:border-white/[0.10]"
         />
       </div>
 
@@ -317,7 +317,7 @@ export function RasForm({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 font-medium text-sm border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-gray-700 dark:text-gray-300 font-medium text-sm border border-gray-300 dark:border-white/[0.10] hover:bg-gray-100 dark:hover:bg-white/[0.05] transition-colors"
           >
             Cancelar
           </button>

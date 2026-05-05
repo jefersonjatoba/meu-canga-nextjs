@@ -23,7 +23,7 @@ export function InvestimentosHeader({
     : 'text-red-600 dark:text-red-400'
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-[#111111]">
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-white/[0.06] dark:bg-[#1A1A1A]">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -51,7 +51,7 @@ export function InvestimentosHeader({
         <Metric label="Resultado" value={formatBRL(resultadoCentavos)} valueClassName={resultadoClass} />
       </div>
 
-      <div className="mt-4 flex gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-[#151515]">
+      <div className="mt-4 flex gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-[#151515]">
         <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden />
         <p className="text-sm text-gray-600 dark:text-gray-400">
           Investimentos nao alteram automaticamente seu saldo financeiro.
@@ -71,7 +71,7 @@ function Metric({
   valueClassName?: string
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-[#151515]">
+    <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/[0.06] dark:bg-[#151515]">
       <p className="text-xs font-medium uppercase text-gray-500 dark:text-gray-500">{label}</p>
       <p className={`mt-1 text-lg font-bold ${valueClassName}`}>{value}</p>
     </div>

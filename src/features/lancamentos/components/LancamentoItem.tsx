@@ -35,7 +35,7 @@ const tipoIconStyle: Record<TipoLancamento, string> = {
   ras:                'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
   investment_aporte:  'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
   investment_resgate: 'bg-purple-50 dark:bg-purple-900/20 text-purple-400 dark:text-purple-300',
-  transfer:           'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
+  transfer:           'bg-gray-100 dark:bg-white/[0.05] text-gray-500 dark:text-gray-400',
 }
 
 const tipoValueStyle: Record<TipoLancamento, string> = {
@@ -79,7 +79,7 @@ export function LancamentoItem({ item, onEdit, onDelete, isLast = false }: Lanca
     <li
       className={cn(
         'flex items-center gap-3 px-5 py-4 group',
-        !isLast && 'border-b border-gray-100 dark:border-gray-700/40',
+        !isLast && 'border-b border-gray-100 dark:border-white/[0.08]',
       )}
     >
       {/* Type icon */}
@@ -118,13 +118,13 @@ export function LancamentoItem({ item, onEdit, onDelete, isLast = false }: Lanca
           <span className="text-xs text-gray-400 dark:text-gray-500">
             {formatItemDate(item.data)}
           </span>
-          <span className="text-xs text-gray-200 dark:text-gray-700" aria-hidden>·</span>
+          <span className="text-xs text-gray-200 dark:text-gray-400" aria-hidden>·</span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {TIPO_LABELS[item.tipo] ?? item.tipo}
           </span>
           {item.categoria && (
             <>
-              <span className="text-xs text-gray-200 dark:text-gray-700" aria-hidden>·</span>
+              <span className="text-xs text-gray-200 dark:text-gray-400" aria-hidden>·</span>
               <span className="text-xs text-gray-400 dark:text-gray-500">{item.categoria}</span>
             </>
           )}

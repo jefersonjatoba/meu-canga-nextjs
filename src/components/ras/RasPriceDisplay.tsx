@@ -64,11 +64,11 @@ export function RasPriceTable({
 
   return (
     <div
-      className={cn('rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700/60', className)}
+      className={cn('rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08]', className)}
     >
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 dark:bg-gray-800/50">
+          <tr className="bg-gray-50 dark:bg-white/[0.05]">
             <th className="text-left text-gray-700 dark:text-gray-300 font-medium px-4 py-3 text-xs">
               Graduacao / Duração
             </th>
@@ -93,8 +93,8 @@ export function RasPriceTable({
                 highlightGraduacao === grad
                   ? 'bg-blue-50 dark:bg-blue-900/20'
                   : idx % 2 === 0
-                  ? 'bg-gray-50 dark:bg-gray-800/30'
-                  : 'bg-white dark:bg-gray-900/50'
+                  ? 'bg-gray-50 dark:bg-white/[0.05]'
+                  : 'bg-white dark:bg-white/[0.04]'
               )}
             >
               <td

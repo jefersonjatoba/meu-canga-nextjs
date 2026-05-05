@@ -185,13 +185,13 @@ function FaturaDetalheContent({
         </h3>
 
         {grupos.length === 0 ? (
-          <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-[#111111] dark:text-gray-400">
+          <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 dark:border-white/[0.06] dark:bg-[#1A1A1A] dark:text-gray-400">
             Nenhuma parcela vinculada.
           </p>
         ) : (
           <div className="grid gap-3">
             {grupos.map(grupo => (
-              <div key={grupo.compra.id} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-[#111111]">
+              <div key={grupo.compra.id} className="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/[0.06] dark:bg-[#1A1A1A]">
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -230,7 +230,7 @@ function FaturaDetalheContent({
                   </div>
 
                   {grupo.parcelas.map(parcela => (
-                    <div key={parcela.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-800 dark:bg-[#151515]">
+                    <div key={parcela.id} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 dark:border-white/[0.06] dark:bg-[#151515]">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" size="sm">
@@ -259,13 +259,13 @@ function FaturaDetalheContent({
       <section>
         <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Pagamentos</h3>
         {detalhe.pagamentos.length === 0 ? (
-          <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-[#111111] dark:text-gray-400">
+          <p className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 dark:border-white/[0.06] dark:bg-[#1A1A1A] dark:text-gray-400">
             Nenhum pagamento registrado.
           </p>
         ) : (
           <div className="space-y-2">
             {detalhe.pagamentos.map(pagamento => (
-              <div key={pagamento.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-[#111111]">
+              <div key={pagamento.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-white/[0.06] dark:bg-[#1A1A1A]">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {pagamento.contaPagamento?.nome ?? 'Conta de pagamento'}
@@ -315,7 +315,7 @@ function CancelarCompraDialog({
 
         {target && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#151515]">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-white/[0.06] dark:bg-[#151515]">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {target.compra.descricao}
               </p>
@@ -338,7 +338,7 @@ function CancelarCompraDialog({
                 type="checkbox"
                 checked={confirmed}
                 onChange={(event) => onConfirmedChange(event.target.checked)}
-                className="mt-1 rounded border-gray-300 dark:border-gray-600"
+                className="mt-1 rounded border-gray-300 dark:border-white/[0.10]"
               />
               <span>Confirmo que desejo cancelar esta compra</span>
             </label>
@@ -419,7 +419,7 @@ function getCancelEligibility(
 
 function Resumo({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-[#151515]">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/[0.06] dark:bg-[#151515]">
       <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-500">{label}</p>
       <p className={`mt-1 text-sm ${strong ? 'font-bold' : 'font-semibold'} text-gray-900 dark:text-gray-100`}>
         {value}

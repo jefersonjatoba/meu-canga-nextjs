@@ -18,19 +18,30 @@ import {
 } from 'recharts'
 import { cn } from '@/lib/utils'
 import { fmtBRL } from '@/types/ras'
+import { useTheme } from '@/hooks/useTheme'
 
-// ─── Shared tooltip style ─────────────────────────────────────────────────────
+// ─── Theme-aware chart config hook ───────────────────────────────────────────
 
-const tooltipStyle = {
-  contentStyle: {
-    background: '#1E1E1E',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: 8,
-    fontSize: 12,
-    color: '#F3F4F6',
-  },
-  labelStyle: { color: '#F3F4F6' },
-  wrapperStyle: { outline: 'none' },
+function useChartTheme() {
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+
+  return {
+    tooltipStyle: {
+      contentStyle: {
+        background: isDark ? '#1C1C1C' : '#FFFFFF',
+        border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid #E5E7EB',
+        borderRadius: 8,
+        fontSize: 12,
+        color: isDark ? '#F3F4F6' : '#111827',
+      },
+      labelStyle: { color: isDark ? '#D1D5DB' : '#374151' },
+      wrapperStyle: { outline: 'none' },
+    },
+    tickColor: isDark ? '#9CA3AF' : '#6B7280',
+    gridColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    legendColor: isDark ? '#9CA3AF' : '#6B7280',
+  }
 }
 
 // ─── Monthly Hours Bar Chart ──────────────────────────────────────────────────
@@ -54,35 +65,37 @@ export function RasHorasChart({
   title = 'Horas por Mês',
   className,
 }: RasHorasChartProps) {
+  const { tooltipStyle, tickColor, gridColor } = useChartTheme()
+
   if (isLoading) {
     return (
       <div
-        className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+        className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
       >
-        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse mb-4" />
+        <div className="h-48 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
     >
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        ⏰ {title}
+        {title}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(229, 231, 235, 0.2)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
           <XAxis
             dataKey="mes"
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `${v}h`}
@@ -113,35 +126,37 @@ export function RasValorChart({
   title = 'Valor por Mês',
   className,
 }: RasValorChartProps) {
+  const { tooltipStyle, tickColor, gridColor } = useChartTheme()
+
   if (isLoading) {
     return (
       <div
-        className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+        className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
       >
-        <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-4 w-32 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse mb-4" />
+        <div className="h-48 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
     >
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        💰 {title}
+        {title}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(229, 231, 235, 0.2)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
           <XAxis
             dataKey="mes"
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `R$${v}`}
@@ -183,35 +198,37 @@ export function RasProjecaoChart({
   title = 'Projeção de Renda',
   className,
 }: RasProjecaoChartProps) {
+  const { tooltipStyle, tickColor, gridColor, legendColor } = useChartTheme()
+
   if (isLoading) {
     return (
       <div
-        className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+        className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
       >
-        <div className="h-4 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
-        <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-4 w-40 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse mb-4" />
+        <div className="h-48 bg-gray-200 dark:bg-white/[0.06] rounded animate-pulse" />
       </div>
     )
   }
 
   return (
     <div
-      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
     >
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        📈 {title}
+        {title}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(229, 231, 235, 0.2)" />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
           <XAxis
             dataKey="mes"
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#6b7280', fontSize: 11 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `R$${v}`}
@@ -224,9 +241,9 @@ export function RasProjecaoChart({
             ]}
           />
           <Legend
-            wrapperStyle={{ color: '#6b7280', fontSize: 11 }}
+            wrapperStyle={{ color: legendColor, fontSize: 11 }}
             formatter={(value) =>
-              value === 'realizado' ? '✅ Realizado' : '📊 Projetado'
+              value === 'realizado' ? 'Realizado' : 'Projetado'
             }
           />
           <Line
@@ -273,18 +290,18 @@ export function RasTipoPieChart({
   title = 'RAS por Tipo',
   className,
 }: RasTipoPieChartProps) {
+  const { tooltipStyle, legendColor } = useChartTheme()
+
   const data: TipoDataPoint[] = [
-    { name: '✅ Voluntário', value: voluntario, color: '#60a5fa' },
-    { name: '⚡ Compulsório', value: compulsorio, color: '#f59e0b' },
+    { name: 'Voluntário', value: voluntario, color: '#60a5fa' },
+    { name: 'Compulsório', value: compulsorio, color: '#f59e0b' },
   ].filter((d) => d.value > 0)
 
   if (data.length === 0) {
     return (
       <div
-        className={cn('rounded-xl p-4 flex items-center justify-center bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
-        style={{
-          minHeight: 160,
-        }}
+        className={cn('rounded-xl p-4 flex items-center justify-center bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
+        style={{ minHeight: 160 }}
       >
         <p className="text-xs text-gray-500 dark:text-gray-400">Sem dados para este período</p>
       </div>
@@ -293,10 +310,10 @@ export function RasTipoPieChart({
 
   return (
     <div
-      className={cn('rounded-xl p-4 bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-gray-700/60', className)}
+      className={cn('rounded-xl p-4 bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.08]', className)}
     >
       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-        📍 {title}
+        {title}
       </h3>
       <ResponsiveContainer width="100%" height={160}>
         <PieChart>
@@ -308,7 +325,7 @@ export function RasTipoPieChart({
             outerRadius={65}
             paddingAngle={3}
             dataKey="value"
-            label={({ name, percent }) =>
+            label={({ percent }) =>
               `${Math.round((percent ?? 0) * 100)}%`
             }
             labelLine={false}
@@ -322,7 +339,7 @@ export function RasTipoPieChart({
             formatter={(v, name) => [v, name]}
           />
           <Legend
-            wrapperStyle={{ fontSize: 11, color: '#6b7280' }}
+            wrapperStyle={{ fontSize: 11, color: legendColor }}
           />
         </PieChart>
       </ResponsiveContainer>

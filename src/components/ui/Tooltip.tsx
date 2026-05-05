@@ -21,10 +21,10 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
   }
 
   const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-gray-800 dark:border-t-gray-700',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-800 dark:border-b-gray-700',
-    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-gray-800 dark:border-l-gray-700',
-    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-800 dark:border-r-gray-700',
+    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-gray-800 dark:border-t-[#2A2A2A]',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-800 dark:border-b-[#2A2A2A]',
+    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-gray-800 dark:border-l-[#2A2A2A]',
+    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-800 dark:border-r-[#2A2A2A]',
   }
 
   return (
@@ -43,7 +43,7 @@ export function Tooltip({ content, children, side = 'top', className }: TooltipP
           className={cn(
             'absolute z-[700] pointer-events-none',
             'max-w-xs rounded-lg px-2.5 py-1.5',
-            'bg-gray-800 dark:bg-gray-700 text-white text-xs leading-snug whitespace-normal',
+            'bg-gray-800 dark:bg-white/[0.07] text-white text-xs leading-snug whitespace-normal',
             'shadow-lg',
             'animate-in fade-in-0 zoom-in-95 duration-100',
             positionClasses[side],

@@ -108,7 +108,7 @@ export function CategoriaForm({
           </label>
           <select
             {...register('tipo')}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-[#1E1E1E] dark:text-gray-100"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/[0.10] dark:bg-[#1C1C1C] dark:text-gray-100"
           >
             {TIPOS_CATEGORIA.map((tipo) => (
               <option key={tipo} value={tipo}>{TIPO_CATEGORIA_LABELS[tipo]}</option>
@@ -143,7 +143,7 @@ export function CategoriaForm({
               type="button"
               onClick={() => setValue('cor', preset, { shouldValidate: true })}
               className={`h-7 w-7 rounded-full transition-transform ${
-                cor === preset ? 'scale-125 ring-2 ring-gray-400 ring-offset-2 dark:ring-offset-[#1E1E1E]' : 'hover:scale-110'
+                cor === preset ? 'scale-125 ring-2 ring-gray-400 ring-offset-2 dark:ring-offset-[#1C1C1C]' : 'hover:scale-110'
               }`}
               style={{ backgroundColor: preset }}
               aria-label={`Cor ${preset}`}

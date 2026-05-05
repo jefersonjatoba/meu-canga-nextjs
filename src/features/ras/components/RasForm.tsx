@@ -81,7 +81,7 @@ function ToggleButton({
         'rounded-lg py-2 text-sm font-medium transition-all',
         active
           ? 'bg-blue-600 text-white shadow-sm'
-          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700',
+          : 'bg-white dark:bg-white/[0.05] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/[0.08] hover:bg-gray-50 dark:hover:bg-white/[0.07]',
         className
       )}
     >
@@ -184,9 +184,9 @@ export function RasForm({
             onChange={(e) => set('data', e.target.value)}
             required
             className="w-full rounded-lg px-3 py-2 text-sm
-              bg-white dark:bg-[#1E1E1E]
+              bg-white dark:bg-[#1C1C1C]
               text-gray-900 dark:text-gray-100
-              border border-gray-300 dark:border-gray-600
+              border border-gray-300 dark:border-white/[0.10]
               focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
               transition-colors
               [color-scheme:light] dark:[color-scheme:dark]"
@@ -201,9 +201,9 @@ export function RasForm({
             value={values.horaInicio}
             onChange={(e) => set('horaInicio', e.target.value)}
             className="w-full rounded-lg px-3 py-2 text-sm
-              bg-white dark:bg-[#1E1E1E]
+              bg-white dark:bg-[#1C1C1C]
               text-gray-900 dark:text-gray-100
-              border border-gray-300 dark:border-gray-600
+              border border-gray-300 dark:border-white/[0.10]
               focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
               transition-colors"
           >
@@ -328,9 +328,9 @@ export function RasForm({
           rows={2}
           maxLength={500}
           className="w-full rounded-lg px-3 py-2 text-sm resize-none
-            bg-white dark:bg-[#1E1E1E]
+            bg-white dark:bg-[#1C1C1C]
             text-gray-900 dark:text-gray-100
-            border border-gray-300 dark:border-gray-600
+            border border-gray-300 dark:border-white/[0.10]
             focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
             transition-colors"
         />
@@ -360,8 +360,8 @@ export function RasForm({
             onClick={onCancel}
             className="flex-1 py-2 rounded-xl text-sm font-medium
               text-gray-600 dark:text-gray-400
-              border border-gray-200 dark:border-gray-700
-              hover:bg-gray-50 dark:hover:bg-gray-800
+              border border-gray-200 dark:border-white/[0.08]
+              hover:bg-gray-50 dark:hover:bg-white/[0.05]
               transition-colors"
           >
             Cancelar

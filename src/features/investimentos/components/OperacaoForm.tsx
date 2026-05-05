@@ -67,7 +67,7 @@ export function OperacaoForm({ ativo, onSuccess, onCancel }: OperacaoFormProps) 
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-[#151515]">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/[0.06] dark:bg-[#151515]">
         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           {ativo.nome} ({ativo.ticker})
         </p>
@@ -76,7 +76,7 @@ export function OperacaoForm({ ativo, onSuccess, onCancel }: OperacaoFormProps) 
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-800 dark:bg-[#151515]">
+      <div className="grid grid-cols-2 gap-2 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-white/[0.06] dark:bg-[#151515]">
         {(['compra', 'venda'] as const).map(option => (
           <button
             key={option}
@@ -84,7 +84,7 @@ export function OperacaoForm({ ativo, onSuccess, onCancel }: OperacaoFormProps) 
             onClick={() => setTipo(option)}
             className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
               tipo === option
-                ? 'bg-white text-blue-600 shadow-sm dark:bg-[#1E1E1E] dark:text-blue-300'
+                ? 'bg-white text-blue-600 shadow-sm dark:bg-[#1C1C1C] dark:text-blue-300'
                 : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100'
             }`}
           >
@@ -167,7 +167,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-const inputClassName = 'w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-[#1E1E1E] dark:text-gray-100'
+const inputClassName = 'w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/[0.08] dark:bg-[#1C1C1C] dark:text-gray-100'
 
 function parseMoneyInput(value: string): number | null {
   if (!value) return null

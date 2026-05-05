@@ -20,7 +20,7 @@ export interface LineItemProps {
 
 export function LineItem({
   icon,
-  iconBg = 'bg-gray-100 dark:bg-gray-800',
+  iconBg = 'bg-gray-100 dark:bg-white/[0.05]',
   title,
   subtitle,
   amount,
@@ -45,7 +45,7 @@ export function LineItem({
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
       className={cn(
         'flex items-center gap-3 py-3 px-4',
-        'border-b border-gray-100 dark:border-gray-700/50 last:border-0',
+        'border-b border-gray-100 dark:border-white/[0.08] last:border-0',
         onClick &&
           'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors duration-150',
         className

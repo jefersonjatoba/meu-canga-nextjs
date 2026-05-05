@@ -65,8 +65,8 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'rounded-xl border border-gray-200 dark:border-gray-700/60',
-        'bg-white dark:bg-[#1E1E1E]',
+        'rounded-xl border border-gray-200 dark:border-white/[0.08]',
+        'bg-white dark:bg-[#1C1C1C]',
         'shadow-sm p-6',
         'flex flex-col gap-3',
         className
@@ -92,8 +92,8 @@ export function StatCard({
       {/* Value */}
       {isLoading ? (
         <div className="space-y-2">
-          <div className="h-8 w-32 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
-          <div className="h-4 w-20 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+          <div className="h-8 w-32 rounded-lg bg-gray-200 dark:bg-white/[0.07] animate-pulse" />
+          <div className="h-4 w-20 rounded-lg bg-gray-200 dark:bg-white/[0.07] animate-pulse" />
         </div>
       ) : (
         <>
@@ -109,7 +109,7 @@ export function StatCard({
                   'inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-md',
                   trendPositive && 'text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/30',
                   trendNegative && 'text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-900/30',
-                  trendNeutral && 'text-gray-500 bg-gray-100 dark:text-gray-400 dark:bg-gray-700'
+                  trendNeutral && 'text-gray-500 bg-gray-100 dark:text-gray-400 dark:bg-white/[0.07]'
                 )}
                 aria-label={`Variação: ${trend > 0 ? '+' : ''}${trend}%`}
               >

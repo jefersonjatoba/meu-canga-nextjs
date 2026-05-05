@@ -13,7 +13,7 @@ export function CategoriaItem({ categoria, onEdit, onDesativar }: CategoriaItemP
   const cor = categoria.cor ?? '#3b82f6'
 
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 transition-colors hover:border-gray-300 dark:border-gray-700 dark:bg-[#1A1A1A] dark:hover:border-gray-600">
+    <div className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 transition-colors hover:border-gray-300 dark:border-white/[0.08] dark:bg-[#1A1A1A] dark:hover:border-gray-600">
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-semibold"
         style={{ backgroundColor: `${cor}20`, border: `1.5px solid ${cor}40`, color: cor }}

@@ -36,7 +36,7 @@ export function CategoriasHeader({
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-[#1A1A1A]">
+        <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-white/[0.08] dark:bg-[#1A1A1A]">
           {filtros.map((item) => (
             <button
               key={item.value}
@@ -45,7 +45,7 @@ export function CategoriasHeader({
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 tipo === item.value
                   ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800'
+                  : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-white/[0.05]'
               }`}
             >
               {item.label}

@@ -65,7 +65,7 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
               boxSize,
               isCheckedOrIndeterminate
                 ? 'bg-accent-blue border-accent-blue'
-                : 'bg-white dark:bg-[#1E1E1E] border-gray-300 dark:border-gray-600',
+                : 'bg-white dark:bg-[#1C1C1C] border-gray-300 dark:border-white/[0.10]',
               hasError && !isCheckedOrIndeterminate && 'border-error',
               !disabled && 'group-hover:border-accent-blue'
             )}

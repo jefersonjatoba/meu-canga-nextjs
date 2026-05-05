@@ -74,9 +74,9 @@ export function Select({
             'text-sm text-gray-900 placeholder:text-gray-400',
             'transition-all duration-200',
             'focus:outline-none focus:ring-2 focus:ring-offset-0',
-            'dark:bg-[#1E1E1E] dark:text-gray-100',
+            'dark:bg-[#1C1C1C] dark:text-gray-100',
             !hasError
-              ? 'border-gray-300 dark:border-gray-600 focus:ring-accent-blue focus:border-accent-blue'
+              ? 'border-gray-300 dark:border-white/[0.12] focus:ring-accent-blue focus:border-accent-blue'
               : 'border-error focus:ring-error',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             '[&[data-placeholder]]:text-gray-400 dark:[&[data-placeholder]]:text-gray-500'
@@ -92,8 +92,8 @@ export function Select({
           <RadixSelect.Content
             className={cn(
               'relative z-[600] min-w-[8rem] overflow-hidden rounded-xl border shadow-lg',
-              'bg-white dark:bg-[#1E1E1E]',
-              'border-gray-200 dark:border-gray-700',
+              'bg-white dark:bg-[#1C1C1C]',
+              'border-gray-200 dark:border-white/[0.10]',
               'animate-in fade-in-0 zoom-in-95',
               'data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2'
             )}
@@ -113,7 +113,7 @@ export function Select({
                   className={cn(
                     'relative flex w-full cursor-pointer select-none items-center rounded-md px-3 py-2',
                     'text-sm text-gray-900 dark:text-gray-100',
-                    'focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700',
+                    'focus:outline-none focus:bg-gray-100 dark:focus:bg-white/[0.07]',
                     'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed',
                     'transition-colors duration-100'
                   )}

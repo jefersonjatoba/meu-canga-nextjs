@@ -83,9 +83,9 @@ export function RasLocationPicker({
         disabled={disabled}
         className={cn(
           'w-full rounded-lg px-3 py-2.5 text-sm',
-          'bg-white dark:bg-[#1E1E1E]',
+          'bg-white dark:bg-[#1C1C1C]',
           'text-gray-900 dark:text-gray-100',
-          'border border-gray-300 dark:border-gray-600',
+          'border border-gray-300 dark:border-white/[0.12]',
           'focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400',
           'transition-colors',
           disabled && 'opacity-50 cursor-not-allowed',
@@ -118,10 +118,10 @@ export function RasLocationPicker({
         className={cn(
           'w-full rounded-lg px-3 py-2 text-left flex items-center gap-2',
           'border text-sm transition-colors',
-          'bg-white dark:bg-gray-900',
+          'bg-white dark:bg-[#1C1C1C]',
           open
             ? 'border-blue-500 dark:border-blue-600'
-            : 'border-gray-300 dark:border-gray-600',
+            : 'border-gray-300 dark:border-white/[0.12]',
           disabled && 'opacity-50 cursor-not-allowed',
           !value ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'
         )}
@@ -140,7 +140,7 @@ export function RasLocationPicker({
       {/* Dropdown */}
       {open && (
         <div
-          className="absolute z-50 left-0 right-0 top-full mt-1 rounded-xl overflow-hidden shadow-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+          className="absolute z-50 left-0 right-0 top-full mt-1 rounded-xl overflow-hidden shadow-xl bg-white dark:bg-[#1C1C1C] border border-gray-200 dark:border-white/[0.10]"
           style={{
             maxHeight: 340,
             display: 'flex',
@@ -148,7 +148,7 @@ export function RasLocationPicker({
           }}
         >
           {/* Search */}
-          <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-2 border-b border-gray-200 dark:border-white/[0.08]">
             <div className="relative">
               <Search
                 size={13}
@@ -160,7 +160,7 @@ export function RasLocationPicker({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar unidade..."
-                className="w-full pl-7 pr-7 py-1.5 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 outline-none focus:border-blue-500 dark:focus:border-blue-600"
+                className="w-full pl-7 pr-7 py-1.5 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-500 bg-gray-50 dark:bg-white/[0.05] border border-gray-300 dark:border-white/[0.10] outline-none focus:border-blue-500 dark:focus:border-blue-500"
               />
               {search && (
                 <button
@@ -198,8 +198,8 @@ export function RasLocationPicker({
                       className={cn(
                         'w-full text-left px-3 py-1.5 text-xs transition-colors',
                         local === value
-                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/[0.12]'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]'
                       )}
                     >
                       {local}

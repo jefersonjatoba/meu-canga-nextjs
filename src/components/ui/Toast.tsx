@@ -84,26 +84,26 @@ const toastConfig: Record<
 > = {
   success: {
     icon: CheckCircle2,
-    bg: 'bg-white dark:bg-[#1E1E1E]',
-    border: 'border-green-200 dark:border-green-800',
+    bg: 'bg-white dark:bg-[#1C1C1C]',
+    border: 'border-green-200 dark:border-emerald-500/20',
     iconClass: 'text-green-500',
   },
   error: {
     icon: XCircle,
-    bg: 'bg-white dark:bg-[#1E1E1E]',
-    border: 'border-red-200 dark:border-red-800',
+    bg: 'bg-white dark:bg-[#1C1C1C]',
+    border: 'border-red-200 dark:border-red-500/20',
     iconClass: 'text-red-500',
   },
   warning: {
     icon: AlertCircle,
-    bg: 'bg-white dark:bg-[#1E1E1E]',
-    border: 'border-amber-200 dark:border-amber-800',
+    bg: 'bg-white dark:bg-[#1C1C1C]',
+    border: 'border-amber-200 dark:border-amber-500/20',
     iconClass: 'text-amber-500',
   },
   info: {
     icon: Info,
-    bg: 'bg-white dark:bg-[#1E1E1E]',
-    border: 'border-blue-200 dark:border-blue-800',
+    bg: 'bg-white dark:bg-[#1C1C1C]',
+    border: 'border-blue-200 dark:border-blue-500/20',
     iconClass: 'text-blue-500',
   },
 }
