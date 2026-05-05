@@ -148,14 +148,13 @@ async function getProximaEscalaForUser(userId: string): Promise<{
   diasAte: number
 } | null> {
   const hoje = getDataHojeSP()
-  const hojeDate = new Date(`${hoje}T00:00:00Z`)
 
-  const proximaEscala = await prisma.escala.findFirst({
+  // Fetch all active escalas from today onwards, then filter in memory (same as /dashboard/escala)
+  // This ensures consistency with diasAteProximo() logic which uses string comparison
+  const todasAsEscalas = await prisma.escala.findMany({
     where: {
       userId,
       status: 'agendada',
-      // Compare as ISO date strings (YYYY-MM-DD) in São Paulo timezone
-      dataEscala: { gte: new Date(hoje) },
     },
     orderBy: { dataEscala: 'asc' },
     select: {
@@ -167,21 +166,26 @@ async function getProximaEscalaForUser(userId: string): Promise<{
     },
   })
 
-  if (!proximaEscala) return null
+  // Filter: keep only escalas >= today (string comparison of YYYY-MM-DD)
+  const proximaEscalaObj = todasAsEscalas.find(e => {
+    const dataISO = toISODateBR(e.dataEscala)
+    return dataISO >= hoje
+  })
 
-  // Convert DateTime from Prisma to ISO date string using São Paulo timezone
-  const dataISO = toISODateBR(proximaEscala.dataEscala)
+  if (!proximaEscalaObj) return null
+
+  const dataISO = toISODateBR(proximaEscalaObj.dataEscala)
+  const hojeDate = new Date(`${hoje}T00:00:00Z`)
   const dataDate = new Date(`${dataISO}T00:00:00Z`)
 
-  // Calculate dias até using São Paulo date comparison (string comparison works for YYYY-MM-DD)
-  const diasAte = Math.ceil((dataDate.getTime() - hojeDate.getTime()) / (1000 * 60 * 60 * 24))
+  const diasAte = Math.round((dataDate.getTime() - hojeDate.getTime()) / (1000 * 60 * 60 * 24))
 
   return {
     data: dataISO,
-    horaInicio: proximaEscala.horaInicio,
-    horaFim: proximaEscala.horaFim,
-    tipoTurno: proximaEscala.tipoTurno,
-    localServico: proximaEscala.localServico,
+    horaInicio: proximaEscalaObj.horaInicio,
+    horaFim: proximaEscalaObj.horaFim,
+    tipoTurno: proximaEscalaObj.tipoTurno,
+    localServico: proximaEscalaObj.localServico,
     diasAte,
   }
 }
