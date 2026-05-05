@@ -58,8 +58,22 @@ export function currentMonthBR(): string {
   return todayBR().slice(0, 7)
 }
 
-/** Convert a Date to "YYYY-MM-DD" using Brazil timezone */
+/** Convert a Date to "YYYY-MM-DD" using Brazil timezone
+ *
+ * Special handling: If date is exactly midnight UTC (HH:mm:ss.000Z),
+ * treat it as a date-only value (likely stored without timezone awareness).
+ * This handles legacy data stored as "2026-05-07T00:00:00.000Z" that should
+ * represent "2026-05-07" in São Paulo local time, not UTC.
+ */
 export function toISODateBR(date: Date): string {
+  const isoString = date.toISOString()
+
+  // If date is exactly midnight UTC, interpret as local date (not UTC conversion)
+  if (isoString.endsWith('T00:00:00.000Z')) {
+    const [dateOnly] = isoString.split('T')
+    return dateOnly
+  }
+
   return date.toLocaleDateString('sv-SE', { timeZone: TZ })
 }
 
