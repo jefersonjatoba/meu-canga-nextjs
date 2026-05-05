@@ -6,7 +6,31 @@
   Override to selector-based so our useTheme hook controls it via
   class="dark" on <html>.
 */
-@variant dark (&:where(.dark, .dark *));
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+}
+
+/* ─── Light theme (default) ───────────────────────────────────────────────────── */
+:root {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F9FAFB;
+  --text-primary: #111827;
+  --border-color: #E5E7EB;
+}
+
+/* ─── Dark theme ──────────────────────────────────────────────────────────────── */
+.dark {
+  --bg-primary: #111111;
+  --bg-secondary: #1E1E1E;
+  --text-primary: #F3F4F6;
+  --border-color: #2D2D2D;
+}
 
 /* ─── Tailwind v4 theme — CSS custom properties ─────────────────────────────── */
 @theme {
