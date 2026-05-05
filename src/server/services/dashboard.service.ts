@@ -10,7 +10,8 @@ import {
   listLancamentosForUser,
 } from '@/server/services/lancamento.service'
 import { getCreditCardDashboardSummary } from '@/server/services/cartao.service'
-import type { DashboardSummaryDTO, RecentTransactionItem } from '@/features/dashboard/types'
+import { prisma } from '@/lib/prisma'
+import type { DashboardSummaryDTO, RecentTransactionItem, RasItem } from '@/features/dashboard/types'
 import type { TipoLancamento } from '@/features/lancamentos/types'
 
 const COMPETENCIA_REGEX = /^\d{4}-\d{2}$/
@@ -33,10 +34,12 @@ export async function getDashboardSummaryForUser(
   const mes =
     params.mes && COMPETENCIA_REGEX.test(params.mes) ? params.mes : currentMonthBR()
 
-  const [summary, recentResult, cartao] = await Promise.all([
+  const [summary, recentResult, cartao, rasData] = await Promise.all([
     getLancamentosSummaryForUser(userId, mes),
     listLancamentosForUser(userId, { mes, pageSize: RECENT_PAGE_SIZE }),
     getCreditCardDashboardSummary(userId),
+    // Query RAS: horas do mês + próximos RAS agendados
+    getRasDataForDashboard(userId, mes),
   ])
 
   const lancamentosRecentes: RecentTransactionItem[] = recentResult.items.map(l => ({
@@ -65,5 +68,56 @@ export async function getDashboardSummaryForUser(
     lancamentosRecentes,
     hasLancamentos: recentResult.total > 0,
     cartao,
+    totalRasHoras: rasData.horasMes,
+    proximosRas: rasData.proximosRas,
   }
+}
+
+// Helper para buscar dados de RAS
+async function getRasDataForDashboard(
+  userId: string,
+  competencia: string,
+): Promise<{ horasMes: number; proximosRas: RasItem[] }> {
+  const [horasResult, proximosResult] = await Promise.all([
+    // Total de horas RAS do mês (agendado/realizado)
+    prisma.rasAgenda.aggregate({
+      where: {
+        userId,
+        competencia,
+        status: { notIn: ['cancelado'] },
+        deletadoEm: null,
+      },
+      _sum: { duracao: true },
+    }),
+    // Próximos 3 RAS agendados
+    prisma.rasAgenda.findMany({
+      where: {
+        userId,
+        status: 'agendado',
+        deletadoEm: null,
+        data: { gte: new Date() },
+      },
+      orderBy: { data: 'asc' },
+      take: 3,
+      select: {
+        data: true,
+        horaInicio: true,
+        local: true,
+        duracao: true,
+        status: true,
+      },
+    }),
+  ])
+
+  const horasMes = horasResult._sum.duracao ?? 0
+
+  const proximosRas: RasItem[] = proximosResult.map(r => ({
+    data: r.data instanceof Date ? r.data.toISOString().split('T')[0] : r.data.toString().split('T')[0],
+    horaInicio: r.horaInicio,
+    local: r.local,
+    duracao: r.duracao,
+    status: r.status,
+  }))
+
+  return { horasMes, proximosRas }
 }

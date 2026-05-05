@@ -15,6 +15,14 @@ export interface RecentTransactionItem {
   conta?: { id: string; nome: string; tipo: string } | null
 }
 
+export interface RasItem {
+  data: string
+  horaInicio: string
+  local: string
+  duracao: number
+  status?: string
+}
+
 export interface DashboardSummaryDTO {
   periodo: string                     // YYYY-MM
   periodoLabel: string                // "Abril 2026"
@@ -29,6 +37,8 @@ export interface DashboardSummaryDTO {
   lancamentosRecentes: RecentTransactionItem[]
   hasLancamentos: boolean
   cartao: CreditCardDashboardSummaryDTO
+  totalRasHoras?: number              // horas RAS do mês
+  proximosRas?: RasItem[]             // próximos RAS agendados
 }
 
 export type { CreditCardDashboardInvoiceItem, CreditCardDashboardSummaryDTO }
