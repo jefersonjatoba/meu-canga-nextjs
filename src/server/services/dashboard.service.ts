@@ -148,13 +148,17 @@ async function getProximaEscalaForUser(userId: string): Promise<{
   diasAte: number
 } | null> {
   const hoje = getDataHojeSP()
+  const [anoAtual, mesAtual] = hoje.slice(0, 7).split('-').map(Number)
 
-  // Fetch all active escalas from today onwards, then filter in memory (same as /dashboard/escala)
-  // This ensures consistency with diasAteProximo() logic which uses string comparison
+  // Fetch escalas from current month onwards (same scope as /dashboard/escala page)
+  // to ensure consistency with diasAteProximo() which works on monthly data
   const todasAsEscalas = await prisma.escala.findMany({
     where: {
       userId,
       status: 'agendada',
+      dataEscala: {
+        gte: new Date(anoAtual, mesAtual - 1, 1),
+      },
     },
     orderBy: { dataEscala: 'asc' },
     select: {
@@ -164,9 +168,10 @@ async function getProximaEscalaForUser(userId: string): Promise<{
       tipoTurno: true,
       localServico: true,
     },
+    take: 20,
   })
 
-  // Filter: keep only escalas >= today (string comparison of YYYY-MM-DD)
+  // Filter: keep only escalas >= today (string comparison of YYYY-MM-DD, same as diasAteProximo)
   const proximaEscalaObj = todasAsEscalas.find(e => {
     const dataISO = toISODateBR(e.dataEscala)
     return dataISO >= hoje
