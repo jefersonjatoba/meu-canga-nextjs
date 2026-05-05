@@ -32,6 +32,57 @@
   --border-color: #2D2D2D;
 }
 
+/* ─── Force dark mode styles when .dark class is present ─────────────────────── */
+.dark,
+.dark * {
+  color-scheme: dark;
+}
+
+/* Override Tailwind's dark: styles by forcing them when .dark is on html */
+.dark body {
+  @apply bg-[#0A0A0A];
+}
+
+.dark header {
+  @apply bg-[#111111] border-gray-800;
+}
+
+.dark main {
+  @apply bg-[#0A0A0A];
+}
+
+.dark .bg-white {
+  @apply bg-[#1E1E1E];
+}
+
+.dark .bg-gray-50 {
+  @apply bg-[#0A0A0A];
+}
+
+.dark .bg-gray-100 {
+  @apply bg-gray-800;
+}
+
+.dark .text-gray-900 {
+  @apply text-gray-100;
+}
+
+.dark .text-gray-800 {
+  @apply text-gray-200;
+}
+
+.dark .text-gray-700 {
+  @apply text-gray-300;
+}
+
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+
+.dark .border-gray-100 {
+  @apply border-gray-800;
+}
+
 /* ─── Tailwind v4 theme — CSS custom properties ─────────────────────────────── */
 @theme {
   /* Core palette */
