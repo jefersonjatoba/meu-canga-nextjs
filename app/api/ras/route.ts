@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     const { competencia, status, graduacao, local, page, pageSize } = parsed.data
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: Record<string, any> = { userId: user.id }
+    const where: Record<string, any> = { userId: user.id, deletadoEm: null }
 
     if (competencia) where.competencia = competencia
     if (status && status !== 'all') where.status = status

@@ -46,24 +46,24 @@ export function FinancialHeroCard({ saldoOperacionalCentavos, periodoLabel }: Fi
   const { Icon } = s
 
   return (
-    <div className={cn('rounded-2xl border shadow-sm p-6 sm:p-8', s.bg, s.border)}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-2">
-          <p className={cn('text-xs font-semibold uppercase tracking-widest', s.label)}>
+    <div className={cn('rounded-2xl border shadow-sm p-4 sm:p-6 lg:p-8', s.bg, s.border)}>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="space-y-1.5 sm:space-y-2">
+          <p className={cn('text-[10px] sm:text-xs font-semibold uppercase tracking-widest', s.label)}>
             Saldo Operacional
           </p>
-          <p className={cn('text-4xl sm:text-5xl font-black tracking-tight tabular-nums', s.value)}>
+          <p className={cn('text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight tabular-nums', s.value)}>
             {formatBRL(saldoOperacionalCentavos)}
           </p>
           <div className="flex items-center gap-1.5">
-            <Icon size={14} className={s.label} aria-hidden />
-            <p className={cn('text-sm', s.label)}>{s.message}</p>
+            <Icon size={13} className={s.label} aria-hidden />
+            <p className={cn('text-xs sm:text-sm', s.label)}>{s.message}</p>
           </div>
         </div>
 
         <span
           className={cn(
-            'self-start sm:self-auto px-3 py-1.5 rounded-lg text-sm font-medium shrink-0',
+            'self-start sm:self-auto px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium shrink-0',
             s.badge,
           )}
         >

@@ -1,14 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Bell, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Bell, Search, Menu, X } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useAuth } from '@/hooks/useAuth'
 import { Sidebar } from './Sidebar'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { Spinner } from '@/components/ui/Spinner'
 import { cn } from '@/lib/utils'
 
 export interface DashboardLayoutProps {
@@ -18,10 +17,30 @@ export interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, isLoading, isAuthenticated } = useUser()
   const { signOut } = useAuth()
+
+  // Desktop: sidebar collapsed state
   const [collapsed, setCollapsed] = useState(false)
+  // Mobile: drawer open state
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  // Lock body scroll when mobile drawer is open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -37,39 +56,73 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
     router.push('/auth/login')
   }
 
+  // Desktop sidebar width (only applied on lg+)
   const sidebarWidth = collapsed ? 68 : 256
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0F0F0F]">
-      <Sidebar
-        onSignOut={handleSignOut}
-        collapsed={collapsed}
-        onCollapsedChange={setCollapsed}
-      />
+      {/* ── Mobile overlay backdrop ── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-[190] bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden
+        />
+      )}
 
-      {/* Main area shifted by sidebar width */}
+      {/* ── Sidebar — hidden on mobile unless drawer open ── */}
       <div
-        className="flex flex-col min-h-screen transition-all duration-300"
-        style={{ marginLeft: sidebarWidth }}
+        className={cn(
+          // Mobile: fixed drawer sliding from left
+          'fixed left-0 top-0 h-full z-[200]',
+          'transition-transform duration-300 ease-in-out',
+          // Mobile: translate off-screen by default, slide in when open
+          'lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
+        <Sidebar
+          onSignOut={handleSignOut}
+          collapsed={collapsed}
+          onCollapsedChange={setCollapsed}
+          onMobileClose={() => setMobileOpen(false)}
+          isMobileOpen={mobileOpen}
+        />
+      </div>
+
+      {/* ── Main area — full width on mobile, shifted on desktop ── */}
+      <div
+        className="flex flex-col min-h-screen transition-all duration-300 lg:ml-[var(--sidebar-w)]"
+        style={{ '--sidebar-w': `${sidebarWidth}px` } as React.CSSProperties}
       >
         {/* Sticky header */}
-        <header className="sticky top-0 z-[200] flex items-center justify-between h-16 px-6 bg-white dark:bg-[#141414] border-b border-gray-200 dark:border-white/[0.06]">
-          {/* Left: page title */}
-          <div>
+        <header className="sticky top-0 z-[150] flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 bg-white dark:bg-[#141414] border-b border-gray-200 dark:border-white/[0.06]">
+          {/* Left: hamburger (mobile) + page title */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Hamburger — mobile only */}
+            <button
+              type="button"
+              aria-label="Abrir menu"
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden h-9 w-9 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors shrink-0"
+            >
+              <Menu size={20} />
+            </button>
+
             {pageTitle && (
-              <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              <h1 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {pageTitle}
               </h1>
             )}
           </div>
 
           {/* Right: actions */}
-          <div className="flex items-center gap-2">
-            {/* Search */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Search — hidden on smallest screens */}
             <button
               type="button"
               aria-label="Buscar"
-              className="h-9 w-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors"
+              className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.07] transition-colors"
             >
               <Search size={16} />
             </button>
@@ -86,8 +139,8 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
 
             <ThemeToggle size="sm" />
 
-            {/* User avatar or loading skeleton */}
-            <div className="flex items-center gap-2.5 ml-2 pl-3 border-l border-gray-200 dark:border-white/[0.08]">
+            {/* User avatar */}
+            <div className="flex items-center gap-2 ml-1 pl-2 sm:ml-2 sm:pl-3 border-l border-gray-200 dark:border-white/[0.08]">
               <div className={cn(
                 "h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors",
                 isLoading
@@ -100,6 +153,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
                   </span>
                 )}
               </div>
+              {/* Name/email — only on md+ */}
               <div className="hidden md:block text-right leading-tight">
                 {isLoading ? (
                   <>
@@ -122,15 +176,15 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6 lg:p-8 bg-gray-50 dark:bg-[#0F0F0F]">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-[#0F0F0F]">
           {isLoading ? (
             <div className="space-y-4">
               <div className="h-8 w-48 bg-gray-300 dark:bg-white/[0.07] rounded animate-pulse" />
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
-                    className="h-32 bg-gray-300 dark:bg-white/[0.07] rounded animate-pulse"
+                    className="h-28 sm:h-32 bg-gray-300 dark:bg-white/[0.07] rounded animate-pulse"
                   />
                 ))}
               </div>

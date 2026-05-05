@@ -53,18 +53,19 @@ export function MetricCard({ title, value, description, tone = 'neutral', icon }
   return (
     <div
       className={cn(
-        'rounded-xl border bg-white dark:bg-[#1C1C1C] shadow-sm dark:shadow-none p-5 flex flex-col gap-3',
+        'rounded-xl border bg-white dark:bg-[#1C1C1C] shadow-sm dark:shadow-none',
+        'p-3 sm:p-5 flex flex-col gap-2 sm:gap-3',
         s.border,
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 leading-tight">
+        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 leading-tight">
           {title}
         </p>
         {icon && (
           <span
             className={cn(
-              'flex items-center justify-center w-8 h-8 rounded-lg shrink-0',
+              'flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg shrink-0',
               s.iconBg,
               s.iconColor,
             )}
@@ -75,10 +76,10 @@ export function MetricCard({ title, value, description, tone = 'neutral', icon }
         )}
       </div>
 
-      <p className={cn('text-2xl font-bold tracking-tight tabular-nums', s.value)}>{value}</p>
+      <p className={cn('text-xl sm:text-2xl font-bold tracking-tight tabular-nums', s.value)}>{value}</p>
 
       {description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug -mt-1">
+        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 leading-snug -mt-1">
           {description}
         </p>
       )}
