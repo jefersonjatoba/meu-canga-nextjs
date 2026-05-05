@@ -12,6 +12,12 @@ export interface ThemeToggleProps {
 
 export function ThemeToggle({ className, size = 'md' }: ThemeToggleProps) {
   const { resolvedTheme, toggle } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const isDark = resolvedTheme === 'dark'
   const iconSize = size === 'sm' ? 14 : 16
   const btnSize = size === 'sm' ? 'h-8 w-8' : 'h-9 w-9'
@@ -21,7 +27,8 @@ export function ThemeToggle({ className, size = 'md' }: ThemeToggleProps) {
       type="button"
       onClick={toggle}
       aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-      aria-pressed={isDark}
+      aria-pressed={mounted ? isDark : false}
+      suppressHydrationWarning
       className={cn(
         'inline-flex items-center justify-center rounded-lg',
         'border border-gray-200 dark:border-white/[0.10]',

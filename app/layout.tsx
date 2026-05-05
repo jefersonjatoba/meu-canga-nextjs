@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from './providers'
 
@@ -44,8 +45,9 @@ export default function RootLayout({
         harmless mismatch that React would otherwise warn about.
       */}
       <head>
-        {/* Inline script runs before first paint to apply saved theme and avoid FOUC */}
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('meu-canga-theme');var r=t==='system'||!t?window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light':t;if(r==='dark'){document.documentElement.classList.add('dark')}else{document.documentElement.classList.remove('dark')}document.documentElement.setAttribute('data-theme',r)}catch(e){}})()`,
           }}
