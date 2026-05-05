@@ -18,7 +18,7 @@ export function ThemeToggle({ className, size = 'md' }: ThemeToggleProps) {
     setMounted(true)
   }, [])
 
-  const isDark = resolvedTheme === 'dark'
+  const isDark = mounted && resolvedTheme === 'dark'
   const iconSize = size === 'sm' ? 14 : 16
   const btnSize = size === 'sm' ? 'h-8 w-8' : 'h-9 w-9'
 
@@ -27,7 +27,7 @@ export function ThemeToggle({ className, size = 'md' }: ThemeToggleProps) {
       type="button"
       onClick={toggle}
       aria-label={isDark ? 'Ativar modo claro' : 'Ativar modo escuro'}
-      aria-pressed={mounted ? isDark : false}
+      aria-pressed={isDark}
       suppressHydrationWarning
       className={cn(
         'inline-flex items-center justify-center rounded-lg',
@@ -42,7 +42,7 @@ export function ThemeToggle({ className, size = 'md' }: ThemeToggleProps) {
         className
       )}
     >
-      <span className="transition-transform duration-300" style={{ transform: isDark ? 'rotate(0deg)' : 'rotate(90deg)' }}>
+      <span className="transition-transform duration-300" suppressHydrationWarning style={{ transform: isDark ? 'rotate(0deg)' : 'rotate(90deg)' }}>
         {isDark ? <Moon size={iconSize} /> : <Sun size={iconSize} />}
       </span>
     </button>
