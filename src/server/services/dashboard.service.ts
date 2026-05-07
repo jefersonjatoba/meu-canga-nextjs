@@ -195,27 +195,23 @@ async function getProximaEscalaForUser(userId: string): Promise<{
   }
 }
 
-// Helper para calcular RAS a receber (RAS confirmados ~30 dias atrás que entram na conta agora)
-// O policial trabalha RAS, confirma e ~30 dias depois recebe o pagamento
-// Ex: RAS confirmado em 05/04 → recebido ~05/05
+// Helper para calcular RAS a receber (RAS realizados do mês anterior que entram na conta agora)
+// O policial marca como realizado (confirmação) e no próximo mês recebe o pagamento
+// Ex: RAS realizado em abril → recebido em maio
 async function getRasAReceberForUser(userId: string, competencia: string): Promise<{
   valor: number
   horas: number
   horasConfirmadas: number
 }> {
-  // RAS confirmados de ~30 dias atrás (que serão pagos neste mês)
-  const dataLimite = new Date()
-  dataLimite.setDate(dataLimite.getDate() - 30)
-  const dataLimiteStr = dataLimite.toISOString().split('T')[0]
+  // RAS realizados do mês anterior (que serão pagos neste mês)
+  const mesAnterior = getPreviousMonth(competencia)
 
   const rasResult = await prisma.rasAgenda.findMany({
     where: {
       userId,
       deletadoEm: null,
-      status: 'confirmado', // Apenas RAS confirmados (que serão pagos em breve)
-      data: {
-        lte: new Date(`${dataLimiteStr}T23:59:59Z`),
-      },
+      status: 'realizado', // RAS marcado como realizado (confirmação feita ao clicar botão)
+      competencia: mesAnterior, // Busca pelo mês anterior
     },
     select: {
       duracao: true,

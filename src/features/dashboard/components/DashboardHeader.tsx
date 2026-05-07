@@ -1,8 +1,12 @@
+'use client'
+
 import Link from 'next/link'
-import { Plus, TrendingUp, TrendingDown, Shield, Target, TrendingUpIcon, AlertCircle } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Plus, TrendingUp, TrendingDown, Shield, Target, TrendingUpIcon, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface DashboardHeaderProps {
   periodoLabel: string
+  mesAtual: string // formato: "2026-05"
   userName?: string | null
   alertCount?: number
 }
@@ -14,7 +18,8 @@ interface QuickAction {
   color: string
 }
 
-export function DashboardHeader({ periodoLabel, userName, alertCount = 0 }: DashboardHeaderProps) {
+export function DashboardHeader({ periodoLabel, mesAtual, userName, alertCount = 0 }: DashboardHeaderProps) {
+  const router = useRouter()
   const firstName = userName?.split(' ')[0]
 
   const today = new Date().toLocaleDateString('pt-BR', {
@@ -23,6 +28,30 @@ export function DashboardHeader({ periodoLabel, userName, alertCount = 0 }: Dash
     month: 'long',
     timeZone: 'America/Sao_Paulo',
   })
+
+  // Calcular mês anterior e próximo
+  const calcularMesAnterior = (mes: string) => {
+    const [year, month] = mes.split('-').map(Number)
+    if (month === 1) {
+      return `${year - 1}-12`
+    }
+    return `${year}-${String(month - 1).padStart(2, '0')}`
+  }
+
+  const calcularProximoMes = (mes: string) => {
+    const [year, month] = mes.split('-').map(Number)
+    if (month === 12) {
+      return `${year + 1}-01`
+    }
+    return `${year}-${String(month + 1).padStart(2, '0')}`
+  }
+
+  const mesAnterior = calcularMesAnterior(mesAtual)
+  const proximoMes = calcularProximoMes(mesAtual)
+
+  const navegar = (mes: string) => {
+    router.push(`/dashboard?mes=${mes}`)
+  }
 
   const quickActions: QuickAction[] = [
     {
@@ -59,17 +88,36 @@ export function DashboardHeader({ periodoLabel, userName, alertCount = 0 }: Dash
 
   return (
     <div className="space-y-4">
-      {/* Row 1: Saudação + Badge de alertas */}
+      {/* Row 1: Saudação + Badge de alertas + Navegação de mês */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <p className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 capitalize mb-0.5 sm:mb-1">{today}</p>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
             {firstName ? `Bom dia, ${firstName}.` : 'Painel Financeiro'}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">
-            Resumo de{' '}
-            <span className="font-medium text-gray-700 dark:text-gray-300">{periodoLabel}</span>
-          </p>
+
+          {/* Navegação de mês */}
+          <div className="flex items-center gap-2 mt-2 sm:mt-1">
+            <button
+              onClick={() => navegar(mesAnterior)}
+              className="p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              title="Mês anterior"
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 min-w-[120px] text-center font-medium">
+              Resumo de <span className="text-gray-800 dark:text-gray-200">{periodoLabel}</span>
+            </p>
+            <button
+              onClick={() => navegar(proximoMes)}
+              className="p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              title="Próximo mês"
+              aria-label="Próximo mês"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
 
         {alertCount > 0 && (

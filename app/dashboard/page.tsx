@@ -49,7 +49,12 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-5">
-      <DashboardHeader periodoLabel={summary.periodoLabel} userName={user.name} alertCount={alertCount} />
+      <DashboardHeader
+        periodoLabel={summary.periodoLabel}
+        mesAtual={summary.periodo}
+        userName={user.name}
+        alertCount={alertCount}
+      />
 
       <DashboardAlerts summary={summary} />
 
