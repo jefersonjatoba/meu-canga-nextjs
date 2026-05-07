@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Plus, TrendingUp, TrendingDown, Shield, Target, TrendingUpIcon, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface DashboardHeaderProps {
@@ -50,7 +50,9 @@ export function DashboardHeader({ periodoLabel, mesAtual, userName, alertCount =
   const proximoMes = calcularProximoMes(mesAtual)
 
   const navegar = (mes: string) => {
-    router.push(`/dashboard?mes=${mes}`)
+    if (typeof window !== 'undefined') {
+      router.push(`/dashboard?mes=${mes}`)
+    }
   }
 
   const quickActions: QuickAction[] = [
