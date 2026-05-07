@@ -1,0 +1,44 @@
+name: RAS 72h - Verificacao de Notificacoes
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ras-check:
+    name: Verificar RAS Expirados
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Chamar endpoint RAS checks
+        id: ras_call
+        run: |
+          HTTP_STATUS=$(curl \
+            --silent \
+            --output /tmp/ras_response.json \
+            --write-out "%{http_code}" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 5 \
+            --retry-connrefused \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.JOB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://meucanga.com.br/api/internal/jobs/ras-checks)
+          echo "http_status=$HTTP_STATUS" >> "$GITHUB_OUTPUT"
+          echo "--- Resposta da API ---"
+          cat /tmp/ras_response.json
+
+      - name: Verificar resposta
+        run: |
+          STATUS=${{ steps.ras_call.outputs.http_status }}
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "ERRO: Endpoint retornou status $STATUS"
+            cat /tmp/ras_response.json
+            exit 1
+          fi
+          echo "Sucesso! RAS checks executado."
+          cat /tmp/ras_response.json
