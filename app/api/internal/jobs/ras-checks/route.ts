@@ -1,6 +1,6 @@
-// Internal API — RAS checks job
-// Called by external cron service (EasyCron, Vercel Cron, etc)
-// Protects with Authorization header to prevent unauthorized calls
+// Internal API — RAS checks job (direct execution, not via Bull)
+// Runs RAS expiry checks directly without queue
+// Callable by external cron service (EasyCron, Vercel Cron, etc)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { processExpiredRas, notifyRasAwaitingConfirmation } from '@/server/jobs/ras-expiry'
@@ -10,11 +10,14 @@ const JOB_TOKEN = process.env.JOB_TOKEN || 'dev-token-change-in-production'
 /**
  * GET /api/internal/jobs/ras-checks
  *
- * Runs RAS expiry checks:
+ * Runs RAS expiry checks directly:
  * 1. Auto-transitions realizado → pendente for expired RAS
  * 2. Sends 24h reminders for RAS about to expire
  *
  * Requires Authorization header: "Bearer {JOB_TOKEN}"
+ *
+ * This endpoint does NOT use Bull queue — it executes directly.
+ * For production, consider: EasyCron, Vercel Crons, or Railway crons.
  */
 export async function GET(request: NextRequest) {
   try {

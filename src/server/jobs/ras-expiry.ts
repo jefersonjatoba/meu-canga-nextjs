@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { createAuditLog } from '@/server/repositories/ras-audit.repository'
+import { sendEmail, buildRasConfirmationTemplate } from '@/server/services/mailer.service'
 
 /**
  * Auto-transition RAS from realizado → pendente if expiresAt has passed.
@@ -83,7 +84,7 @@ export async function processExpiredRas(): Promise<number> {
 
 /**
  * Notify users with RAS pending confirmation (realizado status, within 72h window).
- * This sends an email/push reminder to confirm before the window expires.
+ * Sends email reminder via Brevo to confirm before the window expires.
  *
  * Returns count of users notified.
  */
@@ -115,7 +116,7 @@ export async function notifyRasAwaitingConfirmation(): Promise<number> {
           select: { email: true, name: true },
         })
 
-        if (!user) continue
+        if (!user?.email) continue
 
         // Get all RAS for this user that are about to expire
         const rasSoonToExpire = await prisma.rasAgenda.findMany({
@@ -133,6 +134,7 @@ export async function notifyRasAwaitingConfirmation(): Promise<number> {
             data: true,
             horaInicio: true,
             duracao: true,
+            valorCentavos: true,
             expiresAt: true,
           },
           orderBy: { expiresAt: 'asc' },
@@ -144,22 +146,37 @@ export async function notifyRasAwaitingConfirmation(): Promise<number> {
         const firstRas = rasSoonToExpire[0]
         const hoursRemaining = Math.ceil((firstRas.expiresAt!.getTime() - now.getTime()) / (1000 * 3600))
 
-        // TODO: Send email/push notification
-        // For now, just log
-        console.log(
-          `[ras-notify] ${user.name} (${user.email}) tem ${rasSoonToExpire.length} RAS aguardando confirmação (${hoursRemaining}h restantes)`
+        // Build email
+        const htmlContent = buildRasConfirmationTemplate(
+          user.name || 'Policial',
+          hoursRemaining,
+          rasSoonToExpire.map(r => ({
+            data: r.data.toISOString().split('T')[0],
+            duracao: r.duracao,
+            valor: r.valorCentavos,
+          }))
         )
 
-        // Placeholder for email/push notification when mailer is implemented
-        // await sendRasConfirmationReminder(user.email, user.name, rasSoonToExpire, hoursRemaining)
+        // Send email via Brevo
+        const sent = await sendEmail({
+          to: user.email,
+          subject: `⏰ RAS Aguardando Confirmação (${hoursRemaining}h)`,
+          htmlContent,
+          tags: ['ras-reminder', 'transactional'],
+        })
 
-        notified++
+        if (sent) {
+          console.log(
+            `[ras-notify] Email enviado: ${user.name} (${user.email}) - ${rasSoonToExpire.length} RAS, ${hoursRemaining}h restantes`
+          )
+          notified++
+        }
       } catch (err) {
         console.error(`[ras-notify] Erro ao notificar user ${userId}:`, err instanceof Error ? err.message : String(err))
       }
     }
 
-    console.log(`[ras-notify] ${notified} usuário(s) notificado(s)`)
+    console.log(`[ras-notify] ${notified} usuário(s) notificado(s) com sucesso`)
     return notified
   } catch (err) {
     console.error('[ras-notify] Erro ao notificar RAS aguardando confirmação:', err instanceof Error ? err.message : String(err))
