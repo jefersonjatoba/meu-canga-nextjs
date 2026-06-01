@@ -55,24 +55,24 @@ function RegisterForm() {
     setValue('cpf', formatCPF(e.target.value))
   }
 
-  const checkEmail = async () => {
-    const email = getValues('email')
+  const checkEmail = async (e?: React.FocusEvent<HTMLInputElement>) => {
+    const email = e?.target.value || getValues('email')
     if (!email || !/\S+@\S+\.\S+/.test(email)) return
-    const res = await fetch(`/api/auth/check-availability?email=${encodeURIComponent(email)}`)
-    const data = await res.json()
-    if (!data.available) {
-      setError('email', { message: 'Este email já está cadastrado' })
-    }
+    try {
+      const res = await fetch(`/api/auth/check-availability?email=${encodeURIComponent(email)}`)
+      const data = await res.json()
+      if (!data.available) setError('email', { message: 'Este email já está cadastrado' })
+    } catch {}
   }
 
-  const checkCPF = async () => {
-    const cpf = getValues('cpf')
-    if (!cpf || cpf.replace(/\D/g, '').length < 11) return
-    const res = await fetch(`/api/auth/check-availability?cpf=${encodeURIComponent(cpf.replace(/\D/g, ''))}`)
-    const data = await res.json()
-    if (!data.available) {
-      setError('cpf', { message: 'Este CPF já está cadastrado' })
-    }
+  const checkCPF = async (e?: React.FocusEvent<HTMLInputElement>) => {
+    const raw = (e?.target.value || getValues('cpf')).replace(/\D/g, '')
+    if (raw.length < 11) return
+    try {
+      const res = await fetch(`/api/auth/check-availability?cpf=${encodeURIComponent(raw)}`)
+      const data = await res.json()
+      if (!data.available) setError('cpf', { message: 'Este CPF já está cadastrado' })
+    } catch {}
   }
 
   const onDadosSubmit = (data: RegisterFormData) => {
@@ -181,7 +181,7 @@ function RegisterForm() {
                   {...register('cpf')}
                   placeholder="000.000.000-00"
                   onChange={handleCPFChange}
-                  onBlur={checkCPF}
+                  onBlur={(e) => checkCPF(e)}
                   autoComplete="off"
                   className={inputCls(!!errors.cpf)}
                 />
@@ -191,7 +191,7 @@ function RegisterForm() {
                   {...register('email')}
                   type="email"
                   placeholder="seu@email.com"
-                  onBlur={checkEmail}
+                  onBlur={(e) => checkEmail(e)}
                   className={inputCls(!!errors.email)}
                 />
               </Field>
