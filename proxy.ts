@@ -122,24 +122,13 @@ export async function proxy(request: NextRequest) {
         }
       )
 
-      // Verificação LOCAL do JWT (getClaims via JWKS em cache) — sem round-trip
-      // de rede. Era o getUser() de rede que, ao falhar de forma intermitente
-      // logo após o login, causava o LOOP login↔dashboard. Sem rede = sem falha
-      // transitória = sem loop, e navegação muito mais rápida.
-      let authed = false
-      try {
-        const { data } = await supabase.auth.getClaims()
-        authed = !!data?.claims?.sub
-      } catch { /* cai no fallback de rede abaixo */ }
+      // getUser() valida o JWT e RENOVA o token quando expirado, gravando os
+      // cookies renovados na response via setAll acima. É justamente esse
+      // refresh+propagação que mantém a sessão consistente entre a navegação
+      // e as chamadas de API subsequentes (evita o 401/loop por token vencido).
+      const { data: { user } } = await supabase.auth.getUser()
 
-      // Fallback: token expirado precisa refresh OU chave legada. getUser()
-      // revalida e renova via rede (só quando getClaims não resolveu).
-      if (!authed) {
-        const { data: { user } } = await supabase.auth.getUser()
-        authed = !!user
-      }
-
-      if (!authed) {
+      if (!user) {
         const loginUrl = new URL('/auth/login', request.url)
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)
