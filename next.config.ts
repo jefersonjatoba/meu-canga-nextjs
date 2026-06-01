@@ -1,20 +1,17 @@
 import type { NextConfig } from 'next'
+import { withSentryConfig } from '@sentry/nextjs'
 
 const nextConfig: NextConfig = {
-  // Optimized image handling
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
     ],
   },
-  // Compress pages and static assets
   compress: true,
-  // React Strict Mode - intentionally disabled to prevent double-render loops in dev
+  // Intentionally disabled to prevent double-render loops in dev
   // that interact badly with third-party auth state listeners
   reactStrictMode: false,
-  // Source maps disabled in production
   productionBrowserSourceMaps: false,
-  // Allow ngrok and local network access to webpack-hmr
   allowedDevOrigins: [
     'localhost:3000',
     '127.0.0.1:3000',
@@ -22,9 +19,16 @@ const nextConfig: NextConfig = {
     '*.ngrok-free.dev',
     '*.ngrok.io',
   ],
-  // Turbopack (default in Next.js 16) — empty config silences the "webpack config
-  // present but no turbopack config" warning without changing behaviour.
   turbopack: {},
 }
 
-export default nextConfig
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Upload source maps only in production CI
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+})
