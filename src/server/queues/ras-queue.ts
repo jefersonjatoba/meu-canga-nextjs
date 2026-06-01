@@ -6,8 +6,12 @@ import { processExpiredRas, notifyRasAwaitingConfirmation } from '@/server/jobs/
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'
 
+// Upstash usa TLS (rediss://) — ioredis precisa de tls: {} para aceitar self-signed
+const isTLS = REDIS_URL.startsWith('rediss://')
+
 // Queue for RAS checks (expiry + notifications)
 export const rasQueue = new Queue('ras-checks', REDIS_URL, {
+  redis: isTLS ? { tls: { rejectUnauthorized: false } } : undefined,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
