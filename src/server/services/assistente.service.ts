@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getDashboardSummaryForUser } from '@/server/services/dashboard.service'
 import type { AgenteIaHistoryItem } from '@/features/agente-ia/types'
 
-const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-20250514'
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6'
 const MAX_HISTORY_ITEMS = 10
 const MAX_MESSAGE_CHARS = 4000
 const MAX_HISTORY_CHARS = 1200
@@ -332,7 +332,7 @@ export async function createFinancialAssistantStream(input: {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0.4,
       stream: true,
       system,
