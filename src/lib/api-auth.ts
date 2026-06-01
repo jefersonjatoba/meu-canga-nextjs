@@ -32,14 +32,31 @@ export async function getApiUser(): Promise<ApiUser | null> {
       }
     )
 
-    const { data: { user: sbUser }, error } = await supabase.auth.getUser()
+    // 1) Verificação LOCAL do JWT — valida a assinatura via JWKS em cache,
+    //    sem round-trip de rede ao servidor de auth (era o gargalo principal:
+    //    getUser() custava 150-400ms em TODA requisição de API).
+    let sub: string | undefined
+    let email: string | undefined
+    try {
+      const { data } = await supabase.auth.getClaims()
+      sub = data?.claims?.sub
+      email = data?.claims?.email as string | undefined
+    } catch { /* projetos com chave legada (HS256) caem no fallback abaixo */ }
 
-    if (error || !sbUser?.email) return null
+    // 2) Fallback de rede — só executa quando getClaims não resolve
+    //    (token expirado precisando refresh, ou chave simétrica legada).
+    if (!sub) {
+      const { data: { user: sbUser } } = await supabase.auth.getUser()
+      sub = sbUser?.id
+      email = sbUser?.email ?? undefined
+    }
 
-    // Resolve o usuário do banco SOMENTE pelo sub (id Supabase) ou email —
-    // nunca por findFirst(), o que poderia vazar sessão entre usuários.
-    const prismaUser = await prisma.user.findUnique({
-      where: { email: sbUser.email },
+    if (!sub) return null
+
+    // PK lookup (id = Supabase sub, garantido no registro). Email como
+    // fallback robusto para contas legadas. Ambos os campos são indexados.
+    const prismaUser = await prisma.user.findFirst({
+      where: email ? { OR: [{ id: sub }, { email }] } : { id: sub },
       select: { id: true, email: true, name: true, role: true },
     })
 

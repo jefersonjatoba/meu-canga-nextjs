@@ -35,12 +35,17 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
   })
 
+  // Destino pós-login: respeita ?redirect= (setado pelo middleware), com
+  // fallback seguro para /dashboard. Evita open-redirect aceitando só paths internos.
+  const rawRedirect = searchParams.get('redirect')
+  const redirectTo = rawRedirect && rawRedirect.startsWith('/') ? rawRedirect : '/dashboard'
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.replace('/dashboard')
+      router.replace(redirectTo)
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router, redirectTo])
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true)
@@ -48,7 +53,7 @@ function LoginForm() {
 
     try {
       await signIn(data.email, data.password)
-      router.replace('/dashboard')
+      router.replace(redirectTo)
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : 'Email ou senha incorretos.'

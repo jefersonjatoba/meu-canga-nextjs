@@ -122,16 +122,30 @@ export async function proxy(request: NextRequest) {
         }
       )
 
-      // getUser() valida o JWT server-side — não confia só no cookie local
-      const { data: { user } } = await supabase.auth.getUser()
+      // Verificação LOCAL do JWT (getClaims via JWKS em cache) — sem round-trip
+      // de rede. Era o getUser() de rede que, ao falhar de forma intermitente
+      // logo após o login, causava o LOOP login↔dashboard. Sem rede = sem falha
+      // transitória = sem loop, e navegação muito mais rápida.
+      let authed = false
+      try {
+        const { data } = await supabase.auth.getClaims()
+        authed = !!data?.claims?.sub
+      } catch { /* cai no fallback de rede abaixo */ }
 
-      if (!user) {
+      // Fallback: token expirado precisa refresh OU chave legada. getUser()
+      // revalida e renova via rede (só quando getClaims não resolveu).
+      if (!authed) {
+        const { data: { user } } = await supabase.auth.getUser()
+        authed = !!user
+      }
+
+      if (!authed) {
         const loginUrl = new URL('/auth/login', request.url)
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)
       }
     } catch {
-      // Em caso de falha de rede com Supabase, bloqueia por segurança
+      // Falha inesperada (ex.: Supabase fora do ar): bloqueia por segurança
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
 

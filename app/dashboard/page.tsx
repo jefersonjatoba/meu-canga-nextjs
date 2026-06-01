@@ -70,13 +70,6 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const { mes } = await searchParams
 
-  const diasDesdeCadastro = (userId: string) =>
-    prisma.user
-      .findUnique({ where: { id: userId }, select: { createdAt: true } })
-      .then((userRow) =>
-        userRow ? Math.floor((Date.now() - userRow.createdAt.getTime()) / 86_400_000) : 99,
-      )
-
   const [summary, userRow, onboardingData] = await Promise.all([
     getDashboardSummaryForUser(user.id, { mes }),
     prisma.user.findUnique({
@@ -90,11 +83,15 @@ export default async function DashboardPage({ searchParams }: Props) {
       prisma.recorrencia.count({ where: { userId: user.id } }),
       prisma.meta.count({ where: { userId: user.id } }),
       prisma.referral.count({ where: { referrerId: user.id } }),
-      diasDesdeCadastro(user.id),
     ]),
   ])
 
-  const [nContas, nRas, nLancamentos, nRecorrencias, nMetas, nReferrals, diasCadastro] = onboardingData
+  const [nContas, nRas, nLancamentos, nRecorrencias, nMetas, nReferrals] = onboardingData
+
+  // Reaproveita userRow.createdAt em vez de um findUnique extra (era a 7ª query)
+  const diasCadastro = userRow
+    ? Math.floor((Date.now() - userRow.createdAt.getTime()) / 86_400_000)
+    : 99
 
   const achievements = calcularConquistas({
     lancamentos: nLancamentos,
