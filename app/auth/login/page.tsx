@@ -106,14 +106,24 @@ export default function LoginPage() {
                 autoComplete="email"
               />
 
-              <Input
-                label="Senha"
-                type="password"
-                placeholder="Sua senha segura"
-                {...register('password')}
-                error={errors.password?.message}
-                autoComplete="current-password"
-              />
+              <div>
+                <Input
+                  label="Senha"
+                  type="password"
+                  placeholder="Sua senha segura"
+                  {...register('password')}
+                  error={errors.password?.message}
+                  autoComplete="current-password"
+                />
+                <div className="flex justify-end mt-1">
+                  <Link
+                    href="/auth/esqueci-senha"
+                    className="text-xs text-accent-blue hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </Link>
+                </div>
+              </div>
 
               <Button
                 type="submit"
