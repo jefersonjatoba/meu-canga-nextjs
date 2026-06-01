@@ -66,8 +66,13 @@ function RegisterForm() {
   }
 
   const checkCPF = async (e?: React.FocusEvent<HTMLInputElement>) => {
-    const raw = (e?.target.value || getValues('cpf')).replace(/\D/g, '')
+    const value = e?.target.value || getValues('cpf')
+    const raw = value.replace(/\D/g, '')
     if (raw.length < 11) return
+    if (!validateCPF(value)) {
+      setError('cpf', { message: 'CPF inválido' })
+      return
+    }
     try {
       const res = await fetch(`/api/auth/check-availability?cpf=${encodeURIComponent(raw)}`)
       const data = await res.json()
