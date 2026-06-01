@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { AuthRedirect } from '@/components/auth/AuthRedirect'
 import { HeroSection } from '@/components/sections/HeroSection'
 import { FeaturesSection } from '@/components/sections/FeaturesSection'
 import { TestimonialSection } from '@/components/sections/TestimonialSection'
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
+      <AuthRedirect />
       {/* Navigation */}
       <nav
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between h-16 px-6 lg:px-8"

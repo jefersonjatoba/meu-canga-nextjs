@@ -6,7 +6,8 @@ import { Input } from '@/components/Input'
 import { useAuth } from '@/hooks/useAuth'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,11 +19,13 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { signIn, isAuthenticated, loading } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const sessionExpired = searchParams.get('sessao') === 'expirada'
 
   const {
     register,
@@ -91,6 +94,11 @@ export default function LoginPage() {
 
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {sessionExpired && (
+                <div className="bg-amber-500/10 border border-amber-500/40 text-amber-600 dark:text-amber-400 p-3 rounded-lg text-sm">
+                  Sua sessão expirou por inatividade. Faça login novamente.
+                </div>
+              )}
               {errorMessage && (
                 <div className="bg-error/10 border border-error text-error p-3 rounded-lg text-sm">
                   {errorMessage}
@@ -154,5 +162,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

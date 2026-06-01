@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { Bell, Search, Menu } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useAuth } from '@/hooks/useAuth'
+import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import { Sidebar } from './Sidebar'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
   const pathname = usePathname()
   const { user, isLoading, isAuthenticated } = useUser()
   const { signOut } = useAuth()
+  useInactivityTimeout()
 
   // Desktop: sidebar collapsed state
   const [collapsed, setCollapsed] = useState(false)
