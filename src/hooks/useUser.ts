@@ -3,30 +3,40 @@
 import { useAuth } from './useAuth'
 import { useUserStore } from '@/store/userStore'
 import { useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import type { SessionUser } from '@/types'
 
-/**
- * useUser — derives SessionUser from the Supabase auth session and keeps
- * the Zustand userStore in sync. Single source of truth: Supabase.
- */
+async function fetchPerfil(): Promise<{ id: string; name: string; email: string; plan: string; role: string }> {
+  const res = await fetch('/api/perfil')
+  if (!res.ok) throw new Error('Falha ao carregar perfil')
+  return res.json()
+}
+
 export function useUser() {
   const { user: supabaseUser, loading } = useAuth()
   const { user, setUser } = useUserStore()
 
+  const { data: perfil } = useQuery({
+    queryKey: ['perfil'],
+    queryFn: fetchPerfil,
+    enabled: !!supabaseUser,  // só busca se autenticado
+    staleTime: 10 * 60 * 1000, // 10 min — nome/email raramente mudam
+  })
+
   useEffect(() => {
-    if (supabaseUser) {
+    if (supabaseUser && perfil) {
       const userData: SessionUser = {
         id: supabaseUser.id,
         email: supabaseUser.email,
-        name: supabaseUser.email.split('@')[0], // fallback until profile table is set up
+        name: perfil.name,
         cpf: '',
-        role: 'user',
+        role: perfil.role as 'user' | 'admin',
       }
       setUser(userData)
-    } else if (!loading) {
+    } else if (!loading && !supabaseUser) {
       setUser(null)
     }
-  }, [supabaseUser, loading, setUser])
+  }, [supabaseUser, perfil, loading, setUser])
 
   return {
     user,
