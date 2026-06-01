@@ -47,12 +47,32 @@ function RegisterForm() {
   const [errorMessage, setErrorMessage] = useState('')
   const [formData, setFormData] = useState<RegisterFormData | null>(null)
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<RegisterFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, setError, getValues } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   })
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue('cpf', formatCPF(e.target.value))
+  }
+
+  const checkEmail = async () => {
+    const email = getValues('email')
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return
+    const res = await fetch(`/api/auth/check-availability?email=${encodeURIComponent(email)}`)
+    const data = await res.json()
+    if (!data.available) {
+      setError('email', { message: 'Este email já está cadastrado' })
+    }
+  }
+
+  const checkCPF = async () => {
+    const cpf = getValues('cpf')
+    if (!cpf || cpf.replace(/\D/g, '').length < 11) return
+    const res = await fetch(`/api/auth/check-availability?cpf=${encodeURIComponent(cpf.replace(/\D/g, ''))}`)
+    const data = await res.json()
+    if (!data.available) {
+      setError('cpf', { message: 'Este CPF já está cadastrado' })
+    }
   }
 
   const onDadosSubmit = (data: RegisterFormData) => {
@@ -161,6 +181,7 @@ function RegisterForm() {
                   {...register('cpf')}
                   placeholder="000.000.000-00"
                   onChange={handleCPFChange}
+                  onBlur={checkCPF}
                   autoComplete="off"
                   className={inputCls(!!errors.cpf)}
                 />
@@ -170,6 +191,7 @@ function RegisterForm() {
                   {...register('email')}
                   type="email"
                   placeholder="seu@email.com"
+                  onBlur={checkEmail}
                   className={inputCls(!!errors.email)}
                 />
               </Field>
