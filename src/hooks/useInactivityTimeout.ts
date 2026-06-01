@@ -32,6 +32,7 @@ export function useInactivityTimeout() {
   const { isAuthenticated, signOut } = useAuth()
   const router = useRouter()
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mountedAtRef = useRef<number>(0)
 
   const forceSignOut = useCallback(async () => {
     try {
@@ -43,6 +44,8 @@ export function useInactivityTimeout() {
 
   const checkExpiry = useCallback(() => {
     if (!isAuthenticated) return
+    // Ignora verificações nos primeiros 3s após mount (evita falso positivo no login)
+    if (Date.now() - mountedAtRef.current < 3000) return
     if (isSessionExpired()) {
       forceSignOut()
     }
@@ -51,14 +54,14 @@ export function useInactivityTimeout() {
   useEffect(() => {
     if (!isAuthenticated) return
 
+    mountedAtRef.current = Date.now()
+
     // Registra atividade inicial ao entrar no dashboard
     updateActivity()
 
-    // Atualiza timestamp em qualquer interação do usuário
     const EVENTS = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'pointermove']
     EVENTS.forEach(e => window.addEventListener(e, updateActivity, { passive: true }))
 
-    // Verifica ao retornar à aba (usuário fechou e reabriu)
     const onVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkExpiry()
@@ -66,7 +69,6 @@ export function useInactivityTimeout() {
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
 
-    // Verifica periodicamente enquanto a aba está aberta
     intervalRef.current = setInterval(checkExpiry, CHECK_INTERVAL_MS)
 
     return () => {

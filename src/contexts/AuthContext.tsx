@@ -82,6 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(err.message)
       throw err
     }
+    // Limpa timestamp antigo de inatividade para evitar logout imediato após login
+    try { localStorage.setItem('mc_last_activity', Date.now().toString()) } catch {}
     // Refresh session to sync to cookies (middleware will sync on next request)
     await supabase.auth.getSession()
   }

@@ -10,8 +10,7 @@ import { getDashboardSummaryForUser } from '@/server/services/dashboard.service'
 import { ZodError } from 'zod'
 
 // GET /api/dashboard/summary?mes=2026-04
-// Cache de 60s no edge — reduz round-trips ao banco drasticamente
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
