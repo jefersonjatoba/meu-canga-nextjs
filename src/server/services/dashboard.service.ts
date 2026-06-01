@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { currentMonthBR, getDataHojeSP, toISODateBR } from '@/lib/dates'
 import { prisma } from '@/lib/prisma'
 import type { DashboardSummaryDTO, RecentTransactionItem, RasItem } from '@/features/dashboard/types'
@@ -32,7 +33,7 @@ function buildHistoryMonths(competencia: string, count: number): string[] {
   return Array.from({ length: count }, (_, index) => shiftMonth(competencia, index - (count - 1)))
 }
 
-export async function getDashboardSummaryForUser(
+async function _getDashboardSummaryForUser(
   userId: string,
   params: { mes?: string },
 ): Promise<DashboardSummaryDTO> {
@@ -119,6 +120,19 @@ export async function getDashboardSummaryForUser(
     assinaturasVencidasCount: assinaturasData.vencidasCount,
     assinaturasPrevistasMesCentavos: assinaturasData.previstasMesCentavos,
   }
+}
+
+// Versão cacheada: 60s por usuário+mês — evita 35-50 queries repetidas
+export function getDashboardSummaryForUser(
+  userId: string,
+  params: { mes?: string },
+): Promise<DashboardSummaryDTO> {
+  const mes = params.mes && COMPETENCIA_REGEX.test(params.mes) ? params.mes : currentMonthBR()
+  return unstable_cache(
+    () => _getDashboardSummaryForUser(userId, { mes }),
+    ['dashboard-summary', userId, mes],
+    { revalidate: 60, tags: [`dashboard-${userId}`] },
+  )()
 }
 
 async function getRasDataForDashboard(

@@ -50,15 +50,8 @@ export async function GET(request: NextRequest) {
     const user = await getApiUser()
     if (!user) return unauthorizedResponse()
 
-    // Transição automática realizado→pendente para RAS com expiresAt vencido
-    await prisma.rasAgenda.updateMany({
-      where: {
-        userId: user.id,
-        status: 'realizado',
-        expiresAt: { lte: new Date() },
-      },
-      data: { status: 'pendente' },
-    })
+    // Transição automática é feita pelo GitHub Actions via /api/internal/jobs/ras-checks
+    // NÃO executar write em todo GET — isso causava latência em cada listagem
 
     const searchParams = Object.fromEntries(request.nextUrl.searchParams.entries())
     const parsed = rasAgendaFiltersSchema.safeParse(searchParams)
