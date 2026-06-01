@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getUserId(request: NextRequest): string | null {
-  return request.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 function serializeEscala(e: {
   id: string
@@ -37,8 +34,9 @@ function serializeEscala(e: {
 // GET /api/escala?ano=2026&mes=5
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const params = request.nextUrl.searchParams
     const ano = parseInt(params.get('ano') ?? '')
@@ -70,8 +68,9 @@ export async function GET(request: NextRequest) {
 // POST /api/escala — body: { data, horaInicio, horaFim, tipo, local?, observacao?, alarmeAtivo? }
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const body = await request.json()
     const { data: dataStr, horaInicio, horaFim, tipo, local, observacao, alarmeAtivo } = body

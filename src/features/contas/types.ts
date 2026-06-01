@@ -12,6 +12,13 @@ export interface ContaDTO {
   diaVencimento?: number | null
   ativa: boolean
   createdAt: string
+  // aggregated from lancamentos
+  entradasCentavos: number
+  saidasCentavos: number
+  saldoAtualCentavos: number          // saldoCentavos (inicial) ± movimentações confirmadas
+  // credit card only (null for non-credit)
+  faturaAtualCentavos: number | null  // FaturaCartao.totalCentavos do ciclo atual
+  limiteDisponivelCentavos: number | null
 }
 
 export interface CreateContaInput {

@@ -14,8 +14,8 @@ import type { FaturaCartaoDTO } from '../types'
 
 const formSchema = z.object({
   contaPagamentoId: z.string().min(1, 'Selecione uma conta'),
-  valorDisplay: z.string().min(1, 'Valor obrigatorio'),
-  dataPagamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data invalida'),
+  valorDisplay: z.string().min(1, 'Valor obrigatório'),
+  dataPagamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -77,7 +77,7 @@ export function PagarFaturaForm({
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-blue-700 dark:text-blue-300">Fatura</p>
             <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">
-              {fatura.conta?.nome ?? 'Cartao'} - {fatura.competencia}
+              {fatura.conta?.nome ?? 'Cartão'} - {fatura.competencia}
             </p>
             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
               Vencimento: {formatDate(fatura.dataVencimento)}
@@ -135,7 +135,7 @@ export function PagarFaturaForm({
       {contasPagamento.length === 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/40 dark:bg-amber-950/30">
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            Cadastre uma conta que nao seja cartao de credito para registrar pagamentos.
+            Cadastre uma conta que não seja cartão de crédito para registrar pagamentos.
           </p>
         </div>
       )}
@@ -154,7 +154,7 @@ export function PagarFaturaForm({
           className="mt-0.5 h-4 w-4 rounded border-gray-300 text-accent-blue focus:ring-accent-blue"
         />
         <span>
-          Confirmo que quero registrar este pagamento de fatura. Sei que isso nao cria uma nova despesa no dashboard.
+          Confirmo que quero registrar este pagamento de fatura. Sei que isso não cria uma nova despesa no dashboard.
         </span>
       </label>
 

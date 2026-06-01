@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Bell, Search, Menu, X } from 'lucide-react'
+import { Bell, Search, Menu } from 'lucide-react'
 import { useUser } from '@/hooks/useUser'
 import { useAuth } from '@/hooks/useAuth'
 import { Sidebar } from './Sidebar'
@@ -25,11 +25,13 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   // Mobile: drawer open state
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [shouldRedirect, setShouldRedirect] = useState(false)
 
   // Close mobile drawer on route change
   useEffect(() => {
-    setMobileOpen(false)
+    const timer = window.setTimeout(() => {
+      setMobileOpen(false)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [pathname])
 
   // Lock body scroll when mobile drawer is open
@@ -44,12 +46,11 @@ export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
 
   React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      setShouldRedirect(true)
       router.push('/auth/login')
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (shouldRedirect) return null
+  if (!isLoading && !isAuthenticated) return null
 
   const handleSignOut = async () => {
     await signOut()

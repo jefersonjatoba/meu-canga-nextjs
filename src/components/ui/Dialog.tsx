@@ -62,14 +62,14 @@ export const DialogContent = React.forwardRef<
       className={cn(
         // Centered position
         'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[400]',
-        // Mobile: occupy 90vw, capped at screen height
+        // Mobile: occupy 90vw, capped at screen height — flex column so body scrolls
         'w-[calc(100%-2rem)] max-h-[90dvh]',
+        'flex flex-col overflow-hidden',
         // Shape & surface
         'rounded-2xl',
         'bg-white dark:bg-[#1C1C1C]',
         'border border-gray-200 dark:border-white/[0.10]',
         'shadow-xl',
-        'p-4 sm:p-6',
         'focus:outline-none',
         // Animations
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -82,7 +82,10 @@ export const DialogContent = React.forwardRef<
       )}
       {...props}
     >
-      {children}
+      {/* Scrollable body */}
+      <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
+        {children}
+      </div>
       {!hideClose && (
         <RadixDialog.Close
           className={cn(
@@ -92,7 +95,9 @@ export const DialogContent = React.forwardRef<
             'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
             'hover:bg-gray-100 dark:hover:bg-white/[0.07]',
             'transition-colors duration-150',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue'
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue',
+            // Stays on top of scrollable content
+            'z-10'
           )}
           aria-label="Fechar"
         >

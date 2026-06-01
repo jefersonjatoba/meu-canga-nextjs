@@ -4,6 +4,7 @@ import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { HeroSection } from '@/components/sections/HeroSection'
 import { FeaturesSection } from '@/components/sections/FeaturesSection'
 import { TestimonialSection } from '@/components/sections/TestimonialSection'
+import { PricingSection } from '@/components/sections/PricingSection'
 import { CTASection } from '@/components/sections/CTASection'
 import { FooterSection } from '@/components/sections/FooterSection'
 import { Shield } from 'lucide-react'
@@ -40,6 +41,12 @@ export default function LandingPage() {
         {/* Right nav */}
         <div className="flex items-center gap-4">
           <ThemeToggle size="sm" />
+          <a
+            href="#precos"
+            className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block"
+          >
+            Preços
+          </a>
           <Link
             href="/auth/login"
             className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block"
@@ -59,6 +66,7 @@ export default function LandingPage() {
         <HeroSection />
         <FeaturesSection />
         <BenefitsSection />
+        <PricingSection />
         <TestimonialSection />
         <CTASection />
       </main>

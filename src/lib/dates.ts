@@ -79,6 +79,11 @@ export function toISODateBR(date: Date): string {
 
 /** Format a date or ISO string as "DD/MM/YYYY" for display */
 export function formatDateBR(dateOrStr: Date | string): string {
+  if (typeof dateOrStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateOrStr)) {
+    const [year, month, day] = dateOrStr.split('-')
+    return `${day}/${month}/${year}`
+  }
+
   const d = typeof dateOrStr === 'string' ? new Date(dateOrStr) : dateOrStr
   return d.toLocaleDateString('pt-BR', { timeZone: TZ })
 }

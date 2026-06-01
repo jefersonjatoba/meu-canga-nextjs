@@ -22,7 +22,8 @@ export function Toggle({
   size = 'md',
   id,
 }: ToggleProps) {
-  const inputId = id ?? React.useId()
+  const generatedId = React.useId()
+  const inputId = id ?? generatedId
 
   const trackSize = size === 'sm' ? 'h-5 w-9' : 'h-6 w-11'
   const thumbSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4.5 w-4.5'

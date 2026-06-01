@@ -37,7 +37,7 @@ export function PagarFaturaModal({
         <DialogHeader>
           <DialogTitle>Registrar pagamento da fatura</DialogTitle>
           <DialogDescription>
-            Confira os dados antes de confirmar. Este registro nao cria uma nova despesa.
+            Confira os dados antes de confirmar. Este registro não cria uma nova despesa.
           </DialogDescription>
         </DialogHeader>
         {fatura && (

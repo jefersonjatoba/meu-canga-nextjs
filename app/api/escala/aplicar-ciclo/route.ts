@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { TipoEscala } from '@/lib/escala'
-
-function getUserId(req: NextRequest): string | null {
-  return req.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 // Dias de trabalho/descanso para cada tipo de escala
 const ESCALA_CICLOS: Record<TipoEscala, { trabalha: number; descansa: number }> = {
@@ -24,10 +21,9 @@ const ESCALA_CICLOS: Record<TipoEscala, { trabalha: number; descansa: number }> 
  */
 export async function POST(req: NextRequest) {
   try {
-    const userId = getUserId(req)
-    if (!userId) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const body = await req.json()
     const { dataInicio, tipo, horaInicio, horaFim, local, alarmeAtivo } = body
@@ -52,12 +48,11 @@ export async function POST(req: NextRequest) {
 
     // Data inicial em UTC
     const dataInicioDate = new Date(Date.UTC(anoInicio, mesInicio, diaInicio))
-    const mesAtual = new Date().getMonth()
     const anoAtual = new Date().getFullYear()
 
     // Gera todas as datas do ciclo até dezembro
     const toCreate = []
-    let currentDate = new Date(dataInicioDate)
+    const currentDate = new Date(dataInicioDate)
     let dayCounter = 0
     const cicloTotal = ciclo.trabalha + ciclo.descansa
 
@@ -70,7 +65,6 @@ export async function POST(req: NextRequest) {
       const estaTrabalhandoPrimeiraParte = posicaoCiclo < ciclo.trabalha
 
       if (estaTrabalhandoPrimeiraParte) {
-        const isoData = currentDate.toISOString().slice(0, 10)
         toCreate.push({
           userId,
           dataEscala: new Date(currentDate),

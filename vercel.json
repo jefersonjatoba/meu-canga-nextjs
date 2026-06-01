@@ -3,6 +3,18 @@
     {
       "path": "/api/cron/ras-transition",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/email-engagement",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/email-monthly-summary",
+      "schedule": "0 8 2 * *"
+    },
+    {
+      "path": "/api/cron/email-churn-warning",
+      "schedule": "0 10 * * *"
     }
   ]
 }

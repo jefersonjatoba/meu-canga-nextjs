@@ -18,6 +18,7 @@ import type {
 } from '@/features/lancamentos/types'
 import * as repo from '@/server/repositories/lancamento.repository'
 import { ensureCategoriaBelongsToUser } from '@/server/services/categoria.service'
+import { prisma } from '@/lib/prisma'
 import {
   calculateTotals,
   calculateSavingsRate,
@@ -29,16 +30,23 @@ import {
 export async function createLancamentoForUser(
   userId: string,
   input: CreateLancamentoInput,
+  opts?: { idempotencyKey?: string; ipAddress?: string },
 ) {
   const validated = createLancamentoSchema.parse(input)
-  const categoria = await ensureCategoriaBelongsToUser(userId, validated.categoriaId)
-  // Derive competenciaAt from data when not explicitly provided
-  const competenciaAt = validated.competenciaAt ?? validated.data.slice(0, 7)
-  return repo.createLancamento(userId, {
-    ...validated,
-    categoria: categoria?.nome ?? validated.categoria,
-    competenciaAt,
+
+  // Guarantee contaId belongs to this user — never trust client-supplied IDs
+  const conta = await prisma.conta.findFirst({
+    where: { id: validated.contaId, userId, ativa: true },
+    select: { id: true },
   })
+  if (!conta) throw new ContaNotFoundOrForbiddenError()
+
+  const categoria = await ensureCategoriaBelongsToUser(userId, validated.categoriaId)
+  const competenciaAt = validated.competenciaAt ?? validated.data.slice(0, 7)
+  const createData = { ...validated, categoria: categoria?.nome ?? validated.categoria, competenciaAt, idempotencyKey: opts?.idempotencyKey }
+  return opts?.ipAddress
+    ? repo.createLancamento(userId, createData, opts.ipAddress)
+    : repo.createLancamento(userId, createData)
 }
 
 // ─── Update ───────────────────────────────────────────────────────────────────
@@ -47,22 +55,24 @@ export async function updateLancamentoForUser(
   userId: string,
   id: string,
   input: UpdateLancamentoInput,
+  opts?: { ipAddress?: string },
 ) {
   const validated = updateLancamentoSchema.parse(input)
   const categoria = await ensureCategoriaBelongsToUser(userId, validated.categoriaId)
-  const result = await repo.updateLancamento(userId, id, {
-    ...validated,
-    categoria: categoria?.nome ?? validated.categoria,
-  })
+  const updateData = { ...validated, categoria: categoria?.nome ?? validated.categoria }
+  const result = opts?.ipAddress
+    ? await repo.updateLancamento(userId, id, updateData, opts.ipAddress)
+    : await repo.updateLancamento(userId, id, updateData)
   if (result.count === 0) throw new NotFoundOrForbiddenError()
-  // Return the updated record so the API can respond with the full object
   return repo.findLancamentoById(userId, id)
 }
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 
-export async function deleteLancamentoForUser(userId: string, id: string) {
-  const result = await repo.deleteLancamento(userId, id)
+export async function deleteLancamentoForUser(userId: string, id: string, opts?: { ipAddress?: string }) {
+  const result = opts?.ipAddress
+    ? await repo.deleteLancamento(userId, id, opts.ipAddress)
+    : await repo.deleteLancamento(userId, id)
   if (result.count === 0) throw new NotFoundOrForbiddenError()
 }
 
@@ -109,6 +119,12 @@ export async function getLancamentosSummaryForUser(
   }
 }
 
+// ─── Patrimônio investido acumulado (histórico total) ────────────────────────
+
+export async function getPatrimonioAcumulado(userId: string) {
+  return repo.getPatrimonioInvestidoAcumulado(userId)
+}
+
 // ─── Domain errors ────────────────────────────────────────────────────────────
 
 export class NotFoundOrForbiddenError extends Error {
@@ -116,5 +132,13 @@ export class NotFoundOrForbiddenError extends Error {
   constructor() {
     super('Lançamento não encontrado ou acesso negado')
     this.name = 'NotFoundOrForbiddenError'
+  }
+}
+
+export class ContaNotFoundOrForbiddenError extends Error {
+  readonly statusCode = 404
+  constructor() {
+    super('Conta não encontrada ou acesso negado')
+    this.name = 'ContaNotFoundOrForbiddenError'
   }
 }

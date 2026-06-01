@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast'
 import { listContas } from '@/features/contas/api'
 import { listCategorias } from '@/features/categorias/api'
 import { CartoesHeader } from '@/features/cartao/components/CartoesHeader'
+import { CartoesNavTabs } from '@/features/cartao/components/CartoesNavTabs'
 import { FaturasList } from '@/features/cartao/components/FaturasList'
 import { CompraCartaoModal } from '@/features/cartao/components/CompraCartaoModal'
 import { FaturaDetalheModal } from '@/features/cartao/components/FaturaDetalheModal'
@@ -63,13 +64,16 @@ export default function CartoesPage() {
         setFaturas(faturasResult)
       })
       .catch((e) => {
-        setError(e instanceof Error ? e.message : 'Erro ao carregar cartoes')
+        setError(e instanceof Error ? e.message : 'Erro ao carregar cartões')
       })
       .finally(() => setLoading(false))
   }, [selectedContaId])
 
   useEffect(() => {
-    loadBase()
+    const timer = window.setTimeout(() => {
+      loadBase()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [loadBase])
 
   const handleCompraSuccess = useCallback(() => {
@@ -77,7 +81,7 @@ export default function CartoesPage() {
     toast({
       type: 'success',
       title: 'Compra registrada',
-      description: 'As parcelas foram vinculadas as faturas do cartao.',
+      description: 'As parcelas foram vinculadas às faturas do cartão.',
     })
   }, [loadBase, toast])
 
@@ -96,7 +100,7 @@ export default function CartoesPage() {
     toast({
       type: 'success',
       title: 'Compra cancelada',
-      description: 'As parcelas foram canceladas e o historico foi preservado.',
+      description: 'As parcelas foram canceladas e o histórico foi preservado.',
     })
   }, [loadBase, toast])
 
@@ -131,14 +135,37 @@ export default function CartoesPage() {
         totalFaturas={faturasFiltradas.length}
         totalCartoes={cartoes.length}
         onNovaCompra={() => setCompraOpen(true)}
+        onNovaAssinatura={() => router.push('/dashboard/cartoes/assinaturas')}
       />
+
+      <CartoesNavTabs />
+
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+              Tem Netflix, Spotify ou academia no crédito?
+            </h2>
+            <p className="mt-1 text-sm text-blue-600 dark:text-blue-400">
+              Cadastre cobranças fixas em Assinaturas para acompanhar recorrência mensal e impacto na fatura.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard/cartoes/assinaturas')}
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          >
+            Ir para Assinaturas
+          </button>
+        </div>
+      </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-[#111111]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Faturas</h2>
             <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-              Filtre por cartao e acompanhe competencias, vencimentos e pagamentos.
+              Filtre por cartão e acompanhe competências, vencimentos e pagamentos.
             </p>
           </div>
 
@@ -165,13 +192,13 @@ export default function CartoesPage() {
 
             {cartoes.length > 1 && (
               <label className="flex min-w-[220px] flex-col gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
-                Cartao
+                Cartão
                 <select
                   value={selectedContaId}
                   onChange={(event) => handleCartaoFilterChange(event.target.value)}
                   className="rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-[#1E1E1E] dark:text-gray-100"
                 >
-                  <option value="all">Todos os cartoes</option>
+                  <option value="all">Todos os cartões</option>
                   {cartoes.map(cartao => (
                     <option key={cartao.id} value={cartao.id}>{cartao.nome}</option>
                   ))}

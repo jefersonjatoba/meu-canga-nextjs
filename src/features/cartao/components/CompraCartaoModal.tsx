@@ -35,9 +35,9 @@ export function CompraCartaoModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>Adicionar compra no cartao</DialogTitle>
+          <DialogTitle>Adicionar compra no cartão</DialogTitle>
           <DialogDescription>
-            A compra gera parcelas e lancamentos de despesa conforme a fatura.
+            Use esta tela para compras avulsas. Para Netflix, Spotify e outras cobranças mensais, use Assinaturas.
           </DialogDescription>
         </DialogHeader>
         <CompraCartaoForm

@@ -7,7 +7,7 @@ const TEN_THOUSAND = BigInt(10000)
 const QUANTITY_SCALE = BigInt(100000000)
 const MAX_DECIMAL_PLACES = 8
 
-export type InvestmentOperationType = 'compra' | 'venda' | 'rendimento' | 'dividendo' | 'juros' | 'ajuste'
+export type InvestmentOperationType = 'compra' | 'venda' | 'aporte' | 'resgate' | 'rendimento' | 'dividendo' | 'juros' | 'ajuste'
 export type InvestmentOperationStatus = 'confirmada' | 'cancelada'
 
 export interface InvestmentOperation {
@@ -39,8 +39,8 @@ export function calcularPosicao(operacoes: InvestmentOperation[]): InvestmentPos
   return operacoes.reduce<InvestmentPosition>((position, operacao) => {
     if (operacao.status === 'cancelada') return position
 
-    if (operacao.tipo === 'compra') return aplicarCompra(position, operacao)
-    if (operacao.tipo === 'venda') return aplicarVenda(position, operacao)
+    if (operacao.tipo === 'compra' || operacao.tipo === 'aporte') return aplicarCompra(position, operacao)
+    if (operacao.tipo === 'venda'  || operacao.tipo === 'resgate') return aplicarVenda(position, operacao)
 
     return position
   }, emptyPosition())

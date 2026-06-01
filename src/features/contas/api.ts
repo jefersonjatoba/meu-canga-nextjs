@@ -34,3 +34,17 @@ export async function updateConta(id: string, input: UpdateContaInput): Promise<
 export async function desativarConta(id: string): Promise<ContaDTO> {
   return updateConta(id, { ativa: false })
 }
+
+export async function ativarConta(id: string): Promise<ContaDTO> {
+  return updateConta(id, { ativa: true })
+}
+
+export async function listContasInativas(): Promise<ContaDTO[]> {
+  const res = await fetch('/api/contas?ativa=false')
+  return handle<ContaDTO[]>(res)
+}
+
+export async function excluirConta(id: string): Promise<void> {
+  const res = await fetch(`/api/contas/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  await handle<{ id: string }>(res)
+}

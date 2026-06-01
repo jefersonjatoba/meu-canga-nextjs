@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import {
   Dialog,
@@ -70,7 +70,10 @@ export function FaturaDetalheModal({
   }, [fatura, open])
 
   useEffect(() => {
-    loadDetalhe()
+    const timer = window.setTimeout(() => {
+      loadDetalhe()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [loadDetalhe])
 
   const handleCancelCompra = async () => {
@@ -86,7 +89,7 @@ export function FaturaDetalheModal({
       await loadDetalhe()
       onCancelSuccess?.()
     } catch (e) {
-      setCancelError(e instanceof Error ? e.message : 'Nao foi possivel cancelar esta compra')
+      setCancelError(e instanceof Error ? e.message : 'Não foi possível cancelar esta compra')
     } finally {
       setCancelSubmitting(false)
     }
@@ -152,7 +155,7 @@ function FaturaDetalheContent({
     .filter(pagamento => pagamento.status === 'confirmado')
     .reduce((acc, pagamento) => acc + pagamento.valorCentavos, 0)
   const restante = Math.max(0, detalhe.totalCentavos - totalPago)
-  const grupos = useMemo(() => groupParcelasByCompra(detalhe), [detalhe])
+  const grupos = groupParcelasByCompra(detalhe)
 
   return (
     <div className="space-y-5">
@@ -309,7 +312,7 @@ function CancelarCompraDialog({
         <DialogHeader>
           <DialogTitle>Cancelar compra</DialogTitle>
           <DialogDescription>
-            Revise os dados antes de cancelar esta compra no cartao.
+            Revise os dados antes de cancelar esta compra no cartão.
           </DialogDescription>
         </DialogHeader>
 
@@ -329,7 +332,7 @@ function CancelarCompraDialog({
             <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/50 dark:bg-amber-950/20">
               <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                Esta acao cancela as parcelas em faturas abertas e remove o impacto no seu dashboard. O historico sera preservado.
+                Esta ação cancela as parcelas em faturas abertas e remove o impacto no seu dashboard. O histórico será preservado.
               </p>
             </div>
 
@@ -399,19 +402,19 @@ function getCancelEligibility(
   grupo: Pick<CompraGrupo, 'compra' | 'parcelas'>,
 ): CompraGrupo['elegibilidade'] {
   if (grupo.compra.status !== 'ativa') {
-    return { podeCancelar: false, motivo: 'Compra ja cancelada.' }
+    return { podeCancelar: false, motivo: 'Compra já cancelada.' }
   }
   if (detalhe.status !== 'aberta') {
-    return { podeCancelar: false, motivo: 'Cancelamento disponivel apenas em faturas abertas.' }
+    return { podeCancelar: false, motivo: 'Cancelamento disponível apenas em faturas abertas.' }
   }
   if (detalhe.pagamentos.length > 0) {
-    return { podeCancelar: false, motivo: 'Fatura com pagamento registrado nao permite cancelamento.' }
+    return { podeCancelar: false, motivo: 'Fatura com pagamento registrado não permite cancelamento.' }
   }
   if (grupo.parcelas.some(parcela => !['lancada', 'prevista'].includes(parcela.status))) {
-    return { podeCancelar: false, motivo: 'Compra possui parcelas em estado nao cancelavel.' }
+    return { podeCancelar: false, motivo: 'Compra possui parcelas em estado não cancelável.' }
   }
   if (grupo.parcelas.some(parcela => !parcela.lancamentoId)) {
-    return { podeCancelar: false, motivo: 'Compra sem lancamento vinculado nao permite cancelamento seguro.' }
+    return { podeCancelar: false, motivo: 'Compra sem lançamento vinculado não permite cancelamento seguro.' }
   }
 
   return { podeCancelar: true }

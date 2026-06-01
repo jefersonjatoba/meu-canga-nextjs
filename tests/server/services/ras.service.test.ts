@@ -22,8 +22,15 @@ vi.mock('@/server/repositories/ras-audit.repository', () => ({
 }))
 
 vi.mock('@/lib/ras-calculations', () => ({
-  calculateRestRequirementsBetween: vi.fn((before, after) => {
+  calculateRestRequirementsBetween: vi.fn(() => {
     return { valid: true }
+  }),
+  isWithinConfirmationWindow: vi.fn((dataRas: Date | string, dataAtual: Date) => {
+    const rasDate =
+      typeof dataRas === 'string'
+        ? new Date(`${dataRas}T00:00:00Z`)
+        : dataRas
+    return dataAtual.getTime() - rasDate.getTime() <= 72 * 60 * 60 * 1000
   }),
 }))
 
@@ -103,7 +110,7 @@ describe('RAS Service — criarRasAgendado', () => {
     vi.mocked(rasRepo.findAdjacentRas).mockResolvedValue({ before: null, after: null })
     vi.mocked(escalaRepo.findEscalaConflict).mockResolvedValue(null)
     vi.mocked(rasRepo.createRasAgenda).mockResolvedValue(mockRas)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const result = await rasService.criarRasAgendado(userId, input)
 
@@ -120,7 +127,7 @@ describe('RAS Service — criarRasAgendado', () => {
     vi.mocked(rasRepo.findAdjacentRas).mockResolvedValue({ before: null, after: null })
     vi.mocked(escalaRepo.findEscalaConflict).mockResolvedValue(null)
     vi.mocked(rasRepo.createRasAgenda).mockResolvedValue(mockRas)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const result = await rasService.criarRasAgendado(userId, input)
 
@@ -160,7 +167,7 @@ describe('RAS Service — criarRasAgendado', () => {
     vi.mocked(rasRepo.existsDuplicateRas).mockResolvedValue(false)
     vi.mocked(rasRepo.countRasHoursByUserAndMonth).mockResolvedValue(50)
     vi.mocked(rasRepo.findAdjacentRas).mockResolvedValue({ before: null, after: null })
-    vi.mocked(escalaRepo.findEscalaConflict).mockResolvedValue(mockEscala as any)
+    vi.mocked(escalaRepo.findEscalaConflict).mockResolvedValue(mockEscala as never)
 
     await expect(rasService.criarRasAgendado(userId, input)).rejects.toThrow(
       RasDomainError
@@ -177,7 +184,7 @@ describe('RAS Service — criarRasAgendado', () => {
     vi.mocked(rasRepo.findAdjacentRas).mockResolvedValue({ before: null, after: null })
     vi.mocked(escalaRepo.findEscalaConflict).mockResolvedValue(null)
     vi.mocked(rasRepo.createRasAgenda).mockResolvedValue(mockRas)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.criarRasAgendado(userId, input)
 
@@ -209,7 +216,7 @@ describe('RAS Service — criarRasAgendado', () => {
     vi.mocked(rasRepo.findAdjacentRas).mockResolvedValue({ before: null, after: null })
     vi.mocked(escalaRepo.findEscalaConflict).mockResolvedValue(null)
     vi.mocked(rasRepo.createRasAgenda).mockResolvedValue(mockRas)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const result = await rasService.criarRasAgendado(userId, input)
 
@@ -230,7 +237,7 @@ describe('RAS Service — marcarRealizado', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const result = await rasService.marcarRealizado(rasId, userId)
 
@@ -244,7 +251,7 @@ describe('RAS Service — marcarRealizado', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const beforeCall = Date.now()
     const result = await rasService.marcarRealizado(rasId, userId)
@@ -282,7 +289,7 @@ describe('RAS Service — marcarRealizado', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.marcarRealizado(rasId, userId)
 
@@ -309,11 +316,49 @@ describe('RAS Service — confirmarRas', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const result = await rasService.confirmarRas(rasId, userId)
 
     expect(result.status).toBe('confirmado')
+  })
+
+  it('should allow realized to confirmado while confirmation window is open', async () => {
+    const today = new Date()
+    const data = today.toISOString().slice(0, 10)
+    const existing = createMockRas({
+      status: 'realizado',
+      data,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    })
+    const updated = createMockRas({ status: 'confirmado', data })
+
+    vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
+    vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
+
+    const result = await rasService.confirmarRas(rasId, userId)
+
+    expect(result.status).toBe('confirmado')
+    expect(rasRepo.updateRasStatus).toHaveBeenCalledWith(
+      rasId,
+      userId,
+      'confirmado',
+      expect.objectContaining({ observacoes: null }),
+    )
+  })
+
+  it('should reject realized to confirmado when confirmation window expired', async () => {
+    const existing = createMockRas({
+      status: 'realizado',
+      data: '2026-01-01',
+      expiresAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    })
+
+    vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
+
+    await expect(rasService.confirmarRas(rasId, userId)).rejects.toThrow(RasDomainError)
+    expect(rasRepo.updateRasStatus).not.toHaveBeenCalled()
   })
 
   it('should reject invalid transition from agendado', async () => {
@@ -335,7 +380,7 @@ describe('RAS Service — confirmarRas', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.confirmarRas(rasId, userId, 'Teste OK')
 
@@ -355,7 +400,7 @@ describe('RAS Service — confirmarRas', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.confirmarRas(rasId, userId)
 
@@ -382,7 +427,7 @@ describe('RAS Service — cancelarRas', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     const result = await rasService.cancelarRas(rasId, userId)
 
@@ -409,7 +454,7 @@ describe('RAS Service — cancelarRas', () => {
 
       vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
       vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-      vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+      vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
       const result = await rasService.cancelarRas(rasId, userId)
       expect(result.status).toBe('cancelado')
@@ -422,7 +467,7 @@ describe('RAS Service — cancelarRas', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.updateRasStatus).mockResolvedValue(updated)
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.cancelarRas(rasId, userId)
 
@@ -447,7 +492,7 @@ describe('RAS Service — deletarRas', () => {
     const existing = createMockRas()
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.softDeleteRas).mockResolvedValue()
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.deletarRas(rasId, userId)
 
@@ -460,7 +505,7 @@ describe('RAS Service — deletarRas', () => {
 
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.softDeleteRas).mockResolvedValue()
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.deletarRas(rasId, userId, motivo)
 
@@ -492,7 +537,7 @@ describe('RAS Service — deletarRas', () => {
     const existing = createMockRas({ status: 'agendado' })
     vi.mocked(rasRepo.findRasByIdForUser).mockResolvedValue(existing)
     vi.mocked(rasRepo.softDeleteRas).mockResolvedValue()
-    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as any)
+    vi.mocked(auditRepo.createAuditLog).mockResolvedValue({} as never)
 
     await rasService.deletarRas(rasId, userId)
 
@@ -617,7 +662,7 @@ describe('RAS Service — validarConflitosEscala', () => {
       tipoPlantao: '24x72',
       horaInicio: '08:00',
       horaFim: '08:00',
-    } as any)
+    } as never)
 
     const result = await rasService.validarConflitosEscala(
       userId,

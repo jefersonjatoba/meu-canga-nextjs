@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -43,8 +43,8 @@ export function CategoriaForm({
 
   const {
     register,
+    control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
@@ -66,7 +66,7 @@ export function CategoriaForm({
         },
   })
 
-  const cor = watch('cor') ?? COR_PRESETS[0]
+  const cor = useWatch({ control, name: 'cor' }) ?? COR_PRESETS[0]
 
   const onSubmit = async (values: FormValues) => {
     setApiError(null)

@@ -79,6 +79,7 @@ export async function createCompraCartao(
     valorTotalCentavos: number
     dataCompra: Date
     quantidadeParcelas: number
+    assinaturaCartaoId?: string | null
   },
 ) {
   return tx.compraCartao.create({
@@ -86,6 +87,7 @@ export async function createCompraCartao(
       userId: data.userId,
       contaId: data.contaId,
       categoriaId: data.categoriaId,
+      assinaturaCartaoId: data.assinaturaCartaoId ?? null,
       categoria: data.categoria,
       descricao: data.descricao,
       valorTotalCentavos: data.valorTotalCentavos,

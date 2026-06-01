@@ -100,7 +100,7 @@ function groupFaturasByCartao(faturas: FaturaCartaoDTO[]) {
     const key = fatura.contaId
     const current = groups.get(key) ?? {
       key,
-      nome: fatura.conta?.nome ?? 'Cartao',
+      nome: fatura.conta?.nome ?? 'Cartão',
       faturas: [],
     }
     current.faturas.push(fatura)

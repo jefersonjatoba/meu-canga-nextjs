@@ -4,12 +4,26 @@ import {
   getApiUser,
   okResponse,
   errorResponse,
-  notFoundResponse,
-  forbiddenResponse,
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/api-auth'
 import { isWithinConfirmationWindow } from '@/lib/ras-calculations'
+import * as rasService from '@/server/services/ras.service'
+import { RasDomainError, RasErrorCode } from '@/lib/ras-errors'
+
+function domainErrorResponse(err: RasDomainError) {
+  const { code, message } = err.response
+  switch (code) {
+    case RasErrorCode.NOT_FOUND:
+      return errorResponse(message, 404)
+    case RasErrorCode.FORBIDDEN:
+      return errorResponse(message, 403)
+    case RasErrorCode.TRANSITION_INVALID:
+      return errorResponse(message, 422)
+    default:
+      return errorResponse(message, 400)
+  }
+}
 
 // ─── POST /api/ras/confirmar ──────────────────────────────────────────────────
 // Confirma um RAS específico (transição realizado/pendente → confirmado).
@@ -92,39 +106,39 @@ export async function POST(request: NextRequest) {
       return errorResponse('Campo "id" é obrigatório')
     }
 
-    const rasAgenda = await prisma.rasAgenda.findUnique({
-      where: { id: body.id },
-    })
+    try {
+      const updated = await rasService.confirmarRas(body.id, user.id, body.observacoes)
+      return okResponse(updated)
+    } catch (err) {
+      if (err instanceof RasDomainError) {
+        if (
+          err.response.code === RasErrorCode.TRANSITION_INVALID &&
+          err.response.details?.current === 'confirmado'
+        ) {
+          return errorResponse('O RAS já está confirmado', 409)
+        }
 
-    if (!rasAgenda) return notFoundResponse('RAS')
-    if (rasAgenda.userId !== user.id) return forbiddenResponse()
+        if (
+          err.response.code === RasErrorCode.TRANSITION_INVALID &&
+          err.response.details?.current === 'agendado'
+        ) {
+          return errorResponse(
+            'O RAS ainda não foi realizado. Marque-o como realizado antes de confirmar.',
+            422,
+          )
+        }
 
-    if (rasAgenda.status === 'confirmado') {
-      return errorResponse('O RAS já está confirmado', 409)
+        if (
+          err.response.code === RasErrorCode.TRANSITION_INVALID &&
+          err.response.details?.current === 'cancelado'
+        ) {
+          return errorResponse('Não é possível confirmar um RAS cancelado', 422)
+        }
+
+        return domainErrorResponse(err)
+      }
+      throw err
     }
-
-    if (rasAgenda.status === 'cancelado') {
-      return errorResponse('Não é possível confirmar um RAS cancelado', 422)
-    }
-
-    if (rasAgenda.status === 'agendado') {
-      return errorResponse(
-        'O RAS ainda não foi realizado. Marque-o como realizado antes de confirmar.',
-        422
-      )
-    }
-
-    // status is 'realizado' or 'pendente' — both are confirmable
-    const updated = await prisma.rasAgenda.update({
-      where: { id: body.id },
-      data: {
-        status: 'confirmado',
-        observacoes: body.observacoes ?? rasAgenda.observacoes,
-      },
-      include: { agendamentos: true, pagamentos: true },
-    })
-
-    return okResponse(updated)
   } catch (err) {
     return serverErrorResponse(err)
   }

@@ -15,10 +15,10 @@ export function InvestimentosEmptyState({ onNovoAtivo }: InvestimentosEmptyState
         <LineChart size={22} aria-hidden />
       </div>
       <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        Voce ainda nao possui investimentos cadastrados
+        Você ainda não possui investimentos cadastrados
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
-        Comece adicionando um ativo. Depois registre compras e vendas para acompanhar posicao, preco medio e resultado.
+        Comece adicionando um ativo. Depois registre compras e vendas para acompanhar posição, preço médio e resultado.
       </p>
       <Button type="button" className="mt-5" onClick={onNovoAtivo}>
         <Plus size={16} aria-hidden />

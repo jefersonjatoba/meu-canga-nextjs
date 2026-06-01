@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Edit2, Trash2, CheckCircle, Clock, DollarSign } from 'lucide-react'
+import { Edit2, Trash2, CheckCircle, DollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   fmtBRL,

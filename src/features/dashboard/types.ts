@@ -24,34 +24,40 @@ export interface RasItem {
 }
 
 export interface EscalaItem {
-  data: string                  // YYYY-MM-DD
-  horaInicio: string            // HH:mm
-  horaFim: string               // HH:mm
-  tipoTurno: string             // plantao | sobreaviso | extra | folga | ferias
+  data: string
+  horaInicio: string
+  horaFim: string
+  tipoTurno: string
   localServico: string | null
-  diasAte: number               // 0 = hoje, 1 = amanhã, etc
+  diasAte: number
 }
 
 export interface DashboardSummaryDTO {
-  periodo: string                     // YYYY-MM
-  periodoLabel: string                // "Abril 2026"
-  saldoOperacionalCentavos: number    // centavos
-  totalReceitasCentavos: number       // centavos
-  totalDespesasCentavos: number       // centavos
-  totalRasCentavos: number            // centavos
-  totalAportesCentavos: number        // centavos
-  totalResgatesCentavos: number       // centavos
-  patrimonioInvestidoCentavos: number // centavos
-  taxaPoupancaPercentual: number      // 0–100
+  periodo: string
+  periodoLabel: string
+  saldoOperacionalCentavos: number
+  saldoAnteriorCentavos: number
+  historicoSaldos: Array<{ mes: string; valor: number }>
+  totalReceitasCentavos: number
+  totalDespesasCentavos: number
+  totalRasCentavos: number
+  totalAportesCentavos: number
+  totalResgatesCentavos: number
+  patrimonioInvestidoCentavos: number
+  taxaPoupancaPercentual: number
   lancamentosRecentes: RecentTransactionItem[]
   hasLancamentos: boolean
   cartao: CreditCardDashboardSummaryDTO
-  totalRasHoras?: number              // horas RAS do mês
-  proximosRas?: RasItem[]             // próximos RAS agendados
-  rasAReceberCentavos?: number        // RAS pendente/realizado não confirmado
-  rasHorasPendentes?: number          // horas de RAS a confirmar
-  rasHorasConfirmadas?: number        // horas de RAS já confirmadas
-  proximaEscala?: EscalaItem | null   // próximo turno agendado
+  totalRasHoras?: number
+  proximosRas?: RasItem[]
+  rasAReceberCentavos?: number
+  rasHorasPendentes?: number
+  rasHorasConfirmadas?: number
+  proximaEscala?: EscalaItem | null
+  recorrenciasVencidasCount?: number
+  recorrenciasPrevistasMesCentavos?: number
+  assinaturasVencidasCount?: number
+  assinaturasPrevistasMesCentavos?: number
 }
 
 export type { CreditCardDashboardInvoiceItem, CreditCardDashboardSummaryDTO }

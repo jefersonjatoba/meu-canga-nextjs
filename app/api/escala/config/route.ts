@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getUserId(request: NextRequest): string | null {
-  return request.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 function serializeConfig(c: {
   userId: string
@@ -29,10 +26,11 @@ function serializeConfig(c: {
 }
 
 // GET /api/escala/config
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const config = await prisma.escalaConfig.findUnique({ where: { userId } })
 
@@ -46,8 +44,9 @@ export async function GET(request: NextRequest) {
 // POST /api/escala/config — body: { tipo, horaInicio, horaFim, inicioCiclo, local?, alarmeAtivo? }
 export async function POST(request: NextRequest) {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const body = await request.json()
     const { tipo, horaInicio, horaFim, inicioCiclo, local, alarmeAtivo } = body
@@ -89,10 +88,11 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE /api/escala/config — apaga config e todas as escalas do usuário
-export async function DELETE(request: NextRequest) {
+export async function DELETE() {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     await prisma.escalaConfig.deleteMany({ where: { userId } })
     await prisma.escala.deleteMany({ where: { userId } })

@@ -1,10 +1,11 @@
 'use client'
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis, Cell } from 'recharts'
-import { TrendingUp, TrendingDown, PiggyBank } from 'lucide-react'
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { PiggyBank, TrendingDown, TrendingUp } from 'lucide-react'
 import { formatBRL } from '@/lib/money'
 
 interface CashflowSectionProps {
+  saldoOperacionalCentavos: number
   totalReceitasCentavos: number
   totalDespesasCentavos: number
   totalRasCentavos: number
@@ -13,52 +14,65 @@ interface CashflowSectionProps {
 }
 
 export function CashflowSection({
+  saldoOperacionalCentavos,
   totalReceitasCentavos,
   totalDespesasCentavos,
   totalRasCentavos,
   patrimonioInvestidoCentavos,
   taxaPoupancaPercentual,
 }: CashflowSectionProps) {
-  // Preparar dados para o gráfico de receita vs despesa
   const chartData = [
-    {
-      name: 'Receitas',
-      valor: Math.round(totalReceitasCentavos / 100),
-    },
-    {
-      name: 'Despesas',
-      valor: Math.round(totalDespesasCentavos / 100),
-    },
-    {
-      name: 'RAS',
-      valor: Math.round(totalRasCentavos / 100),
-    },
+    { name: 'Receitas', valor: Math.round(totalReceitasCentavos / 100) },
+    { name: 'Despesas', valor: Math.round(totalDespesasCentavos / 100) },
+    { name: 'RAS', valor: Math.round(totalRasCentavos / 100) },
   ]
 
-  // Determinar cor da taxa de poupança
   const getSavingsTone = (rate: number) => {
-    if (rate >= 20) return { bg: 'bg-emerald-50 dark:bg-emerald-500/10', text: 'text-emerald-700 dark:text-emerald-400', progressBg: 'bg-emerald-500' }
-    if (rate >= 10) return { bg: 'bg-orange-50 dark:bg-orange-500/10', text: 'text-orange-700 dark:text-orange-400', progressBg: 'bg-orange-500' }
-    return { bg: 'bg-red-50 dark:bg-red-500/10', text: 'text-red-700 dark:text-red-400', progressBg: 'bg-red-500' }
+    if (rate >= 20) {
+      return {
+        bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+        text: 'text-emerald-700 dark:text-emerald-400',
+        progressBg: 'bg-emerald-500',
+      }
+    }
+    if (rate >= 10) {
+      return {
+        bg: 'bg-orange-50 dark:bg-orange-500/10',
+        text: 'text-orange-700 dark:text-orange-400',
+        progressBg: 'bg-orange-500',
+      }
+    }
+    return {
+      bg: 'bg-red-50 dark:bg-red-500/10',
+      text: 'text-red-700 dark:text-red-400',
+      progressBg: 'bg-red-500',
+    }
   }
 
   const savingsTone = getSavingsTone(taxaPoupancaPercentual)
 
   return (
     <div className="space-y-4">
-      {/* Card Receitas vs Despesas */}
-      <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm p-5">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Fluxo de Caixa</h3>
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.08] dark:bg-[#1C1C1C]">
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Fluxo de caixa</h3>
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Saldo: <span className="font-medium text-gray-700 dark:text-gray-300">{formatBRL(totalReceitasCentavos - totalDespesasCentavos)}</span>
+            Saldo operacional:{' '}
+            <span
+              className={`font-medium ${saldoOperacionalCentavos >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
+            >
+              {formatBRL(saldoOperacionalCentavos)}
+            </span>
           </div>
         </div>
 
-        {/* Gráfico de barras */}
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ top: 10, right: 30, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-white/[0.08]" />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="currentColor"
+              className="text-gray-200 dark:text-white/[0.08]"
+            />
             <XAxis dataKey="name" stroke="currentColor" className="text-xs text-gray-500 dark:text-gray-400" />
             <YAxis stroke="currentColor" className="text-xs text-gray-500 dark:text-gray-400" />
             <Tooltip
@@ -68,13 +82,13 @@ export function CashflowSection({
                 borderRadius: '8px',
                 color: 'var(--color-dark-text)',
               }}
-              formatter={(value: any) => formatBRL((value ?? 0) * 100)}
+              formatter={(value: unknown) => formatBRL(((value as number) ?? 0) * 100)}
               labelStyle={{ color: 'var(--color-dark-text)' }}
             />
             <Bar dataKey="valor" radius={[8, 8, 0, 0]}>
               {chartData.map((entry, index) => (
                 <Cell
-                  key={`cell-${index}`}
+                  key={`${entry.name}-${index}`}
                   fill={index === 0 ? '#10b981' : index === 1 ? '#ef4444' : '#3b82f6'}
                 />
               ))}
@@ -82,42 +96,45 @@ export function CashflowSection({
           </BarChart>
         </ResponsiveContainer>
 
-        {/* Totais em cards */}
-        <div className="grid grid-cols-3 gap-3 mt-5">
-          <div className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 p-3">
-            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 mb-1 flex items-center gap-1">
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-500/10">
+            <p className="mb-1 flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
               <TrendingUp size={12} aria-hidden />
               Receitas
             </p>
-            <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300 tabular-nums">{formatBRL(totalReceitasCentavos)}</p>
+            <p className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-300">
+              {formatBRL(totalReceitasCentavos)}
+            </p>
           </div>
 
-          <div className="rounded-lg bg-red-50 dark:bg-red-500/10 p-3">
-            <p className="text-xs font-medium text-red-700 dark:text-red-400 mb-1 flex items-center gap-1">
+          <div className="rounded-lg bg-red-50 p-3 dark:bg-red-500/10">
+            <p className="mb-1 flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-400">
               <TrendingDown size={12} aria-hidden />
               Despesas
             </p>
-            <p className="text-sm font-bold text-red-600 dark:text-red-300 tabular-nums">{formatBRL(totalDespesasCentavos)}</p>
+            <p className="text-sm font-bold tabular-nums text-red-600 dark:text-red-300">
+              {formatBRL(totalDespesasCentavos)}
+            </p>
           </div>
 
-          <div className="rounded-lg bg-blue-50 dark:bg-blue-500/10 p-3">
-            <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
+          <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-500/10">
+            <p className="mb-1 flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-400">
               <PiggyBank size={12} aria-hidden />
               RAS
             </p>
-            <p className="text-sm font-bold text-blue-600 dark:text-blue-300 tabular-nums">{formatBRL(totalRasCentavos)}</p>
+            <p className="text-sm font-bold tabular-nums text-blue-600 dark:text-blue-300">
+              {formatBRL(totalRasCentavos)}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Cards Taxa de Poupança + Patrimônio */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Taxa de Poupança */}
-        <div className={`rounded-xl border border-gray-200 dark:border-white/[0.08] ${savingsTone.bg} shadow-sm p-5`}>
-          <div className="flex items-start justify-between mb-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className={`rounded-xl border border-gray-200 p-5 shadow-sm dark:border-white/[0.08] ${savingsTone.bg}`}>
+          <div className="mb-4 flex items-start justify-between">
             <div>
-              <p className={`text-xs font-medium ${savingsTone.text} mb-1`}>Taxa de Poupança</p>
-              <p className={`text-2xl font-bold ${savingsTone.text} tabular-nums`}>
+              <p className={`mb-1 text-xs font-medium ${savingsTone.text}`}>Taxa de poupança</p>
+              <p className={`text-2xl font-bold tabular-nums ${savingsTone.text}`}>
                 {taxaPoupancaPercentual.toFixed(1)}%
               </p>
             </div>
@@ -130,36 +147,38 @@ export function CashflowSection({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className={`text-xs font-medium ${savingsTone.text}`}>Progresso</span>
-              <span className={`text-xs font-bold ${savingsTone.text}`}>{Math.min(taxaPoupancaPercentual, 100).toFixed(0)}%</span>
+              <span className={`text-xs font-bold ${savingsTone.text}`}>
+                {Math.min(taxaPoupancaPercentual, 100).toFixed(0)}%
+              </span>
             </div>
-            <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-white/[0.08] overflow-hidden">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-white/[0.08]">
               <div
-                className={`h-full ${savingsTone.progressBg} transition-all duration-500 rounded-full`}
+                className={`h-full rounded-full transition-all duration-500 ${savingsTone.progressBg}`}
                 style={{ width: `${Math.min(taxaPoupancaPercentual, 100)}%` }}
                 aria-hidden
               />
             </div>
-            <p className={`text-[11px] ${savingsTone.text} opacity-75 mt-2`}>
+            <p className={`mt-2 text-[11px] opacity-75 ${savingsTone.text}`}>
               {taxaPoupancaPercentual >= 20
-                ? '✓ Acima da meta recomendada'
+                ? 'Acima da meta recomendada'
                 : taxaPoupancaPercentual >= 10
-                  ? 'Em alerta — falta para atingir meta'
-                  : 'Abaixo do recomendado'}
+                  ? 'Em observação — ainda cabe evoluir'
+                  : 'Abaixo do recomendado neste momento'}
             </p>
           </div>
         </div>
 
-        {/* Patrimônio Investido */}
-        <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm p-5">
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Patrimônio Investido</p>
-          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-4 tabular-nums">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.08] dark:bg-[#1C1C1C]">
+          <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">Patrimônio investido</p>
+          <p className="mb-4 text-2xl font-bold tabular-nums text-purple-600 dark:text-purple-400">
             {formatBRL(patrimonioInvestidoCentavos)}
           </p>
 
           <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
-            <p>Aportes menos resgates acumulados no período.</p>
+            <p>Total histórico acumulado de aportes menos resgates.</p>
             <p className="font-medium text-gray-700 dark:text-gray-300">
-              Crescimento: {patrimonioInvestidoCentavos > 0 ? '+' : ''}{formatBRL(patrimonioInvestidoCentavos)}
+              Resultado líquido: {patrimonioInvestidoCentavos > 0 ? '+' : ''}
+              {formatBRL(patrimonioInvestidoCentavos)}
             </p>
           </div>
         </div>

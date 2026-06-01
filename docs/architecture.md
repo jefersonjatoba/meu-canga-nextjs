@@ -1,20 +1,19 @@
-# Meu Canga — Arquitetura de Referência para Reimplementação Next.js 14
+# MeuCanga — Arquitetura de Referência
 
-> **Fonte:** Análise do repositório original Node/Express `jefersonjatoba/meu-canga`
-> **Data da análise:** 2026-04-24
-> **Destino:** Next.js 14 + Supabase + TypeScript (qualidade fintech sênior)
+> **Stack atual:** Next.js 16 + React 19 + TypeScript + Supabase + Prisma/PostgreSQL
+> **Última atualização:** 2026-05-14
 
 ---
 
 ## 1. Visão Geral do Produto
 
-**Meu Canga** é um SaaS de finanças pessoais especializado para profissionais de saúde que trabalham em regime de plantão. Seu diferencial são os módulos RAS (Regime de Atividade Suplementar) e Escala, que integram gestão de turnos com lançamentos financeiros automáticos.
+**MeuCanga** é um SaaS de finanças pessoais especializado para profissionais de **segurança pública** — policiais militares, civis e agentes penitenciários. Seu diferencial são os módulos RAS (Regime Adicional de Serviço) e Escala, que integram a gestão de plantões extras com lançamentos financeiros automáticos.
 
-### Usuário-alvo
-- Técnicos de enfermagem, enfermeiros, médicos, farmacêuticos
-- Trabalham em escalas 12x36, 24x72, 24x48 no setor público
-- Realizam plantões extras (RAS) remunerados por tabela governamental
-- Precisam controlar patrimônio, metas, e declaração de IR
+### Usuário-alvo (ICP)
+- Policiais militares e civis, agentes penitenciários
+- Trabalham em escalas 12x36, 24x48, 24x72 e regimes plantão
+- Realizam serviços extras remunerados (RAS) por tabela governamental
+- Precisam controlar receitas de RAS, lançamentos, investimentos, metas e IR
 
 ### Planos
 | Feature | Free | Pro (R$ 19,90/mês) |

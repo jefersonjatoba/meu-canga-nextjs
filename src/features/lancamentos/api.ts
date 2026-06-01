@@ -65,27 +65,33 @@ async function handle<T>(res: Response): Promise<T> {
 export async function listLancamentos(params: {
   mes?: string
   tipo?: string
+  contaId?: string
   page?: number
   pageSize?: number
 }): Promise<ListResult> {
   const qs = new URLSearchParams()
   if (params.mes) qs.set('mes', params.mes)
   if (params.tipo && params.tipo !== 'all') qs.set('tipo', params.tipo)
+  if (params.contaId) qs.set('contaId', params.contaId)
   if (params.page) qs.set('page', String(params.page))
   if (params.pageSize) qs.set('pageSize', String(params.pageSize))
   const res = await fetch(`/api/lancamentos?${qs}`)
   return handle<ListResult>(res)
 }
 
-export async function getLancamentosSummary(mes: string): Promise<LancamentoSummaryDTO> {
-  const res = await fetch(`/api/lancamentos?summary=1&mes=${encodeURIComponent(mes)}`)
+export async function getLancamentosSummary(mes: string, contaId?: string): Promise<LancamentoSummaryDTO> {
+  const qs = new URLSearchParams({ summary: '1', mes })
+  if (contaId) qs.set('contaId', contaId)
+  const res = await fetch(`/api/lancamentos?${qs}`)
   return handle<LancamentoSummaryDTO>(res)
 }
 
-export async function createLancamento(input: CreateLancamentoPayload): Promise<LancamentoAPIItem> {
+export async function createLancamento(input: CreateLancamentoPayload, idempotencyKey?: string): Promise<LancamentoAPIItem> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (idempotencyKey) headers['x-idempotency-key'] = idempotencyKey
   const res = await fetch('/api/lancamentos', {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body:    JSON.stringify(input),
   })
   return handle<LancamentoAPIItem>(res)

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   keywords: ['fintech', 'segurança pública', 'policial', 'finanças', 'controle financeiro'],
   authors: [{ name: 'MeuCanga' }],
   creator: 'MeuCanga',
-  metadataBase: new URL('https://meucanga.com.br'),
+  metadataBase: new URL('https://meu-canga.com'),
   openGraph: {
     type: 'website',
     locale: 'pt_BR',

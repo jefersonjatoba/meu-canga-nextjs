@@ -12,6 +12,7 @@ vi.mock('@/server/repositories/investment.repository', () => ({
   cancelOperacao: vi.fn(),
   findOperacaoByIdTx: vi.fn(),
   findContaForInvestment: vi.fn(),
+  createLancamentoForInvestimento: vi.fn(),
 }))
 
 import * as repo from '@/server/repositories/investment.repository'
@@ -88,6 +89,7 @@ beforeEach(() => {
   } as never)
   vi.mocked(repo.findOperacaoByIdTx).mockResolvedValue(compraBase as never)
   vi.mocked(repo.cancelOperacao).mockResolvedValue({ count: 1 } as never)
+  vi.mocked(repo.createLancamentoForInvestimento).mockResolvedValue({ id: 'lanc_111' } as never)
 })
 
 describe('investment.service', () => {

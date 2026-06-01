@@ -1,29 +1,27 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
+import { CategorySelect } from '@/components/ui/CategorySelect'
 import { Input } from '@/components/ui/Input'
 import { MoneyInput } from '@/features/lancamentos/components/MoneyInput'
+import { resolveCategorySelection } from '@/lib/categories'
 import { toCents } from '@/lib/money'
 import type { CategoriaDTO } from '@/features/categorias/types'
 import type { ContaDTO } from '@/features/contas/types'
 import { criarCompraCartao } from '../api'
 
 const formSchema = z.object({
-  contaId: z.string().min(1, 'Selecione um cartao'),
-  descricao: z.string().trim().min(1, 'Descricao obrigatoria').max(255, 'Descricao muito longa'),
-  categoriaId: z.string().optional(),
-  categoriaManual: z.string().trim().max(100, 'Categoria muito longa').optional(),
-  valorDisplay: z.string().min(1, 'Valor obrigatorio'),
-  dataCompra: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data invalida'),
-  quantidadeParcelas: z.coerce.number().int().min(1, 'Minimo de 1 parcela').max(360, 'Parcelas demais'),
-}).refine(
-  data => !!data.categoriaId || !!data.categoriaManual?.trim(),
-  { path: ['categoriaManual'], message: 'Informe uma categoria' },
-)
+  contaId: z.string().min(1, 'Selecione um cartão'),
+  descricao: z.string().trim().min(1, 'Descrição obrigatória').max(255, 'Descrição muito longa'),
+  valorDisplay: z.string().min(1, 'Valor obrigatório'),
+  dataCompra: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida'),
+  quantidadeParcelas: z.coerce.number().int().min(1, 'Mínimo de 1 parcela').max(360, 'Parcelas demais'),
+})
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -41,45 +39,47 @@ export function CompraCartaoForm({
   onCancel,
 }: CompraCartaoFormProps) {
   const [apiError, setApiError] = useState<string | null>(null)
-  const categoriasDespesa = categorias.filter(c => c.tipo === 'expense' || c.tipo === 'both')
+  const [categoriaId, setCategoriaId] = useState('')
+  const [categoriaManual, setCategoriaManual] = useState('')
+  const [categoriaError, setCategoriaError] = useState<string | undefined>()
   const hoje = new Date().toISOString().slice(0, 10)
 
   const {
     register,
     control,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       contaId: cartoes[0]?.id ?? '',
       descricao: '',
-      categoriaId: categoriasDespesa[0]?.id ?? '',
-      categoriaManual: '',
       valorDisplay: '',
       dataCompra: hoje,
       quantidadeParcelas: 1,
     },
   })
 
-  const categoriaId = watch('categoriaId')
-
   const onSubmit = async (values: FormValues) => {
     setApiError(null)
+    setCategoriaError(undefined)
+
+    const categoriaResolvida = resolveCategorySelection(categorias, categoriaId, categoriaManual)
+
+    if (!categoriaResolvida) {
+      setCategoriaError('Informe uma categoria')
+      return
+    }
 
     try {
       const valorTotalCentavos = toCents(values.valorDisplay.replace(',', '.'))
       if (valorTotalCentavos <= 0) throw new Error('Valor deve ser maior que zero')
 
-      const categoriaSelecionada = categoriasDespesa.find(c => c.id === values.categoriaId)
-      const categoriaFallback = categoriaSelecionada?.nome ?? values.categoriaManual?.trim() ?? ''
-
       await criarCompraCartao({
         contaId: values.contaId,
         descricao: values.descricao,
-        categoriaId: categoriaSelecionada?.id ?? undefined,
-        categoria: categoriaFallback,
+        categoriaId: categoriaResolvida.categoriaId ?? undefined,
+        categoria: categoriaResolvida.categoria,
         valorTotalCentavos,
         dataCompra: values.dataCompra,
         quantidadeParcelas: values.quantidadeParcelas,
@@ -96,7 +96,7 @@ export function CompraCartaoForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Cartao <span className="text-red-500" aria-hidden>*</span>
+            Cartão <span className="text-red-500" aria-hidden>*</span>
           </label>
           <select
             {...register('contaId')}
@@ -119,12 +119,28 @@ export function CompraCartaoForm({
       </div>
 
       <Input
-        label="Descricao"
+        label="Descrição"
         required
         placeholder="Ex.: Mercado, passagem, equipamento"
         error={errors.descricao?.message}
         {...register('descricao')}
       />
+
+      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-900/40 dark:bg-blue-950/20">
+        <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+          Compra recorrente como Netflix, Spotify ou academia?
+        </p>
+        <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+          Use Assinaturas para cobrar todo mês no cartão certo e acompanhar o impacto na fatura.
+        </p>
+        <Link
+          href="/dashboard/cartoes/assinaturas"
+          onClick={onCancel}
+          className="mt-3 inline-flex items-center rounded-lg border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:border-blue-400 hover:text-blue-800 dark:border-blue-800 dark:bg-transparent dark:text-blue-300 dark:hover:border-blue-700"
+        >
+          Cadastrar assinatura recorrente
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Controller
@@ -153,28 +169,16 @@ export function CompraCartaoForm({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Categoria</label>
-          <select
-            {...register('categoriaId')}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/[0.10] dark:bg-[#1C1C1C] dark:text-gray-100"
-          >
-            <option value="">Manual</option>
-            {categoriasDespesa.map(categoria => (
-              <option key={categoria.id} value={categoria.id}>{categoria.nome}</option>
-            ))}
-          </select>
-        </div>
-
-        <Input
-          label="Categoria manual"
-          placeholder="Obrigatoria se categoria = Manual"
-          disabled={!!categoriaId}
-          error={errors.categoriaManual?.message}
-          {...register('categoriaManual')}
-        />
-      </div>
+      <CategorySelect
+        categorias={categorias}
+        tipo="expense"
+        categoriaId={categoriaId}
+        categoriaManual={categoriaManual}
+        onCategoriaIdChange={(id) => { setCategoriaId(id); setCategoriaError(undefined) }}
+        onCategoriaManualChange={(nome) => { setCategoriaManual(nome); setCategoriaError(undefined) }}
+        required
+        errorManual={categoriaError}
+      />
 
       {apiError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800/40 dark:bg-red-950/30">
@@ -187,7 +191,7 @@ export function CompraCartaoForm({
           Cancelar
         </Button>
         <Button type="submit" variant="primary" isLoading={isSubmitting} loadingText="Adicionando...">
-          Adicionar compra no cartao
+          Adicionar compra no cartão
         </Button>
       </div>
     </form>

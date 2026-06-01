@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getUserId(req: NextRequest): string | null {
-  return req.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 /**
  * POST /api/escala/aplicar-padrao
@@ -15,10 +12,9 @@ function getUserId(req: NextRequest): string | null {
  */
 export async function POST(req: NextRequest) {
   try {
-    const userId = getUserId(req)
-    if (!userId) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const body = await req.json()
     const {

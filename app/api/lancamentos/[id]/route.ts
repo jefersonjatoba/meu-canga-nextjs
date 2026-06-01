@@ -30,7 +30,8 @@ export async function PATCH(
     const body = await request.json().catch(() => null)
     if (!body) return errorResponse('Corpo da requisição inválido')
 
-    const updated = await updateLancamentoForUser(user.id, id, body)
+    const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? undefined
+    const updated = await updateLancamentoForUser(user.id, id, body, { ipAddress })
     return okResponse(updated)
   } catch (err) {
     if (err instanceof ZodError) return errorResponse(err.errors[0].message)
@@ -51,8 +52,9 @@ export async function DELETE(
     if (!user) return unauthorizedResponse()
 
     const { id } = await params
+    const ipAddress = _request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? undefined
 
-    await deleteLancamentoForUser(user.id, id)
+    await deleteLancamentoForUser(user.id, id, { ipAddress })
     return okResponse({ deleted: true })
   } catch (err) {
     if (err instanceof NotFoundOrForbiddenError) return notFoundResponse('Lançamento')

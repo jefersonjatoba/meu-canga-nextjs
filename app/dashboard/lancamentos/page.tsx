@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { LancamentosHeader } from '@/features/lancamentos/components/LancamentosHeader'
 import { LancamentosFilters } from '@/features/lancamentos/components/LancamentosFilters'
@@ -33,9 +34,14 @@ function formatMesLabel(mes: string): string {
 
 export default function LancamentosPage() {
   const { toast } = useToast()
+  const router = useRouter()
 
   const [mes, setMes]               = useState<string>(currentMes)
   const [tipo, setTipo]             = useState<TipoFilter>('all')
+  const [contaIdFilter, setContaIdFilter] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('contaId')
+  })
   const [items, setItems]           = useState<LancamentoAPIItem[]>([])
   const [total, setTotal]           = useState(0)
   const [summary, setSummary]       = useState<LancamentoSummaryDTO | null>(null)
@@ -52,12 +58,14 @@ export default function LancamentosPage() {
   // Fetch list + summary
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
+    const timer = window.setTimeout(() => {
+      setLoading(true)
+      setError(null)
+    }, 0)
 
     Promise.all([
-      listLancamentos({ mes, tipo, pageSize: 50 }),
-      getLancamentosSummary(mes),
+      listLancamentos({ mes, tipo, contaId: contaIdFilter ?? undefined, pageSize: 50 }),
+      getLancamentosSummary(mes, contaIdFilter ?? undefined),
     ])
       .then(([listResult, summaryResult]) => {
         if (cancelled) return
@@ -73,8 +81,11 @@ export default function LancamentosPage() {
         if (!cancelled) setLoading(false)
       })
 
-    return () => { cancelled = true }
-  }, [mes, tipo, refreshKey])
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [mes, tipo, contaIdFilter, refreshKey])
 
   // Fetch accounts once on mount
   useEffect(() => {
@@ -84,6 +95,15 @@ export default function LancamentosPage() {
   }, [])
 
   const refetch = useCallback(() => setRefreshKey(k => k + 1), [])
+
+  const contaNomeFiltro = contaIdFilter
+    ? (contas.find(c => c.id === contaIdFilter)?.nome ?? null)
+    : null
+
+  const handleClearContaFilter = useCallback(() => {
+    setContaIdFilter(null)
+    router.replace('/dashboard/lancamentos')
+  }, [router])
 
   const handleCreateSuccess = useCallback(() => {
     refetch()
@@ -126,6 +146,8 @@ export default function LancamentosPage() {
         tipo={tipo}
         onMesChange={setMes}
         onTipoChange={setTipo}
+        contaFiltro={contaNomeFiltro}
+        onClearContaFiltro={handleClearContaFilter}
       />
 
       <LancamentosList

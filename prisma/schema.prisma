@@ -22,9 +22,16 @@ model User {
   planExpiresAt DateTime?
   horasRasAlvo  Int? // meta de horas RAS por mês
   metaMensal    Int? // meta financeira mensal em centavos
+  lastSeenAt    DateTime?
+  streakDays    Int       @default(0)
+  longestStreak Int       @default(0)
+  referralCode  String?   @unique
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  subscriptions         Subscription[]
+  referrals             Referral[]     @relation("Referrer")
+  referredByRel         Referral?      @relation("ReferredUser")
   escalas               Escala[]
   escalaConfig          EscalaConfig?
   rasAgendas            RasAgenda[]
@@ -33,12 +40,14 @@ model User {
   rasCenarios           RasCenarioSalvo[]
   rasAuditLogs          RasAuditLog[]
   lancamentos           Lancamento[]
+  lancamentoAuditLogs   LancamentoAuditLog[]
   investimentos         Investimento[]
   investimentoAtivos    InvestimentoAtivo[]
   investimentoOperacoes InvestimentoOperacao[]
   metas                 Meta[]
   metaAportes           MetaAporte[]
   recorrencias          Recorrencia[]
+  assinaturasCartao     AssinaturaCartao[]
   contas                Conta[]
   categorias            Categoria[]
   faturasCartao         FaturaCartao[]
@@ -231,13 +240,22 @@ model Lancamento {
   recorrenciaId         String?
   recorrencia           Recorrencia?           @relation(fields: [recorrenciaId], references: [id])
   status                String                 @default("confirmada") // pendente | confirmada
+  idempotencyKey        String?                @unique // previne double-submit
+  deletadoEm            DateTime? // soft delete: null = ativo, not null = deletado
   parcelasCartao        ParcelaCartao[]        @relation("ParcelaLancamento")
   pagamentosFatura      PagamentoFatura[]      @relation("PagamentoFaturaLancamento")
   investimentoOperacoes InvestimentoOperacao[] @relation("InvestimentoOperacaoLancamento")
+  auditLogs             LancamentoAuditLog[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
   @@unique([userId, recorrenciaId, competenciaAt])
+  // Composite indexes for common query patterns (10k users / 1M rows)
+  @@index([userId, competenciaAt])
+  @@index([userId, competenciaAt, status])
+  @@index([userId, tipo, status])
+  @@index([userId, contaId, competenciaAt])
+  @@index([userId, deletadoEm])
   @@index([userId])
   @@index([contaId])
   @@index([categoriaId])
@@ -245,6 +263,23 @@ model Lancamento {
   @@index([competenciaAt])
   @@index([categoria])
   @@index([tipo])
+}
+
+model LancamentoAuditLog {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lancamentoId String
+  lancamento   Lancamento @relation(fields: [lancamentoId], references: [id], onDelete: Cascade)
+  acao         String     // criado | atualizado | deletado
+  dadosAntes   Json?      // snapshot antes da mudança
+  dadosDepois  Json?      // snapshot depois da mudança
+  ipAddress    String?
+  createdAt    DateTime   @default(now())
+
+  @@index([userId])
+  @@index([lancamentoId])
+  @@index([userId, createdAt])
 }
 
 // MODULO: CATEGORIAS
@@ -260,9 +295,10 @@ model Categoria {
   cor           String?
   ativa         Boolean        @default(true)
   ordem         Int            @default(0)
-  lancamentos   Lancamento[]
-  comprasCartao CompraCartao[]
-  recorrencias  Recorrencia[]
+  lancamentos        Lancamento[]
+  comprasCartao      CompraCartao[]
+  recorrencias       Recorrencia[]
+  assinaturasCartao  AssinaturaCartao[] @relation("AssinaturaCategoria")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -290,6 +326,7 @@ model Conta {
   ativa                 Boolean                @default(true)
   lancamentos           Lancamento[]
   recorrencias          Recorrencia[]
+  assinaturasCartao     AssinaturaCartao[]     @relation("AssinaturasCartao")
   faturasCartao         FaturaCartao[]         @relation("CartaoFaturas")
   comprasCartao         CompraCartao[]         @relation("CartaoCompras")
   pagamentosFatura      PagamentoFatura[]      @relation("ContaPagamentoFatura")
@@ -333,26 +370,29 @@ model FaturaCartao {
 }
 
 model CompraCartao {
-  id                 String          @id @default(cuid())
-  userId             String
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contaId            String
-  conta              Conta           @relation("CartaoCompras", fields: [contaId], references: [id], onDelete: Restrict)
-  categoriaId        String?
-  categoriaRef       Categoria?      @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
-  categoria          String
-  descricao          String
-  valorTotalCentavos Int
-  dataCompra         DateTime
-  quantidadeParcelas Int
-  status             String          @default("ativa")
-  parcelas           ParcelaCartao[]
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id                   String            @id @default(cuid())
+  userId               String
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId              String
+  conta                Conta             @relation("CartaoCompras", fields: [contaId], references: [id], onDelete: Restrict)
+  categoriaId          String?
+  categoriaRef         Categoria?        @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  assinaturaCartaoId   String?
+  assinaturaCartao     AssinaturaCartao? @relation("AssinaturaCompras", fields: [assinaturaCartaoId], references: [id], onDelete: SetNull)
+  categoria            String
+  descricao            String
+  valorTotalCentavos   Int
+  dataCompra           DateTime
+  quantidadeParcelas   Int
+  status               String            @default("ativa")
+  parcelas             ParcelaCartao[]
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   @@index([userId])
   @@index([contaId])
   @@index([categoriaId])
+  @@index([assinaturaCartaoId])
   @@index([userId, status])
 }
 
@@ -549,6 +589,94 @@ model Recorrencia {
   @@index([userId])
   @@index([categoriaId])
   @@index([ativa])
+}
+
+// ─── MÓDULO: ASSINATURAS NO CARTÃO ───────────────────────────────────────────
+// Assinaturas recorrentes cobradas em cartão de crédito (Netflix, Spotify, etc.)
+// Geram CompraCartao+ParcelaCartao mensalmente via /api/cartao/assinaturas/processar
+
+model AssinaturaCartao {
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contaId           String
+  conta             Conta          @relation("AssinaturasCartao", fields: [contaId], references: [id], onDelete: Restrict)
+  categoriaId       String?
+  categoriaRef      Categoria?     @relation("AssinaturaCategoria", fields: [categoriaId], references: [id], onDelete: SetNull)
+  descricao         String
+  categoria         String
+  valorCentavos     Int
+  diaCobranca       Int            // 1-31 — dia em que a cobrança aparece na fatura
+  dataInicio        DateTime
+  dataFim           DateTime?
+  proximaCobranca   DateTime?
+  ultimaCobranca    DateTime?
+  ultimaCompetencia String?        // YYYY-MM — última competência gerada (anti-duplicidade)
+  ativa             Boolean        @default(true)
+  comprasGeradas    CompraCartao[] @relation("AssinaturaCompras")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([contaId])
+  @@index([userId, ativa])
+  @@index([ativa, proximaCobranca])
+}
+
+// ─── PLANOS / ASSINATURAS ────────────────────────────────────────────────────
+
+model Subscription {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        String    @default("pro")
+  status      String    @default("active")   // active | cancelled | expired | superseded
+  source      String    @default("manual")   // manual | mercadopago | trial
+  amountCents Int       @default(2990)
+  startsAt    DateTime
+  endsAt      DateTime?
+  paymentRef  String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([endsAt])
+}
+
+// ─── COTAÇÕES ────────────────────────────────────────────────────────────────
+// Cache de cotações de ativos financeiros (B3, cripto, etc.)
+// Fonte principal: Brapi.dev — TTL de 5 minutos controlado pela API
+
+model CotacaoAtivo {
+  id                 String   @id @default(cuid())
+  ticker             String   @unique
+  nome               String?
+  precoCentavos      Int
+  fechamentoCentavos Int?
+  variacaoPercent    Float?   // variação percentual no dia (ex.: 1.85 = +1,85%)
+  fonte              String   @default("brapi")
+  atualizadoEm       DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  @@index([ticker])
+  @@index([atualizadoEm])
+  @@map("cotacao_ativo")
+}
+
+// ─── INDICAÇÕES ──────────────────────────────────────────────────────────────
+
+model Referral {
+  id         String   @id @default(cuid())
+  referrerId String
+  referredId String   @unique
+  rewarded   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  referrer   User     @relation("Referrer",     fields: [referrerId], references: [id], onDelete: Cascade)
+  referred   User     @relation("ReferredUser", fields: [referredId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
 }
 
 // ─── AUTH ────────────────────────────────────────────────────────────────────

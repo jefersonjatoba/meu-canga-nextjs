@@ -14,9 +14,36 @@ export interface MoneyInputProps {
   id?: string
 }
 
-// Accepts only digits and comma (BRL decimal separator).
-// Store value as raw string, e.g. "450,50" or "1500".
-// Use toCents(value) to convert before sending to the API.
+// Formats raw digit+comma string into BRL display format.
+// "1234" → "1.234"   "1234,5" → "1.234,5"   "1234,56" → "1.234,56"
+function formatBRLDisplay(raw: string): string {
+  // Strip everything except digits and one comma
+  const onlyDigitsComma = raw.replace(/[^\d,]/g, '')
+  const commaIdx = onlyDigitsComma.indexOf(',')
+
+  let intPart: string
+  let decPart: string | undefined
+
+  if (commaIdx !== -1) {
+    intPart = onlyDigitsComma.slice(0, commaIdx)
+    // max 2 decimal digits
+    decPart = onlyDigitsComma.slice(commaIdx + 1, commaIdx + 3)
+  } else {
+    intPart = onlyDigitsComma
+    decPart = undefined
+  }
+
+  // Thousand separators with dots
+  const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+
+  return decPart !== undefined ? `${intFormatted},${decPart}` : intFormatted
+}
+
+// Strip BRL display formatting so toCents() can parse it.
+// "1.234,56" → "1234,56"  (toCents replaces ',' → '.' then parseFloat)
+export function stripMoneyFormat(display: string): string {
+  return display.replace(/\./g, '')
+}
 
 export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(
   ({ value = '', onChange, onBlur, label, error, disabled, required, id }, ref) => {
@@ -38,9 +65,9 @@ export const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(
           </span>
         }
         onChange={(e) => {
-          // Only allow digits and comma (Brazilian decimal separator)
           const raw = e.target.value.replace(/[^\d,]/g, '')
-          onChange?.(raw)
+          const formatted = formatBRLDisplay(raw)
+          onChange?.(formatted)
         }}
         onBlur={onBlur}
       />

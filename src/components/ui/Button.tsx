@@ -93,7 +93,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ) : (
           <>
             {leftIcon && <span className="shrink-0" aria-hidden>{leftIcon}</span>}
-            <span>{children}</span>
+            {children}
             {rightIcon && <span className="shrink-0" aria-hidden>{rightIcon}</span>}
           </>
         )}

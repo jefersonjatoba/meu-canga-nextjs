@@ -2,26 +2,35 @@
 
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { InvestimentoAtivoDetalheDTO } from '../types'
+import type { CotacoesMap } from '../hooks/useCotacoes'
 import { AtivoItem } from './AtivoItem'
 import { InvestimentosEmptyState } from './InvestimentosEmptyState'
 
 interface AtivosListProps {
-  ativos: InvestimentoAtivoDetalheDTO[]
-  loading: boolean
-  error: string | null
-  precosAtuais: Record<string, number | null>
-  onPrecoAtualChange: (ativoId: string, value: number | null) => void
-  onNovoAtivo: () => void
-  onDetalhe: (ativo: InvestimentoAtivoDetalheDTO) => void
-  onOperacao: (ativo: InvestimentoAtivoDetalheDTO) => void
+  ativos:              InvestimentoAtivoDetalheDTO[]
+  loading:             boolean
+  cotacoesLoading:     boolean
+  error:               string | null
+  cotacoes:            CotacoesMap
+  precosManual:        Record<string, number | null>
+  precosEfetivos:      Record<string, number | null>
+  patrimonioCentavos:  number
+  onPrecoManualChange: (ativoId: string, value: number | null) => void
+  onNovoAtivo:         () => void
+  onDetalhe:           (ativo: InvestimentoAtivoDetalheDTO) => void
+  onOperacao:          (ativo: InvestimentoAtivoDetalheDTO) => void
 }
 
 export function AtivosList({
   ativos,
   loading,
+  cotacoesLoading,
   error,
-  precosAtuais,
-  onPrecoAtualChange,
+  cotacoes,
+  precosManual,
+  precosEfetivos,
+  patrimonioCentavos,
+  onPrecoManualChange,
   onNovoAtivo,
   onDetalhe,
   onOperacao,
@@ -51,16 +60,29 @@ export function AtivosList({
 
   return (
     <div className="space-y-3">
-      {ativos.map(ativo => (
-        <AtivoItem
-          key={ativo.id}
-          ativo={ativo}
-          precoAtualCentavos={precosAtuais[ativo.id] ?? null}
-          onPrecoAtualChange={(value) => onPrecoAtualChange(ativo.id, value)}
-          onDetalhe={() => onDetalhe(ativo)}
-          onOperacao={() => onOperacao(ativo)}
-        />
-      ))}
+      {ativos.map(ativo => {
+        const precoAtual = precosEfetivos[ativo.id]
+        const valorAtual = precoAtual != null
+          ? Math.round(Number(ativo.posicao.quantidadeAtual) * precoAtual)
+          : null
+        const portfolioPercent = patrimonioCentavos > 0 && valorAtual != null
+          ? (valorAtual / patrimonioCentavos) * 100
+          : null
+
+        return (
+          <AtivoItem
+            key={ativo.id}
+            ativo={ativo}
+            cotacao={cotacoes[ativo.ticker.toUpperCase()] ?? null}
+            cotacaoLoading={cotacoesLoading}
+            precoManualCentavos={precosManual[ativo.id] ?? null}
+            portfolioPercent={portfolioPercent}
+            onPrecoManualChange={(value) => onPrecoManualChange(ativo.id, value)}
+            onDetalhe={() => onDetalhe(ativo)}
+            onOperacao={() => onOperacao(ativo)}
+          />
+        )
+      })}
     </div>
   )
 }

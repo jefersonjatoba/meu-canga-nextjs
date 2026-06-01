@@ -9,6 +9,7 @@ import {
   RasModal,
   RasEmptyState,
   RasCharts,
+  RasSidebar,
 } from '@/features/ras/components'
 import {
   fetchRas,
@@ -32,19 +33,19 @@ function currentCompetencia(): string {
 export default function RasPage() {
   // ── State ─────────────────────────────────────────────────────────────────
   const [competencia, setCompetencia] = useState<string>(currentCompetencia)
-  const [rasAgendas, setRasAgendas] = useState<RasAgenda[]>([])
-  const [stats, setStats] = useState<RasMonthStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [rasAgendas,  setRasAgendas]  = useState<RasAgenda[]>([])
+  const [stats,       setStats]       = useState<RasMonthStats | null>(null)
+  const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState<string | null>(null)
 
   // ── Modal ─────────────────────────────────────────────────────────────────
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingRas, setEditingRas] = useState<RasAgenda | null>(null)
+  const [modalOpen,   setModalOpen]   = useState(false)
+  const [editingRas,  setEditingRas]  = useState<RasAgenda | null>(null)
 
   // ── Filters ───────────────────────────────────────────────────────────────
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusFilter,    setStatusFilter]    = useState<string>('all')
   const [graduacaoFilter, setGraduacaoFilter] = useState<string>('all')
-  const [localFilter, setLocalFilter] = useState<string>('')
+  const [localFilter,     setLocalFilter]     = useState<string>('')
 
   // ── Load data ─────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -54,10 +55,10 @@ export default function RasPage() {
       const [listResult, statsResult] = await Promise.all([
         fetchRas({
           competencia,
-          status: statusFilter !== 'all' ? statusFilter : undefined,
+          status:    statusFilter    !== 'all' ? statusFilter    : undefined,
           graduacao: graduacaoFilter !== 'all' ? graduacaoFilter : undefined,
-          local: localFilter || undefined,
-          pageSize: 100,
+          local:     localFilter || undefined,
+          pageSize:  100,
         }),
         fetchRasStats(competencia),
       ])
@@ -71,7 +72,10 @@ export default function RasPage() {
   }, [competencia, statusFilter, graduacaoFilter, localFilter])
 
   useEffect(() => {
-    void loadData()
+    const timer = window.setTimeout(() => {
+      void loadData()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [loadData])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -89,9 +93,8 @@ export default function RasPage() {
     if (!confirm('Cancelar este RAS?')) return
     try {
       await cancelarRas(id)
-      // Force immediate refetch without cache
       setLoading(true)
-      await new Promise(r => setTimeout(r, 300)) // Brief delay for DB consistency
+      await new Promise(r => setTimeout(r, 300))
       await loadData()
     } catch (err) {
       setLoading(false)
@@ -102,9 +105,8 @@ export default function RasPage() {
   const handleMarcarRealizado = async (id: string) => {
     try {
       await marcarRealizado(id)
-      // Force immediate refetch without cache
       setLoading(true)
-      await new Promise(r => setTimeout(r, 300)) // Brief delay for DB consistency
+      await new Promise(r => setTimeout(r, 300))
       await loadData()
     } catch (err) {
       setLoading(false)
@@ -112,73 +114,91 @@ export default function RasPage() {
     }
   }
 
-  // ── Active list (excluindo cancelados) ────────────────────────────────────
-  const activeRas = rasAgendas.filter((r) => r.status !== 'cancelado')
-  const isEmpty = !loading && activeRas.length === 0
+  // ── Derived ───────────────────────────────────────────────────────────────
+  // Na aba cancelados queremos ver os cancelados; nas demais, escondemos eles
+  const isReadOnly = statusFilter === 'cancelado'
+  const activeRas  = isReadOnly
+    ? rasAgendas
+    : rasAgendas.filter((r) => r.status !== 'cancelado')
+  const isEmpty    = !loading && activeRas.length === 0
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* Header with stats */}
+    <div className="space-y-4">
+      {/* Header: título + navMês + progresso de horas */}
       <RasHeader
         competencia={competencia}
+        onCompetenciaChange={setCompetencia}
         stats={stats}
         onNovoClick={handleNovoClick}
       />
 
-      {/* Filters */}
-      <RasFilters
-        competencia={competencia}
-        onCompetenciaChange={setCompetencia}
-        status={statusFilter}
-        onStatusChange={setStatusFilter}
-        graduacao={graduacaoFilter}
-        onGraduacaoChange={setGraduacaoFilter}
-        local={localFilter}
-        onLocalChange={setLocalFilter}
-      />
+      {/* Two-column layout: conteúdo principal + sidebar (desktop) */}
+      <div className="lg:grid lg:grid-cols-[1fr_272px] lg:gap-5 lg:items-start">
 
-      {/* Error state */}
-      {error && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/20 px-5 py-8 text-center">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-          <button
-            onClick={() => void loadData()}
-            className="mt-3 text-sm text-red-600 dark:text-red-400 underline"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      )}
-
-      {/* Loading state */}
-      {loading && !error && (
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm">
-          <div className="px-5 py-10 flex flex-col items-center gap-3 text-gray-400">
-            <Loader2 size={24} className="animate-spin" aria-hidden />
-            <p className="text-sm">Carregando…</p>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && !error && isEmpty && (
-        <RasEmptyState onNovoClick={handleNovoClick} />
-      )}
-
-      {/* Content */}
-      {!loading && !error && !isEmpty && (
-        <>
-          <RasList
-            rasAgendas={activeRas}
-            isLoading={false}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onMarcarRealizado={handleMarcarRealizado}
-            isReadOnly={statusFilter === 'cancelado'}
+        {/* ── Coluna principal ──────────────────────────────────────────── */}
+        <div className="space-y-4">
+          {/* Filtros de status (chips) + graduação/local (selects) */}
+          <RasFilters
+            status={statusFilter}
+            onStatusChange={setStatusFilter}
+            graduacao={graduacaoFilter}
+            onGraduacaoChange={setGraduacaoFilter}
+            local={localFilter}
+            onLocalChange={setLocalFilter}
           />
-          {stats && <RasCharts stats={stats} />}
-        </>
-      )}
+
+          {/* Error */}
+          {error && (
+            <div className="rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/20 px-5 py-8 text-center">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              <button
+                onClick={() => void loadData()}
+                className="mt-3 text-sm text-red-600 dark:text-red-400 underline"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {/* Loading */}
+          {loading && !error && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-[#1E1E1E] shadow-sm">
+              <div className="px-5 py-10 flex flex-col items-center gap-3 text-gray-400">
+                <Loader2 size={24} className="animate-spin" aria-hidden />
+                <p className="text-sm">Carregando…</p>
+              </div>
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loading && !error && isEmpty && (
+            <RasEmptyState onNovoClick={handleNovoClick} />
+          )}
+
+          {/* Lista */}
+          {!loading && !error && !isEmpty && (
+            <RasList
+              rasAgendas={activeRas}
+              isLoading={false}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onMarcarRealizado={handleMarcarRealizado}
+              isReadOnly={isReadOnly}
+            />
+          )}
+
+          {/* Charts — mobile only (desktop fica na sidebar) */}
+          {!loading && !error && !isEmpty && stats && (
+            <div className="lg:hidden">
+              <RasCharts stats={stats} />
+            </div>
+          )}
+        </div>
+
+        {/* ── Sidebar (desktop) ─────────────────────────────────────────── */}
+        <RasSidebar stats={stats} />
+      </div>
 
       {/* Modal */}
       <RasModal

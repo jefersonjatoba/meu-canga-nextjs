@@ -8,6 +8,7 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowLeftRight,
+  CreditCard,
   Pencil,
   Repeat2,
   Trash2,
@@ -106,11 +107,21 @@ export function LancamentoItem({ item, onEdit, onDelete, isLast = false }: Lanca
           {item.source === 'recorrente' && (
             <Link
               href="/dashboard/recorrencias"
-              title="Ver recorrencias"
+              title="Ver recorrências"
               className="inline-flex shrink-0 items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50"
             >
               <Repeat2 size={12} aria-hidden />
               Recorrente
+            </Link>
+          )}
+          {item.source === 'parcelado' && (
+            <Link
+              href="/dashboard/cartoes"
+              title="Ver faturas do cartão"
+              className="inline-flex shrink-0 items-center gap-1 rounded-md bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-100 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50"
+            >
+              <CreditCard size={12} aria-hidden />
+              Cartão
             </Link>
           )}
         </div>
@@ -141,8 +152,8 @@ export function LancamentoItem({ item, onEdit, onDelete, isLast = false }: Lanca
         {tipoSign[item.tipo] ?? ''}{formatBRL(item.valorCentavos)}
       </span>
 
-      {/* Actions — visible on hover/focus */}
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+      {/* Actions — always visible on mobile, hover/focus on desktop */}
+      <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
         <button
           onClick={() => onEdit(item)}
           aria-label="Editar lançamento"

@@ -102,10 +102,38 @@ export async function registrarOperacao(
     const operacoes = await repo.listOperacoesByAtivoTx(tx, userId, validated.ativoId)
     validateOperationAgainstPosition(operacoes, validated)
 
-    await repo.createOperacao(tx, userId, validated)
+    let lancamentoId: string | null = null
+    if (validated.contaId) {
+      const isAporte = validated.tipo === 'aporte' || validated.tipo === 'compra'
+      const lancamento = await repo.createLancamentoForInvestimento(tx, userId, {
+        contaId: validated.contaId,
+        tipoLancamento: isAporte ? 'investment_aporte' : 'investment_resgate',
+        valorCentavos: validated.valorTotalCentavos,
+        dataOperacao: validated.dataOperacao,
+        ativoNome: ativo.nome,
+      })
+      lancamentoId = lancamento.id
+    }
+
+    await repo.createOperacao(tx, userId, { ...validated, lancamentoId })
   })
 
   return obterAtivoComPosicao(userId, validated.ativoId)
+}
+
+export async function excluirAtivo(userId: string, ativoId: string) {
+  assertUserId(userId)
+  assertNonEmptyString(ativoId, 'ativoId')
+
+  await repo.runInTransaction(async tx => {
+    const ativo = await repo.findAtivoByIdTx(tx, userId, ativoId)
+    if (!ativo) throw new InvestmentAtivoNotFoundOrForbiddenError()
+
+    const temOperacoesAtivas = ativo.operacoes.some(op => op.status !== 'cancelada')
+    if (temOperacoesAtivas) throw new InvestmentAtivoComOperacoesAtivasError()
+
+    await repo.deleteAtivo(tx, userId, ativoId)
+  })
 }
 
 export async function cancelarOperacao(userId: string, operacaoId: string) {
@@ -119,6 +147,11 @@ export async function cancelarOperacao(userId: string, operacaoId: string) {
 
     const result = await repo.cancelOperacao(tx, userId, operacaoId)
     if (result.count !== 1) throw new InvestmentOperacaoNotFoundOrForbiddenError()
+
+    if (operacao.lancamentoId) {
+      await repo.cancelLancamentoById(tx, operacao.lancamentoId)
+    }
+
     return operacao.ativoId
   })
 
@@ -208,7 +241,7 @@ function validateAtivoInput(input: CriarAtivoInput): CriarAtivoInput {
 
 function validateOperacaoInput(input: RegistrarOperacaoInput) {
   const tipo = assertNonEmptyString(input.tipo, 'tipo', 40)
-  if (tipo !== 'compra' && tipo !== 'venda') {
+  if (!['compra', 'venda', 'aporte', 'resgate'].includes(tipo)) {
     throw new InvestmentOperacaoInvalidError('Tipo de operacao invalido')
   }
 
@@ -314,6 +347,14 @@ export class InvestmentOperacaoInvalidError extends Error {
   constructor(message = 'Operacao de investimento invalida') {
     super(message)
     this.name = 'InvestmentOperacaoInvalidError'
+  }
+}
+
+export class InvestmentAtivoComOperacoesAtivasError extends Error {
+  readonly statusCode = 422
+  constructor() {
+    super('Cancele todas as operações ativas antes de excluir o ativo')
+    this.name = 'InvestmentAtivoComOperacoesAtivasError'
   }
 }
 

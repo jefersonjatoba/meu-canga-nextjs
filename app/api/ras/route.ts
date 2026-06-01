@@ -2,12 +2,15 @@ import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
   getApiUser,
+  getApiUserWithPlan,
   okResponse,
   createdResponse,
   errorResponse,
   unauthorizedResponse,
   serverErrorResponse,
 } from '@/lib/api-auth'
+import { checkRas } from '@/lib/plan-checker'
+import { PAYWALL_MSGS } from '@/lib/plans'
 import {
   createRasAgendaSchema,
   rasAgendaFiltersSchema,
@@ -112,8 +115,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getApiUser()
+    const user = await getApiUserWithPlan()
     if (!user) return unauthorizedResponse()
+
+    const limitCheck = await checkRas(user.id, user)
+    if (!limitCheck.ok) {
+      const msg = PAYWALL_MSGS[limitCheck.recurso!]
+      return errorResponse(
+        `${msg?.titulo ?? 'Limite atingido'}: ${msg?.descricao ?? `Você atingiu o limite de ${limitCheck.limite} RAS por mês no plano Free.`} Faça upgrade para o PRO e tenha RAS ilimitado.`,
+        402
+      )
+    }
 
     const body = await request.json().catch(() => null)
     if (!body) return errorResponse('Corpo da requisição inválido')

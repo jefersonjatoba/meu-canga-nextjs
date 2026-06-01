@@ -5,7 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processExpiredRas, notifyRasAwaitingConfirmation } from '@/server/jobs/ras-expiry'
 
-const JOB_TOKEN = process.env.JOB_TOKEN || 'dev-token-change-in-production'
+function getJobToken(): string | null {
+  return process.env.JOB_TOKEN?.trim() || null
+}
 
 /**
  * GET /api/internal/jobs/ras-checks
@@ -21,6 +23,12 @@ const JOB_TOKEN = process.env.JOB_TOKEN || 'dev-token-change-in-production'
  */
 export async function GET(request: NextRequest) {
   try {
+    const jobToken = getJobToken()
+    if (!jobToken) {
+      console.error('[ras-checks-api] JOB_TOKEN nao configurado; endpoint desabilitado por seguranca')
+      return NextResponse.json({ error: 'Job unavailable' }, { status: 503 })
+    }
+
     // Verify authorization
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -28,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.slice(7)
-    if (token !== JOB_TOKEN) {
+    if (token !== jobToken) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 403 })
     }
 

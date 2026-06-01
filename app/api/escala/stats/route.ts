@@ -12,10 +12,8 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Implement proper auth - temporarily disabled for testing
-    const user = { id: '1', email: 'user@example.com', name: 'Test User', role: 'user' }
-    // const user = await getApiUser()
-    // if (!user) return unauthorizedResponse()
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
 
     // Determine current month bounds in America/Sao_Paulo
     const nowBR = new Date(

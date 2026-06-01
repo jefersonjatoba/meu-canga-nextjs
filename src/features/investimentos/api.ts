@@ -44,6 +44,13 @@ export async function criarOperacaoInvestimento(
   return handle<InvestimentoAtivoDetalheDTO>(res)
 }
 
+export async function excluirAtivoInvestimento(id: string): Promise<void> {
+  const res = await fetch(`/api/investimentos/ativos/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+  await handle<{ deleted: boolean }>(res)
+}
+
 export async function cancelarOperacaoInvestimento(id: string): Promise<InvestimentoAtivoDetalheDTO> {
   const res = await fetch(`/api/investimentos/operacoes/${encodeURIComponent(id)}/cancelar`, {
     method: 'PATCH',

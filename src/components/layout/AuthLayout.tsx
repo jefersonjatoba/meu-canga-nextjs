@@ -3,7 +3,6 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
-import { cn } from '@/lib/utils'
 
 export interface AuthLayoutProps {
   children: React.ReactNode

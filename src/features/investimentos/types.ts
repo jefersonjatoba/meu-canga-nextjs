@@ -1,4 +1,4 @@
-export type InvestimentoOperacaoTipo = 'compra' | 'venda'
+export type InvestimentoOperacaoTipo = 'compra' | 'venda' | 'aporte' | 'resgate'
 export type InvestimentoOperacaoStatus = 'confirmada' | 'cancelada'
 
 export interface CriarAtivoInput {
@@ -74,4 +74,4 @@ export interface InvestimentoAtivoDetalheDTO extends InvestimentoAtivoDTO {
   operacoes: InvestimentoOperacaoDTO[]
 }
 
-export const TIPOS_OPERACAO_INVESTIMENTO = ['compra', 'venda'] as const satisfies InvestimentoOperacaoTipo[]
+export const TIPOS_OPERACAO_INVESTIMENTO = ['compra', 'venda', 'aporte', 'resgate'] as const satisfies InvestimentoOperacaoTipo[]

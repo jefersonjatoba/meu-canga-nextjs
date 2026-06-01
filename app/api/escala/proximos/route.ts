@@ -1,15 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getUserId(request: NextRequest): string | null {
-  return request.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 // GET /api/escala/proximos — next 10 upcoming shifts
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     // UTC midnight da data "hoje" no fuso de São Paulo
     const nowUTC = new Date()

@@ -47,7 +47,7 @@ export async function processExpiredRas(): Promise<number> {
     for (const ras of expiredRas) {
       try {
         // Transition: realizado → pendente
-        const updated = await prisma.rasAgenda.update({
+        await prisma.rasAgenda.update({
           where: { id: ras.id },
           data: {
             status: 'pendente',

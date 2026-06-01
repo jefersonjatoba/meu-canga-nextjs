@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Clock, MapPin, Calendar, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {

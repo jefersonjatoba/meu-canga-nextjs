@@ -14,7 +14,7 @@
         "apelido": { "type": "TEXT", "nullable": true },
         "cpf": { "type": "TEXT", "nullable": true, "unique": true },
         "profissao": { "type": "TEXT", "nullable": true },
-        "unidade": { "type": "TEXT", "nullable": true, "description": "Unidade de trabalho/hospital" },
+        "unidade": { "type": "TEXT", "nullable": true, "description": "Unidade de trabalho/batalhão" },
         "email": { "type": "TEXT", "nullable": false, "unique": true },
         "telefone": { "type": "TEXT", "nullable": true },
         "meta_poupanca": { "type": "TEXT", "nullable": true, "description": "Meta de poupança em JSON" },

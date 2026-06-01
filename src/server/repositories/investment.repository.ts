@@ -71,6 +71,7 @@ export async function createOperacao(
     valorTotalCentavos: number
     taxasCentavos?: number | null
     dataOperacao: Date
+    lancamentoId?: string | null
   },
 ) {
   return tx.investimentoOperacao.create({
@@ -84,6 +85,39 @@ export async function createOperacao(
       valorTotalCentavos: data.valorTotalCentavos,
       taxasCentavos: data.taxasCentavos ?? 0,
       dataOperacao: data.dataOperacao,
+      status: 'confirmada',
+      lancamentoId: data.lancamentoId ?? null,
+    },
+  })
+}
+
+export async function createLancamentoForInvestimento(
+  tx: PrismaTx,
+  userId: string,
+  data: {
+    contaId: string
+    tipoLancamento: 'investment_aporte' | 'investment_resgate'
+    valorCentavos: number
+    dataOperacao: Date
+    ativoNome: string
+  },
+) {
+  const competenciaAt = `${data.dataOperacao.getFullYear()}-${String(data.dataOperacao.getMonth() + 1).padStart(2, '0')}`
+  const descricao = data.tipoLancamento === 'investment_aporte'
+    ? `Aporte — ${data.ativoNome}`
+    : `Resgate — ${data.ativoNome}`
+
+  return tx.lancamento.create({
+    data: {
+      userId,
+      contaId: data.contaId,
+      descricao,
+      tipo: data.tipoLancamento,
+      categoria: 'Investimento',
+      valorCentavos: data.valorCentavos,
+      data: data.dataOperacao,
+      competenciaAt,
+      source: 'manual',
       status: 'confirmada',
     },
   })
@@ -118,6 +152,34 @@ export async function findOperacaoByIdTx(tx: PrismaTx, userId: string, id: strin
   return tx.investimentoOperacao.findFirst({
     where: { id, userId },
   })
+}
+
+export async function cancelLancamentoById(tx: PrismaTx, lancamentoId: string) {
+  await tx.lancamento.updateMany({
+    where: { id: lancamentoId },
+    data: { status: 'cancelada' },
+  })
+}
+
+export async function deleteAtivo(tx: PrismaTx, userId: string, id: string) {
+  // Cancel all linked lancamentos before deleting operations
+  const operacoes = await tx.investimentoOperacao.findMany({
+    where: { ativoId: id, userId },
+    select: { lancamentoId: true },
+  })
+  const lancamentoIds = operacoes
+    .map(op => op.lancamentoId)
+    .filter((lid): lid is string => lid !== null)
+
+  if (lancamentoIds.length > 0) {
+    await tx.lancamento.updateMany({
+      where: { id: { in: lancamentoIds } },
+      data: { status: 'cancelada' },
+    })
+  }
+
+  await tx.investimentoOperacao.deleteMany({ where: { ativoId: id, userId } })
+  await tx.investimentoAtivo.delete({ where: { id } })
 }
 
 export async function findContaForInvestment(

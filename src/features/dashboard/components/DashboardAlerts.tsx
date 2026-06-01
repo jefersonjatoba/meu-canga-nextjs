@@ -1,18 +1,15 @@
-'use client'
-
 import Link from 'next/link'
 import { AlertCircle, Calendar, TrendingUp, Zap } from 'lucide-react'
-import type { DashboardSummaryDTO } from '@/features/dashboard/types'
+import { getDataHojeSP } from '@/lib/dates'
 import { formatBRL } from '@/lib/money'
+import type { DashboardSummaryDTO } from '@/features/dashboard/types'
 
 interface Alert {
   id: string
-  type: 'fatura' | 'meta' | 'ras' | 'limite'
   severity: 'error' | 'warning' | 'success' | 'info'
   title: string
   description: string
   action?: { label: string; href: string }
-  icon: React.ReactNode
 }
 
 interface DashboardAlertsProps {
@@ -22,66 +19,82 @@ interface DashboardAlertsProps {
 function getAlerts(summary: DashboardSummaryDTO): Alert[] {
   const alerts: Alert[] = []
 
-  // Alerta 1: Faturas vencendo próximas
   if (summary.cartao?.faturasProximas && summary.cartao.faturasProximas.length > 0) {
     const faturaMaisUrgente = summary.cartao.faturasProximas[0]
-    if (faturaMaisUrgente && faturaMaisUrgente.dataVencimento) {
-      const vencimento = new Date(faturaMaisUrgente.dataVencimento)
-      const hoje = new Date()
+    if (faturaMaisUrgente?.dataVencimento) {
+      const vencimento = new Date(`${faturaMaisUrgente.dataVencimento}T00:00:00Z`)
+      const hoje = new Date(`${getDataHojeSP()}T00:00:00Z`)
       const diasAteVencimento = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
 
       if (diasAteVencimento <= 5) {
         const severity = diasAteVencimento <= 1 ? 'error' : diasAteVencimento <= 3 ? 'warning' : 'info'
-        const diaLabel = diasAteVencimento === 0 ? 'hoje' : `em ${diasAteVencimento} ${diasAteVencimento === 1 ? 'dia' : 'dias'}`
+        const diaLabel =
+          diasAteVencimento === 0
+            ? 'vence hoje'
+            : diasAteVencimento === 1
+              ? 'vence amanhã'
+              : `vence em ${diasAteVencimento} dias`
 
         alerts.push({
           id: 'fatura-proxima',
-          type: 'fatura',
           severity,
-          title: `Fatura ${faturaMaisUrgente.contaNome} vence ${diaLabel}`,
-          description: `${formatBRL(faturaMaisUrgente.totalCentavos)} para pagar`,
-          action: { label: 'Ver fatura', href: '/dashboard/cartoes' },
-          icon: <Calendar size={16} />,
+          title: `A próxima fatura do ${faturaMaisUrgente.contaNome} ${diaLabel}.`,
+          description: `${formatBRL(faturaMaisUrgente.totalCentavos)} já estão no radar para pagamento.`,
+          action: { label: 'Abrir cartão', href: '/dashboard/cartoes' },
         })
       }
     }
   }
 
-  // Alerta 2: Meta de poupança atingida
   if (summary.taxaPoupancaPercentual >= 100) {
     alerts.push({
       id: 'meta-poupanca',
-      type: 'meta',
       severity: 'success',
-      title: `Parabéns! 🎉`,
-      description: `Você atingiu 100% da meta de poupança em ${summary.periodoLabel}`,
-      icon: <TrendingUp size={16} />,
+      title: 'Sua meta de poupança foi batida no período.',
+      description: `Você chegou a 100% da meta em ${summary.periodoLabel}.`,
     })
   } else if (summary.taxaPoupancaPercentual >= 80) {
     alerts.push({
       id: 'meta-poupanca-proxima',
-      type: 'meta',
       severity: 'info',
-      title: `Meta de poupança em dia`,
-      description: `${summary.taxaPoupancaPercentual.toFixed(1)}% — falta pouco para atingir 100%`,
-      icon: <TrendingUp size={16} />,
+      title: 'A meta de poupança está bem encaminhada.',
+      description: `${summary.taxaPoupancaPercentual.toFixed(1)}% concluídos até agora.`,
     })
   }
 
-  // Alerta 3: Limite de gastos próximo
   if (summary.cartao?.limiteUsadoCentavos && summary.cartao.totalLimiteCentavos) {
     const percentualUsado = (summary.cartao.limiteUsadoCentavos / summary.cartao.totalLimiteCentavos) * 100
     if (percentualUsado >= 80) {
       alerts.push({
         id: 'limite-proximo',
-        type: 'limite',
         severity: percentualUsado >= 95 ? 'error' : 'warning',
-        title: `Limite disponível ${percentualUsado >= 95 ? 'quase esgotado' : 'em alerta'}`,
-        description: `${percentualUsado.toFixed(0)}% do seu limite está em uso`,
-        action: { label: 'Gerenciar limite', href: '/dashboard/cartoes' },
-        icon: <Zap size={16} />,
+        title: percentualUsado >= 95 ? 'O limite do cartão está no limite.' : 'O limite do cartão entrou em alerta.',
+        description: `${percentualUsado.toFixed(0)}% do limite já está comprometido neste momento.`,
+        action: { label: 'Ver limite', href: '/dashboard/cartoes' },
       })
     }
+  }
+
+  if ((summary.recorrenciasVencidasCount ?? 0) > 0) {
+    const count = summary.recorrenciasVencidasCount ?? 0
+    alerts.push({
+      id: 'recorrencias-vencidas',
+      severity: 'warning',
+      title: `${count} recorrência${count > 1 ? 's' : ''} aguardando processamento.`,
+      description: 'Atualize os lançamentos em conta para manter o mês coerente.',
+      action: { label: 'Ir para recorrências', href: '/dashboard/recorrencias' },
+    })
+  }
+
+  if ((summary.assinaturasVencidasCount ?? 0) > 0) {
+    const count = summary.assinaturasVencidasCount ?? 0
+    alerts.push({
+      id: 'assinaturas-vencidas',
+      severity: 'warning',
+      title: `${count} assinatura${count > 1 ? 's' : ''} no cartão aguardando processamento.`,
+      description: 'Registre as cobranças nas faturas para o cartão ficar alinhado.',
+      action: { label: 'Ir para assinaturas', href: '/dashboard/cartoes/assinaturas' },
+    })
   }
 
   return alerts
@@ -108,37 +121,52 @@ const severityIconStyles = {
   info: 'text-blue-600 dark:text-blue-400',
 }
 
+const severityIcons = {
+  error: AlertCircle,
+  warning: Zap,
+  success: TrendingUp,
+  info: Calendar,
+}
+
 export function DashboardAlerts({ summary }: DashboardAlertsProps) {
   const alerts = getAlerts(summary)
 
   if (alerts.length === 0) return null
 
   return (
-    <div className="flex overflow-x-auto gap-3 snap-x snap-mandatory -mx-5 px-5 md:mx-0 md:px-0 pb-2 md:pb-0">
-      {alerts.map((alert) => (
-        <div
-          key={alert.id}
-          className={`flex-shrink-0 w-full md:flex-shrink-0 md:w-auto rounded-xl border p-4 flex items-start gap-3 snap-center ${severityStyles[alert.severity]}`}
-        >
-          <div className={`flex-shrink-0 mt-0.5 ${severityIconStyles[alert.severity]}`}>
-            <AlertCircle size={18} aria-hidden />
-          </div>
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {alerts.map((alert) => {
+        const Icon = severityIcons[alert.severity] ?? AlertCircle
 
-          <div className="flex-1 min-w-0">
-            <p className={`text-sm font-semibold ${severityTextStyles[alert.severity]}`}>{alert.title}</p>
-            <p className={`text-xs mt-0.5 ${severityTextStyles[alert.severity]} opacity-85`}>{alert.description}</p>
+        return (
+          <div
+            key={alert.id}
+            className={`rounded-2xl border p-4 ${severityStyles[alert.severity]}`}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 shrink-0 ${severityIconStyles[alert.severity]}`}>
+                <Icon size={18} aria-hidden />
+              </div>
 
-            {alert.action && (
-              <Link
-                href={alert.action.href}
-                className={`inline-flex text-xs font-medium mt-2 underline ${severityTextStyles[alert.severity]} hover:opacity-75 transition-opacity`}
-              >
-                {alert.action.label} →
-              </Link>
-            )}
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-semibold ${severityTextStyles[alert.severity]}`}>{alert.title}</p>
+                <p className={`mt-0.5 text-xs opacity-85 ${severityTextStyles[alert.severity]}`}>
+                  {alert.description}
+                </p>
+
+                {alert.action && (
+                  <Link
+                    href={alert.action.href}
+                    className={`mt-2 inline-flex text-xs font-medium transition-opacity hover:opacity-75 ${severityTextStyles[alert.severity]}`}
+                  >
+                    {alert.action.label} →
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

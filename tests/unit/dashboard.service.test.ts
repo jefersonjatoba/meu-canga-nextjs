@@ -3,6 +3,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/server/services/lancamento.service', () => ({
   getLancamentosSummaryForUser: vi.fn(),
   listLancamentosForUser: vi.fn(),
+  getPatrimonioAcumulado: vi.fn(),
+}))
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    rasAgenda: {
+      aggregate: vi.fn(),
+      findMany: vi.fn(),
+    },
+    escala: {
+      findMany: vi.fn(),
+    },
+    recorrencia: {
+      findMany: vi.fn(),
+    },
+    assinaturaCartao: {
+      findMany: vi.fn(),
+    },
+  },
 }))
 
 vi.mock('@/server/services/cartao.service', () => ({
@@ -11,15 +30,19 @@ vi.mock('@/server/services/cartao.service', () => ({
 
 vi.mock('@/lib/dates', () => ({
   currentMonthBR: vi.fn(() => '2026-04'),
+  getDataHojeSP: vi.fn(() => '2026-04-14'),
+  toISODateBR: vi.fn((d: Date) => d.toISOString().split('T')[0]),
 }))
 
 import { getDashboardSummaryForUser } from '@/server/services/dashboard.service'
 import * as lancamentoService from '@/server/services/lancamento.service'
 import * as cartaoService from '@/server/services/cartao.service'
+import { prisma } from '@/lib/prisma'
 
 const mockGetSummary    = vi.mocked(lancamentoService.getLancamentosSummaryForUser)
 const mockListLancamentos = vi.mocked(lancamentoService.listLancamentosForUser)
 const mockGetCartaoSummary = vi.mocked(cartaoService.getCreditCardDashboardSummary)
+const mockGetPatrimonio = vi.mocked(lancamentoService.getPatrimonioAcumulado)
 
 const emptySummary = {
   competenciaAt:   '2026-04',
@@ -58,6 +81,12 @@ beforeEach(() => {
   mockGetCartaoSummary.mockResolvedValue(emptyCartaoSummary)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockListLancamentos.mockResolvedValue(emptyListResult as any)
+  mockGetPatrimonio.mockResolvedValue({ totalAportes: 0, totalResgates: 0 } as never)
+  vi.mocked(prisma.rasAgenda.aggregate).mockResolvedValue({ _sum: { duracao: null } } as never)
+  vi.mocked(prisma.rasAgenda.findMany).mockResolvedValue([] as never)
+  vi.mocked(prisma.escala.findMany).mockResolvedValue([] as never)
+  vi.mocked(prisma.recorrencia.findMany).mockResolvedValue([] as never)
+  vi.mocked(prisma.assinaturaCartao.findMany).mockResolvedValue([] as never)
 })
 
 describe('getDashboardSummaryForUser', () => {
@@ -106,11 +135,7 @@ describe('getDashboardSummaryForUser', () => {
   })
 
   it('calculates patrimônio investido from aportes minus resgates', async () => {
-    mockGetSummary.mockResolvedValue({
-      ...emptySummary,
-      totalAportes:  100000,
-      totalResgates: 30000,
-    })
+    mockGetPatrimonio.mockResolvedValue({ totalAportes: 100000, totalResgates: 30000 } as never)
     const result = await getDashboardSummaryForUser('user1', {})
     expect(result.patrimonioInvestidoCentavos).toBe(70000)
   })
@@ -136,7 +161,7 @@ describe('getDashboardSummaryForUser', () => {
   })
 
   it('sets hasLancamentos false when list total is zero', async () => {
-    mockListLancamentos.mockResolvedValue({ ...emptyListResult, total: 0 } as any)
+    mockListLancamentos.mockResolvedValue({ ...emptyListResult, total: 0 } as never)
     const result = await getDashboardSummaryForUser('user1', {})
     expect(result.hasLancamentos).toBe(false)
   })
@@ -184,5 +209,27 @@ describe('getDashboardSummaryForUser', () => {
     expect(result.totalDespesasCentavos).toBe(120000)
     expect(result.cartao.valorFaturasAbertasCentavos).toBe(120000)
     expect(result.saldoOperacionalCentavos).toBe(-120000)
+  })
+
+  it('calcula RAS a receber apenas para itens confirmados ainda sem pagamento integral', async () => {
+    vi.mocked(prisma.rasAgenda.findMany)
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([
+        {
+          duracao: 8,
+          valorCentavos: 40000,
+          pagamentos: [{ valorCentavos: 10000 }],
+        },
+        {
+          duracao: 6,
+          valorCentavos: 30000,
+          pagamentos: [{ valorCentavos: 30000 }],
+        },
+      ] as never)
+
+    const result = await getDashboardSummaryForUser('user1', { mes: '2026-04' })
+
+    expect(result.rasAReceberCentavos).toBe(30000)
+    expect(result.rasHorasConfirmadas).toBe(8)
   })
 })

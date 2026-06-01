@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateAllBalances, getBalanceDiscrepancies } from '@/server/services/conta.service'
-
-function getUserIdFromRequest(request: NextRequest): string | null {
-  return request.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = getUserIdFromRequest(request)
-    if (!userId) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const showOnlyDiscrepancies = request.nextUrl.searchParams.get('discrepancies') === 'true'
 

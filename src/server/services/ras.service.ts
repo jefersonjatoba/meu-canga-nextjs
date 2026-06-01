@@ -14,6 +14,7 @@ import {
   RAS_MAX_MONTHLY_HOURS,
   RAS_REALIZE_WINDOW_HOURS,
 } from '@/types/ras'
+import { isWithinConfirmationWindow } from '@/lib/ras-calculations'
 import type {
   RasAgenda,
   StatusRas,
@@ -27,7 +28,7 @@ import type {
 
 const VALID_TRANSITIONS: Record<StatusRas, StatusRas[]> = {
   agendado:   ['realizado', 'cancelado'],
-  realizado:  ['pendente',  'cancelado'],
+  realizado:  ['pendente', 'confirmado', 'cancelado'],
   pendente:   ['confirmado','cancelado'],
   confirmado: [],
   cancelado:  [],
@@ -268,7 +269,8 @@ export async function marcarPendente(
 }
 
 /**
- * Transitions pendente → confirmado.
+ * Transitions pendente → confirmado, or realizado → confirmado while the
+ * 72-hour confirmation window is still open.
  */
 export async function confirmarRas(
   id: string,
@@ -278,6 +280,17 @@ export async function confirmarRas(
   const existing = await rasRepo.findRasByIdForUser(id, userId)
   if (!existing) {
     throw new RasDomainError(RasErrorCode.NOT_FOUND, `RAS ${id} não encontrado`)
+  }
+
+  if (
+    existing.status === 'realizado' &&
+    !isWithinConfirmationWindow(existing.data, new Date())
+  ) {
+    throw new RasDomainError(
+      RasErrorCode.TRANSITION_INVALID,
+      'A janela de 72h para confirmação direta expirou. Este RAS deve seguir como pendente até o pagamento.',
+      { current: existing.status, next: 'confirmado' },
+    )
   }
 
   assertTransition(existing.status, 'confirmado')
@@ -378,7 +391,7 @@ export async function cancelarRas(
     }
   )
 
-  return existing
+  return { ...existing, status: 'cancelado' as StatusRas }
 }
 
 // ─── Monthly stats ────────────────────────────────────────────────────────────

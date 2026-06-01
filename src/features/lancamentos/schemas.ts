@@ -7,6 +7,14 @@ import { TIPOS_LANCAMENTO, STATUS_LANCAMENTO, SOURCE_LANCAMENTO } from './types'
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 const COMPETENCIA_REGEX = /^\d{4}-\d{2}$/
 
+// Int32 max = 2_147_483_647 centavos = R$ 21.474.836,47
+const MAX_CENTAVOS = 2_147_483_647
+
+function validDate(val: string): boolean {
+  const [y] = val.split('-').map(Number)
+  return y >= 2000 && y <= 2100
+}
+
 export const createLancamentoSchema = z.object({
   contaId:        z.string().cuid('contaId inválido'),
   categoriaId:    z.string().min(1, 'categoriaId invalido').max(100).optional().nullable(),
@@ -15,8 +23,11 @@ export const createLancamentoSchema = z.object({
   categoria:      z.string().min(1, 'Categoria obrigatória').max(100),
   valorCentavos:  z.number({ required_error: 'Valor obrigatório' })
                    .int('Valor deve ser inteiro em centavos')
-                   .positive('Valor deve ser maior que zero'),
-  data:           z.string().regex(DATE_REGEX, 'Data inválida — formato: YYYY-MM-DD'),
+                   .positive('Valor deve ser maior que zero')
+                   .max(MAX_CENTAVOS, 'Valor excede o limite máximo permitido'),
+  data:           z.string()
+                   .regex(DATE_REGEX, 'Data inválida — formato: YYYY-MM-DD')
+                   .refine(validDate, 'Data fora do intervalo permitido (2000–2100)'),
   competenciaAt:  z.string().regex(COMPETENCIA_REGEX, 'Competência inválida — formato: YYYY-MM').optional(),
   source:         z.enum(SOURCE_LANCAMENTO).default('manual'),
   status:         z.enum(STATUS_LANCAMENTO).default('confirmada'),
@@ -28,8 +39,8 @@ export const updateLancamentoSchema = z.object({
   tipo:           z.enum(TIPOS_LANCAMENTO).optional(),
   categoriaId:    z.string().min(1).max(100).optional().nullable(),
   categoria:      z.string().min(1).max(100).optional(),
-  valorCentavos:  z.number().int().positive().optional(),
-  data:           z.string().regex(DATE_REGEX).optional(),
+  valorCentavos:  z.number().int().positive().max(MAX_CENTAVOS).optional(),
+  data:           z.string().regex(DATE_REGEX).refine(v => !v || validDate(v)).optional(),
   competenciaAt:  z.string().regex(COMPETENCIA_REGEX).optional(),
   status:         z.enum(STATUS_LANCAMENTO).optional(),
   metaJson:       z.record(z.unknown()).nullable().optional(),

@@ -510,7 +510,7 @@ Dados incluídos por sessão de chat:
   - Últimas 10 recorrências ativas
 
 System prompt:
-  - Especialista em finanças pessoais para servidores/militares de saúde
+  - Especialista em finanças pessoais para profissionais de segurança pública
   - Conhece legislação RAS, estatutos, benefícios
   - Responder em português brasileiro
   - Máximo 3-4 parágrafos

@@ -61,6 +61,83 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
 }
 
 /**
+ * Email de boas-vindas — disparado em D+0 após o cadastro
+ */
+export function buildWelcomeTemplate(name: string): string {
+  const firstName = name.split(' ')[0]
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin:0; padding:0; background:#f4f4f5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+    .wrap { max-width:600px; margin:32px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+    .hero { background:linear-gradient(135deg,#1d4ed8 0%,#0ea5e9 100%); padding:40px 32px; text-align:center; }
+    .hero-logo { display:inline-flex; align-items:center; justify-content:center; width:56px; height:56px; background:rgba(255,255,255,0.2); border-radius:14px; margin-bottom:16px; }
+    .hero h1 { margin:0; font-size:28px; font-weight:800; color:#fff; }
+    .hero p { margin:8px 0 0; color:rgba(255,255,255,0.8); font-size:15px; }
+    .body { padding:36px 32px; }
+    .body p { margin:0 0 16px; color:#374151; font-size:15px; line-height:1.7; }
+    .highlight { color:#1d4ed8; font-weight:700; }
+    .checklist { background:#f0f9ff; border-radius:12px; padding:20px 24px; margin:24px 0; }
+    .checklist h3 { margin:0 0 14px; font-size:14px; font-weight:700; color:#0c4a6e; text-transform:uppercase; letter-spacing:0.5px; }
+    .check-item { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; font-size:14px; color:#374151; }
+    .check-icon { flex-shrink:0; width:20px; height:20px; background:#10b981; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+    .cta-secondary { display:inline-block; background:#1d4ed8; color:#fff; font-weight:600; font-size:15px; text-decoration:none; padding:14px 32px; border-radius:12px; }
+    .footer { padding:20px 32px; border-top:1px solid #f3f4f6; text-align:center; font-size:12px; color:#9ca3af; background:#fafafa; }
+    .footer a { color:#1d4ed8; text-decoration:none; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-logo">
+      <span style="color:#fff;font-size:20px;font-weight:900">MC</span>
+    </div>
+    <h1>Bem-vindo ao MeuCanga!</h1>
+    <p>Finanças para Segurança Pública</p>
+  </div>
+
+  <div class="body">
+    <p>Olá, <span class="highlight">${firstName}</span>! 👋</p>
+    <p>Sua conta foi criada com sucesso. Você acabou de dar o primeiro passo para ter controle total das suas finanças — sem planilhas, sem complicação.</p>
+
+    <div class="checklist">
+      <h3>🚀 Comece por aqui</h3>
+      <div class="check-item">
+        <div class="check-icon"><span style="color:#fff;font-size:11px">✓</span></div>
+        <span><strong>Adicione uma conta bancária</strong> — conta corrente, poupança ou conta digital</span>
+      </div>
+      <div class="check-item">
+        <div class="check-icon"><span style="color:#fff;font-size:11px">✓</span></div>
+        <span><strong>Registre seu primeiro RAS</strong> — veja o valor projetado aparecer automaticamente</span>
+      </div>
+      <div class="check-item">
+        <div class="check-icon"><span style="color:#fff;font-size:11px">✓</span></div>
+        <span><strong>Lance uma despesa</strong> — e veja seu saldo operacional em tempo real</span>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin:24px 0;">
+      <a href="https://meu-canga.com/dashboard" class="cta-secondary">Acessar o MeuCanga →</a>
+    </div>
+
+    <p style="margin-top:28px;font-size:13px;color:#9ca3af;">
+      Qualquer dúvida, responda este email — nossa equipe responde em até 24h.<br>
+      Feito com respeito à sua farda. 🛡️
+    </p>
+  </div>
+
+  <div class="footer">
+    <p>© 2026 MeuCanga · <a href="https://meu-canga.com/configuracoes">Gerenciar preferências</a> · <a href="https://meu-canga.com">Site</a></p>
+  </div>
+</div>
+</body>
+</html>`
+}
+
+/**
  * Build email template for RAS confirmation reminder
  */
 export function buildRasConfirmationTemplate(

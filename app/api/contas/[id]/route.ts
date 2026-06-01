@@ -1,4 +1,5 @@
 // PATCH /api/contas/:id - atualiza ou desativa conta do usuario autenticado
+// DELETE /api/contas/:id - exclui permanentemente (apenas se sem lançamentos)
 
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
@@ -85,6 +86,35 @@ export async function PATCH(
     })
 
     return okResponse(updated)
+  } catch (err) {
+    return serverErrorResponse(err)
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+
+    const { id } = await params
+
+    const conta = await prisma.conta.findUnique({ where: { id } })
+    if (!conta) return notFoundResponse('Conta')
+    if (conta.userId !== user.id) return forbiddenResponse()
+
+    const totalLancamentos = await prisma.lancamento.count({ where: { contaId: id } })
+    if (totalLancamentos > 0) {
+      return errorResponse(
+        'Esta conta possui lançamentos e não pode ser excluída. Desative-a para removê-la do painel.',
+        422,
+      )
+    }
+
+    await prisma.conta.delete({ where: { id } })
+    return okResponse({ id })
   } catch (err) {
     return serverErrorResponse(err)
   }

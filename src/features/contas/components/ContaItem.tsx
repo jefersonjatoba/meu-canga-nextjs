@@ -1,6 +1,6 @@
 'use client'
 
-import { Pencil, PowerOff, Landmark } from 'lucide-react'
+import { Pencil, PowerOff } from 'lucide-react'
 import { formatBRL } from '@/lib/money'
 import { TIPO_CONTA_LABELS, type ContaDTO } from '../types'
 
@@ -20,8 +20,8 @@ const TIPO_ICONS: Record<string, string> = {
 }
 
 export function ContaItem({ conta, onEdit, onDesativar }: ContaItemProps) {
-  const saldo = formatBRL(conta.saldoCentavos)
-  const positivo = conta.saldoCentavos >= 0
+  const saldo = formatBRL(conta.saldoAtualCentavos)
+  const positivo = conta.saldoAtualCentavos >= 0
   const icone = TIPO_ICONS[conta.tipo] ?? '🏦'
   const cor = conta.cor ?? '#3b82f6'
 

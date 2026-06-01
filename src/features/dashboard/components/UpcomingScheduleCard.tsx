@@ -1,16 +1,36 @@
 'use client'
 
-import { Calendar, Clock, MapPin, AlertCircle } from 'lucide-react'
+import { AlertCircle, Calendar, Clock, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatarData } from '@/lib/escala'
 import type { EscalaItem } from '@/features/dashboard/types'
 
 const TURNO_LABELS: Record<string, { label: string; color: string; bgColor: string }> = {
-  plantao: { label: '👮 Plantão', color: 'text-blue-700 dark:text-blue-400', bgColor: 'bg-blue-100 dark:bg-blue-500/10' },
-  sobreaviso: { label: '📱 Sobreaviso', color: 'text-orange-700 dark:text-orange-400', bgColor: 'bg-orange-100 dark:bg-orange-500/10' },
-  extra: { label: '⚡ Escala Extra', color: 'text-purple-700 dark:text-purple-400', bgColor: 'bg-purple-100 dark:bg-purple-500/10' },
-  folga: { label: '✅ Folga', color: 'text-green-700 dark:text-green-400', bgColor: 'bg-green-100 dark:bg-green-500/10' },
-  ferias: { label: '🏖️ Férias', color: 'text-cyan-700 dark:text-cyan-400', bgColor: 'bg-cyan-100 dark:bg-cyan-500/10' },
+  plantao: {
+    label: 'Plantão',
+    color: 'text-blue-700 dark:text-blue-400',
+    bgColor: 'bg-blue-100 dark:bg-blue-500/10',
+  },
+  sobreaviso: {
+    label: 'Sobreaviso',
+    color: 'text-orange-700 dark:text-orange-400',
+    bgColor: 'bg-orange-100 dark:bg-orange-500/10',
+  },
+  extra: {
+    label: 'Escala extra',
+    color: 'text-purple-700 dark:text-purple-400',
+    bgColor: 'bg-purple-100 dark:bg-purple-500/10',
+  },
+  folga: {
+    label: 'Folga',
+    color: 'text-green-700 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-500/10',
+  },
+  ferias: {
+    label: 'Férias',
+    color: 'text-cyan-700 dark:text-cyan-400',
+    bgColor: 'bg-cyan-100 dark:bg-cyan-500/10',
+  },
 }
 
 function getUrgencySeverity(diasAte: number): 'critical' | 'high' | 'normal' | 'future' {
@@ -20,12 +40,7 @@ function getUrgencySeverity(diasAte: number): 'critical' | 'high' | 'normal' | '
   return 'future'
 }
 
-function getUrgencyStyles(severity: 'critical' | 'high' | 'normal' | 'future'): {
-  borderColor: string
-  bgColor: string
-  badgeBg: string
-  badgeText: string
-} {
+function getUrgencyStyles(severity: 'critical' | 'high' | 'normal' | 'future') {
   switch (severity) {
     case 'critical':
       return {
@@ -59,9 +74,9 @@ function getUrgencyStyles(severity: 'critical' | 'high' | 'normal' | 'future'): 
 }
 
 function getDaysLabel(dias: number): string {
-  if (dias === 0) return 'HOJE'
-  if (dias === 1) return 'AMANHÃ'
-  return `EM ${dias} DIAS`
+  if (dias === 0) return 'Hoje'
+  if (dias === 1) return 'Amanhã'
+  return `Em ${dias} dias`
 }
 
 interface UpcomingScheduleCardProps {
@@ -71,11 +86,11 @@ interface UpcomingScheduleCardProps {
 export function UpcomingScheduleCard({ escala }: UpcomingScheduleCardProps) {
   if (!escala) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-[#1C1C1C] shadow-sm p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Próximo Turno</h2>
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/[0.08] dark:bg-[#1C1C1C]">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Próximo turno</h2>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum turno agendado</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum turno agendado no momento.</p>
       </div>
     )
   }
@@ -88,63 +103,74 @@ export function UpcomingScheduleCard({ escala }: UpcomingScheduleCardProps) {
   return (
     <div
       className={cn(
-        'rounded-xl border shadow-sm p-5 flex flex-col gap-4 transition-all',
+        'rounded-xl border p-5 shadow-sm transition-all',
         styles.borderColor,
-        styles.bgColor
+        styles.bgColor,
       )}
     >
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <div className={cn('inline-block px-2.5 py-1 rounded-lg text-xs font-bold mb-2', turnoInfo.bgColor, turnoInfo.color)}>
+          <div
+            className={cn(
+              'mb-2 inline-block rounded-lg px-2.5 py-1 text-xs font-bold',
+              turnoInfo.bgColor,
+              turnoInfo.color,
+            )}
+          >
             {turnoInfo.label}
           </div>
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-            Próximo Turno
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
+            Próximo turno
           </p>
         </div>
         {urgency !== 'future' && (
-          <div className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold whitespace-nowrap', styles.badgeBg, styles.badgeText)}>
+          <div
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap',
+              styles.badgeBg,
+              styles.badgeText,
+            )}
+          >
             {urgency === 'critical' && <AlertCircle size={12} aria-hidden />}
             {daysLabel}
           </div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="space-y-3">
-        {/* Data */}
-        <div className="flex items-center gap-2">
-          <Calendar size={16} className="text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden />
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {formatarData(escala.data)}
-            </p>
-            {urgency !== 'future' && (
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {daysLabel}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Horário */}
-        <div className="flex items-center gap-2">
-          <Clock size={16} className="text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden />
-          <p className="text-sm text-gray-700 dark:text-gray-300">
-            {escala.horaInicio} às {escala.horaFim}
-          </p>
-        </div>
-
-        {/* Local */}
-        {escala.localServico && (
+      <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[1.25fr_0.9fr_1fr]">
+        <div className="rounded-lg bg-white/70 p-3 dark:bg-black/15">
           <div className="flex items-start gap-2">
-            <MapPin size={16} className="text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" aria-hidden />
-            <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-              {escala.localServico}
-            </p>
+            <Calendar size={16} className="mt-0.5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden />
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatarData(escala.data)}</p>
+              <p className="mt-1 text-[11px] text-gray-600 dark:text-gray-400">{daysLabel}</p>
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="rounded-lg bg-white/70 p-3 dark:bg-black/15">
+          <div className="flex items-start gap-2">
+            <Clock size={16} className="mt-0.5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden />
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {escala.horaInicio} às {escala.horaFim}
+              </p>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Janela programada do turno</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-white/70 p-3 dark:bg-black/15">
+          <div className="flex items-start gap-2">
+            <MapPin size={16} className="mt-0.5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden />
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                {escala.localServico || 'Local não informado'}
+              </p>
+              <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Base de referência do serviço</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

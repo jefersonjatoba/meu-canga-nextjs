@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function getUserId(request: NextRequest): string | null {
-  return request.headers.get('x-user-id')
-}
+import { getApiUser, unauthorizedResponse } from '@/lib/api-auth'
 
 function serializeEscala(e: {
   id: string
@@ -36,12 +33,13 @@ function serializeEscala(e: {
 
 // GET /api/escala/[id]
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const { id } = await params
     const escala = await prisma.escala.findUnique({ where: { id } })
@@ -61,8 +59,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const { id } = await params
     const existing = await prisma.escala.findUnique({ where: { id } })
@@ -103,12 +102,13 @@ export async function PATCH(
 
 // DELETE /api/escala/[id] — soft-cancel (status = 'cancelada')
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = getUserId(request)
-    if (!userId) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const user = await getApiUser()
+    if (!user) return unauthorizedResponse()
+    const userId = user.id
 
     const { id } = await params
     const existing = await prisma.escala.findUnique({ where: { id } })

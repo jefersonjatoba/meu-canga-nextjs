@@ -35,7 +35,7 @@ export function FaturaItem({ fatura, onDetalhe, onPagar }: FaturaItemProps) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              {fatura.conta?.nome ?? 'Cartao'} - {fatura.competencia}
+              {fatura.conta?.nome ?? 'Cartão'} - {fatura.competencia}
             </h3>
             <Badge variant={due.variant ?? statusVariant[fatura.status] ?? 'default'} dot>
               {due.statusLabel}
@@ -105,7 +105,7 @@ function getDueState(fatura: FaturaCartaoDTO): {
 
   if (isOverdue) {
     return {
-      label: `vencida ha ${Math.abs(days)} dia${Math.abs(days) !== 1 ? 's' : ''}`,
+      label: `vencida há ${Math.abs(days)} dia${Math.abs(days) !== 1 ? 's' : ''}`,
       statusLabel: 'vencida',
       variant: 'error',
       textClass: 'text-red-600 dark:text-red-400',
@@ -127,7 +127,7 @@ function getDueState(fatura: FaturaCartaoDTO): {
 
   if (days === 1) {
     return {
-      label: 'vence amanha',
+      label: 'vence amanhã',
       statusLabel: fatura.status,
       variant: 'warning',
       textClass: 'text-amber-600 dark:text-amber-400',

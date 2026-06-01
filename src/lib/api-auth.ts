@@ -1,8 +1,6 @@
 // Shared helper to extract the authenticated user from API requests.
-// Lê a session do Supabase via @supabase/ssr (cookies sb-{ref}-auth-token...)
-// com fallback para NextAuth.
+// Lê a session do Supabase via @supabase/ssr (cookies sb-{ref}-auth-token...).
 
-import { auth } from '@/auth'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { prisma } from '@/lib/prisma'
@@ -14,79 +12,63 @@ export type ApiUser = {
   role: string
 }
 
-/**
- * Returns the authenticated user or null.
- * Priority:
- *  1. Supabase session via @supabase/ssr (lê cookies automaticamente)
- *  2. NextAuth session (fallback / dev stub)
- */
+export type ApiUserWithPlan = ApiUser & {
+  plan: string
+  planExpiresAt: Date | null
+}
+
 export async function getApiUser(): Promise<ApiUser | null> {
-  // ── 1. Supabase session via @supabase/ssr ──────────────────────────────────
   try {
     const cookieStore = await cookies()
 
-    // createServerClient sabe quais cookies do Supabase ler
-    // (sb-{project-ref}-auth-token, etc.) — não precisa procurar manualmente.
-    // Em Server Components não podemos escrever cookies; o middleware/proxy
-    // cuida do refresh. Por isso setAll é um no-op aqui.
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll() {
-            // No-op: Server Components não podem setar cookies.
-            // O proxy.ts já faz o refresh da session.
-          },
+          getAll() { return cookieStore.getAll() },
+          setAll() { /* no-op: middleware/proxy cuida do refresh */ },
         },
       }
     )
 
     const { data: { user: sbUser }, error } = await supabase.auth.getUser()
 
-    if (!error && sbUser) {
-      // Buscar usuário Prisma por email
-      let prismaUser = sbUser.email
-        ? await prisma.user.findUnique({ where: { email: sbUser.email } })
-        : null
+    if (error || !sbUser?.email) return null
 
-      // Fallback: pegar o primeiro usuário (app single-user / dev)
-      if (!prismaUser) {
-        prismaUser = await prisma.user.findFirst()
-      }
+    // Resolve o usuário do banco SOMENTE pelo sub (id Supabase) ou email —
+    // nunca por findFirst(), o que poderia vazar sessão entre usuários.
+    const prismaUser = await prisma.user.findUnique({
+      where: { email: sbUser.email },
+      select: { id: true, email: true, name: true, role: true },
+    })
 
-      if (prismaUser) {
-        return {
-          id: prismaUser.id,
-          email: prismaUser.email,
-          name: prismaUser.name,
-          role: prismaUser.role,
-        }
-      }
+    if (!prismaUser) return null
+
+    return {
+      id: prismaUser.id,
+      email: prismaUser.email,
+      name: prismaUser.name,
+      role: prismaUser.role,
     }
   } catch {
-    // Supabase check failed — try NextAuth below
+    return null
   }
+}
 
-  // ── 2. NextAuth session (fallback) ─────────────────────────────────────────
-  try {
-    const session = await auth()
-    if (session?.user) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const u = session.user as any
-      return {
-        id: (u.id as string) ?? '',
-        email: u.email as string,
-        name: u.name as string | null | undefined,
-        role: (u.role as string) ?? 'user',
-      }
-    }
-  } catch {}
-
-  return null
+/** Igual a getApiUser mas inclui plan e planExpiresAt do banco */
+export async function getApiUserWithPlan(): Promise<ApiUserWithPlan | null> {
+  const base = await getApiUser()
+  if (!base) return null
+  const row = await prisma.user.findUnique({
+    where: { id: base.id },
+    select: { plan: true, planExpiresAt: true },
+  })
+  return {
+    ...base,
+    plan: row?.plan ?? 'free',
+    planExpiresAt: row?.planExpiresAt ?? null,
+  }
 }
 
 // ─── Standard JSON response helpers ──────────────────────────────────────────

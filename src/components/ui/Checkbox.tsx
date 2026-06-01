@@ -29,7 +29,8 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     },
     ref
   ) => {
-    const inputId = id ?? React.useId()
+    const generatedId = React.useId()
+    const inputId = id ?? generatedId
     const hasError = !!error
     const isCheckedOrIndeterminate = checked || indeterminate
 

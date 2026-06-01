@@ -19,12 +19,12 @@ export function CartoesEmptyState({ variant, message, onNovaCompra }: CartoesEmp
         <CreditCard size={22} aria-hidden />
       </div>
       <h2 className="mt-4 text-base font-semibold text-gray-900 dark:text-gray-100">
-        {semCartoes ? 'Voce ainda nao configurou um cartao de credito' : 'Nenhuma fatura encontrada'}
+        {semCartoes ? 'Você ainda não configurou um cartão de crédito' : 'Nenhuma fatura encontrada'}
       </h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-gray-500 dark:text-gray-400">
         {message ?? (semCartoes
-          ? 'Cadastre uma conta do tipo cartao, informe fechamento, vencimento e limite para comecar.'
-          : 'As faturas aparecem aqui depois que uma compra no cartao e registrada.')}
+          ? 'Cadastre uma conta do tipo cartão, informe fechamento, vencimento e limite para começar.'
+          : 'As faturas aparecem aqui depois que uma compra no cartão é registrada.')}
       </p>
       {semCartoes ? (
         <Link
@@ -32,11 +32,11 @@ export function CartoesEmptyState({ variant, message, onNovaCompra }: CartoesEmp
           className="mt-5 inline-flex h-10 items-center justify-center rounded-lg bg-accent-blue px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-600"
         >
             <Settings size={16} className="mr-1.5" aria-hidden />
-            Configurar cartao
+            Configurar cartão
         </Link>
       ) : onNovaCompra && (
         <Button className="mt-5" variant="outline" onClick={onNovaCompra}>
-          Adicionar compra no cartao
+          Adicionar compra no cartão
         </Button>
       )}
     </div>

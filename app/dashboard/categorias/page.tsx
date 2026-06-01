@@ -30,7 +30,10 @@ export default function CategoriasPage() {
   }, [])
 
   useEffect(() => {
-    loadCategorias()
+    const timer = window.setTimeout(() => {
+      loadCategorias()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [loadCategorias])
 
   const filteredCategorias = useMemo(() => {

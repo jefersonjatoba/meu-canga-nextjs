@@ -25,15 +25,6 @@ function parseUTCDate(dateStr: string): Date {
   return new Date(Date.UTC(y, m - 1, d))
 }
 
-/** Build the start/end Date range for an entire "YYYY-MM" month. */
-function monthRange(competencia: string): { gte: Date; lte: Date } {
-  const [year, month] = competencia.split('-').map(Number)
-  return {
-    gte: new Date(Date.UTC(year, month - 1, 1)),
-    lte: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
-  }
-}
-
 /** Prisma select for relations included in most queries. */
 const withRelations = {
   include: {

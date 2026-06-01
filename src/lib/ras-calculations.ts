@@ -108,7 +108,7 @@ function parseDatetime(dateStr: string, timeStr: string): Date {
  * until 72 hours later.
  */
 export function isWithinConfirmationWindow(
-  dataRas: Date,
+  dataRas: Date | string,
   dataAtual: Date
 ): boolean {
   // Normalise RAS date to midnight Brazil time
@@ -123,7 +123,12 @@ export function isWithinConfirmationWindow(
 
 /** Returns a Date representing midnight (UTC) for the Brazil-timezone wall
  *  clock date of the given UTC Date. */
-function toBrazilMidnight(date: Date): Date {
+function toBrazilMidnight(date: Date | string): Date {
+  if (typeof date === 'string') {
+    const [year, month, day] = date.split('-').map(Number)
+    return new Date(Date.UTC(year, month - 1, day))
+  }
+
   const brString = date.toLocaleString('en-US', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',

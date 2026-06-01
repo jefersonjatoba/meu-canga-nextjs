@@ -10,8 +10,11 @@ import {
 import type { InvestimentoAtivoDetalheDTO } from '../types'
 import { OperacaoForm } from './OperacaoForm'
 
+type ContaOption = { id: string; nome: string; tipo: string }
+
 interface OperacaoModalProps {
   ativo: InvestimentoAtivoDetalheDTO | null
+  contas: ContaOption[]
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: (ativo: InvestimentoAtivoDetalheDTO) => void
@@ -19,6 +22,7 @@ interface OperacaoModalProps {
 
 export function OperacaoModal({
   ativo,
+  contas,
   open,
   onOpenChange,
   onSuccess,
@@ -27,15 +31,16 @@ export function OperacaoModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>Registrar operacao</DialogTitle>
+          <DialogTitle>Registrar operação</DialogTitle>
           <DialogDescription>
-            Compras e vendas atualizam a posicao do ativo, sem criar lancamento financeiro.
+            A operação atualiza a posição do ativo. Se vincular uma conta, um lançamento financeiro é criado automaticamente.
           </DialogDescription>
         </DialogHeader>
 
         {ativo && (
           <OperacaoForm
             ativo={ativo}
+            contas={contas}
             onSuccess={(updated) => {
               onSuccess(updated)
               onOpenChange(false)

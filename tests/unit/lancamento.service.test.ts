@@ -16,8 +16,17 @@ vi.mock('@/server/services/categoria.service', () => ({
   ensureCategoriaBelongsToUser: vi.fn(),
 }))
 
+vi.mock('@/lib/prisma', () => ({
+  prisma: {
+    conta: {
+      findFirst: vi.fn(),
+    },
+  },
+}))
+
 import * as repo from '@/server/repositories/lancamento.repository'
 import { ensureCategoriaBelongsToUser } from '@/server/services/categoria.service'
+import { prisma } from '@/lib/prisma'
 import {
   createLancamentoForUser,
   updateLancamentoForUser,
@@ -69,6 +78,7 @@ const mockLancamento = {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(ensureCategoriaBelongsToUser).mockResolvedValue(null)
+  vi.mocked(prisma.conta.findFirst).mockResolvedValue({ id: CONTA_ID } as never)
 })
 
 // ─── createLancamentoForUser ──────────────────────────────────────────────────
