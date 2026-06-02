@@ -32,15 +32,31 @@ export async function getApiUser(): Promise<ApiUser | null> {
       }
     )
 
-    // getUser() valida o JWT contra o servidor de auth e renova o token quando
-    // necessário. Versão estável — getClaims() local foi revertido por causar
-    // 401 intermitente na corrida de refresh-token (loop login↔dashboard).
-    const { data: { user: sbUser }, error } = await supabase.auth.getUser()
+    // 1) Verificação LOCAL do JWT (getClaims) — token ES256/assimétrico é
+    //    verificado via JWKS em cache, SEM round-trip de rede. Remove ~200ms
+    //    de latência de auth de toda chamada de API.
+    let sub: string | undefined
+    let email: string | undefined
+    try {
+      const { data } = await supabase.auth.getClaims()
+      sub = data?.claims?.sub
+      email = data?.claims?.email as string | undefined
+    } catch { /* fallback abaixo */ }
 
-    if (error || !sbUser?.email) return null
+    // 2) Fallback de rede — só quando getClaims não resolve (token expirado
+    //    precisando refresh, ou chave legada). Mantém correção garantida.
+    if (!sub) {
+      const { data: { user: sbUser } } = await supabase.auth.getUser()
+      sub = sbUser?.id
+      email = sbUser?.email ?? undefined
+    }
 
-    const prismaUser = await prisma.user.findUnique({
-      where: { email: sbUser.email },
+    if (!sub) return null
+
+    // PK lookup (id = sub, confirmado prismaIdMatchesSub:true). Email como
+    // fallback. Ambos indexados.
+    const prismaUser = await prisma.user.findFirst({
+      where: email ? { OR: [{ id: sub }, { email }] } : { id: sub },
       select: { id: true, email: true, name: true, role: true },
     })
 

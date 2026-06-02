@@ -122,13 +122,23 @@ export async function proxy(request: NextRequest) {
         }
       )
 
-      // getUser() valida o JWT e RENOVA o token quando expirado, gravando os
-      // cookies renovados na response via setAll acima. É justamente esse
-      // refresh+propagação que mantém a sessão consistente entre a navegação
-      // e as chamadas de API subsequentes (evita o 401/loop por token vencido).
-      const { data: { user } } = await supabase.auth.getUser()
+      // Caminho rápido: verificação LOCAL do JWT (getClaims, sem rede) para
+      // tokens válidos — a maioria das navegações. Remove ~200ms por navegação.
+      let authed = false
+      try {
+        const { data } = await supabase.auth.getClaims()
+        authed = !!data?.claims?.sub
+      } catch { /* fallback abaixo */ }
 
-      if (!user) {
+      // Fallback: token expirado/ausente → getUser() revalida E renova via rede,
+      // gravando os cookies renovados na response (setAll acima). Só executa
+      // quando necessário, mantendo a sessão consistente.
+      if (!authed) {
+        const { data: { user } } = await supabase.auth.getUser()
+        authed = !!user
+      }
+
+      if (!authed) {
         const loginUrl = new URL('/auth/login', request.url)
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)
